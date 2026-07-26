@@ -19,7 +19,7 @@ People who need to maintain small links hubs, portfolios, document portals, or r
 
 ## Current Scope
 
-Build the functional desktop MVP with a PT-BR multi-site dashboard; local-only website cards; one `links-hub-v1` template; title/subtitle/sections/cards editing; local save; sanitized public-output generation; local preview/ZIP export; global GitHub account connection; and an explicit per-site `Publicar online` flow. That flow creates/configures only the selected card's repository and GitHub Pages deployment, then publishes it with friendly status/error feedback.
+Build a colleague-usable desktop MVP with a PT-BR multi-site dashboard, reliable local folders/cards, foundational title-element editing and layout controls, sanitized public-output generation, global GitHub account connection, and an explicit per-site `Publicar online` flow. That flow creates/configures only the selected card's public repository and GitHub Pages deployment, then publishes it with friendly status/error feedback. Additional element families and ZIP export/import are later-version work.
 
 ## Run And Test Commands
 
@@ -64,14 +64,12 @@ Keep this brief summary current. Put detailed build, export, package, deployment
 
 ## Current Priorities
 
-1. Define validated data contracts for local-only cards, pages/elements, assets, deployment state, and generated output manifests.
-2. Build a narrow Electron IPC contract and reliable local configuration store, then connect the dashboard to that data.
-3. Build the first create-card flow, focused editor shell, local preview, and sanitized ZIP export.
-4. Implement and test the sanitized `links-hub-v1` generator with strict public-output allowlisting.
-5. Implement global GitHub authorization and the explicit online-publish confirmation flow.
-6. Create/configure the selected GitHub repository and Pages deployment, then publish only that card.
-7. Add existing-repository import as an advanced workflow; test local, GitHub, and failure/recovery paths.
-8. Define Windows packaging and end-user setup only after the core local and public flows work.
+1. Implement and test a sanitized static generator for the existing title/layout content model with strict public-output allowlisting.
+2. Implement global GitHub authorization through dashboard settings with protected credential storage.
+3. Add per-page publishing settings and the explicit online-publish confirmation flow.
+4. Create/configure the selected public GitHub repository and Pages deployment, then publish only generated output for that card.
+5. Validate the clean portable colleague handoff and publishing failure/recovery paths.
+6. Add richer elements, ZIP export/import, and existing-repository import in later versions.
 
 ## Current Visual Foundation
 
@@ -79,7 +77,9 @@ Keep this brief summary current. Put detailed build, export, package, deployment
 - The installed review build starts maximized with a light native Windows frame. Its dashboard canvas uses a restrained smoky blue/gold light background and soft dark-gray text.
 - Cards and controls use the same soft-gray contour and corner radius. The full card is the visual editor entry target, with compact local/private and settings icon actions at its lower right.
 - Full-screen layout is designed for four card columns and two rows. When later card data creates overflow, only the dashboard field scrolls, using a thin light-gray scrollbar aligned beneath the global settings control.
-- Page creation and persistent card listing are functional. Opening/editing a card, its settings, export, and publishing are not implemented yet.
+- Page creation, persistent listing, clean private previews, and opening/editing/saving a card are functional.
+- The page editor currently supports ordinary ordered single-line title elements, direct editing, add/delete/reorder, independent side margins, positional vertical gaps, and unsaved-change protection.
+- Page settings, sanitized generated output, GitHub connection, export, and publishing are not implemented yet.
 
 ## Glossary
 

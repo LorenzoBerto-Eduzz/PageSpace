@@ -3,7 +3,7 @@ import { dirname, join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { PageWorkspaceService } from './page-workspace-service'
-import type { CreatePageInput } from '../shared/page-contracts'
+import type { CreatePageInput, PageContent, SavePageContentInput } from '../shared/page-contracts'
 
 function getPagesRoot(): string {
   return app.isPackaged ? join(dirname(process.execPath), 'Pages') : join(app.getAppPath(), 'Pages')
@@ -25,7 +25,8 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      webSecurity: true
+      webSecurity: true,
+      spellcheck: false
     }
   })
 
@@ -45,6 +46,92 @@ function createWindow(): void {
   }
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
+}
+
+function createPreviewHtml(content: PageContent): string {
+  const elements = content.elements
+    .map(
+      (element, index) =>
+        `<div style="height:${content.layout.gaps[index]}px"></div>` +
+        `<h1>${escapeHtml(element.text)}</h1>`
+    )
+    .join('')
+
+  return `<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <style>
+      * { box-sizing: border-box; }
+      html, body { width: 100%; min-height: 100%; margin: 0; background: #fff; }
+      body {
+        padding-right: ${content.layout.marginRight}px;
+        padding-left: ${content.layout.marginLeft}px;
+        color: #3b3d42;
+        font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif;
+      }
+      h1 {
+        width: fit-content;
+        max-width: 100%;
+        min-height: 1.1em;
+        margin: 0;
+        padding: 7px 8px;
+        overflow: hidden;
+        font-size: 50px;
+        font-weight: 500;
+        line-height: 1.2;
+        letter-spacing: -0.055em;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    ${elements}
+    <div style="height:${content.layout.gaps[content.elements.length]}px"></div>
+  </body>
+</html>`
+}
+
+async function captureCleanPagePreview(
+  pageWorkspace: PageWorkspaceService,
+  pageId: string
+): Promise<string> {
+  const pageData = await pageWorkspace.getPage(pageId)
+  const previewWindow = new BrowserWindow({
+    show: false,
+    width: 1280,
+    height: 720,
+    backgroundColor: '#ffffff',
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true,
+      backgroundThrottling: false
+    }
+  })
+
+  try {
+    const html = createPreviewHtml(pageData.content)
+    await previewWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+    await previewWindow.webContents.executeJavaScript(
+      'new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))'
+    )
+    const capturedPage = await previewWindow.webContents.capturePage()
+    const preview = capturedPage.resize({ width: 960, quality: 'good' }).toPNG()
+    return await pageWorkspace.savePreview(pageId, preview)
+  } finally {
+    previewWindow.destroy()
+  }
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -54,7 +141,23 @@ app.whenReady().then(() => {
 
   const pageWorkspace = new PageWorkspaceService(getPagesRoot())
   ipcMain.handle('pages:list', () => pageWorkspace.listPages())
-  ipcMain.handle('pages:create', (_, input: CreatePageInput) => pageWorkspace.createPage(input))
+  ipcMain.handle('pages:create', async (_, input: CreatePageInput) => {
+    const createdPage = await pageWorkspace.createPage(input)
+    try {
+      const previewDataUrl = await captureCleanPagePreview(pageWorkspace, createdPage.id)
+      return { ...createdPage, previewDataUrl }
+    } catch {
+      // Page creation remains successful even if its replaceable dashboard preview fails.
+      return createdPage
+    }
+  })
+  ipcMain.handle('pages:get', (_, pageId: string) => pageWorkspace.getPage(pageId))
+  ipcMain.handle('pages:save-content', (_, input: SavePageContentInput) =>
+    pageWorkspace.savePageContent(input)
+  )
+  ipcMain.handle('pages:capture-preview', (_, pageId: string) =>
+    captureCleanPagePreview(pageWorkspace, pageId)
+  )
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

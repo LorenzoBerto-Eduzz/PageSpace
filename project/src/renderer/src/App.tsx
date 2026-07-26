@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AddPageCard } from './components/AddPageCard'
 import { CreatePageDialog } from './components/CreatePageDialog'
+import { PageEditor } from './components/PageEditor'
 import { SettingsIcon } from './components/icons'
 import { SiteCard } from './components/SiteCard'
 import type { DashboardPage } from './components/SiteCard'
@@ -21,7 +22,8 @@ function toDashboardPage(page: PageSummary): DashboardPage {
     name: page.name,
     description: page.description || 'Sem descrição',
     status: page.status,
-    preview: 'empty'
+    preview: page.previewDataUrl ? 'captured' : 'empty',
+    previewDataUrl: page.previewDataUrl
   }
 }
 
@@ -31,6 +33,7 @@ function App(): React.JSX.Element {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [openPageId, setOpenPageId] = useState<string | null>(null)
 
   useEffect(() => {
     let isCurrent = true
@@ -63,7 +66,7 @@ function App(): React.JSX.Element {
 
     try {
       const createdPage = await window.pageMaker.createPage(input)
-      setPages((currentPages) => [createdPage, ...currentPages])
+      setPages((currentPages) => [...currentPages, createdPage])
       setIsCreateDialogOpen(false)
     } catch (createError) {
       setError(
@@ -75,6 +78,21 @@ function App(): React.JSX.Element {
   }
 
   const displayedPages = pages.length > 0 ? pages.map(toDashboardPage) : [placeholderPage]
+
+  if (openPageId) {
+    return (
+      <PageEditor
+        pageId={openPageId}
+        onBack={() => setOpenPageId(null)}
+        onSaved={(savedPage) => {
+          setPages((currentPages) => [
+            savedPage.page,
+            ...currentPages.filter((page) => page.id !== savedPage.page.id)
+          ])
+        }}
+      />
+    )
+  }
 
   return (
     <main className="app-shell">
@@ -94,7 +112,7 @@ function App(): React.JSX.Element {
           {error && !isCreateDialogOpen ? <p className="dashboard-error">{error}</p> : null}
           <div className="pages-grid">
             {displayedPages.map((page) => (
-              <SiteCard key={page.id} page={page} />
+              <SiteCard key={page.id} page={page} onOpen={setOpenPageId} />
             ))}
             <AddPageCard onClick={() => setIsCreateDialogOpen(true)} disabled={isLoading} />
           </div>

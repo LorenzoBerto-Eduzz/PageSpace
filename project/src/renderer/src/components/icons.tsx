@@ -45,3 +45,69 @@ export function LockIcon(props: IconProps): React.JSX.Element {
     </Icon>
   )
 }
+
+export function ArrowLeftIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M20 12H5" />
+      <path d="m11 18-6-6 6-6" />
+    </Icon>
+  )
+}
+
+export function GripIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <circle cx="9" cy="7" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="7" r="1" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="17" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="17" r="1" fill="currentColor" stroke="none" />
+    </Icon>
+  )
+}
+
+export function MoveIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M12 3v18M3 12h18" />
+      <path d="m8.5 6 3.5-3.5L15.5 6M8.5 18l3.5 3.5 3.5-3.5M6 8.5 2.5 12 6 15.5M18 8.5l3.5 3.5-3.5 3.5" />
+    </Icon>
+  )
+}
+
+export function EyeIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M3 12s3.2-7 9-7 9 7 9 7-3.2 7-9 7-9-7-9-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </Icon>
+  )
+}
+
+export function PencilIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="m4 20 4.2-1 10.6-10.6a2.1 2.1 0 0 0-3-3L5.2 16 4 20Z" />
+      <path d="m14.7 6.5 2.8 2.8" />
+    </Icon>
+  )
+}
+
+export function SaveIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M5 3h12l2 2v16H5V3Z" />
+      <path d="M8 3v6h8V3M8 21v-7h8v7" />
+    </Icon>
+  )
+}
+
+export function TrashIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" />
+    </Icon>
+  )
+}

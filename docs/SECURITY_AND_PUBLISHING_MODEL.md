@@ -29,6 +29,10 @@ Local-only is not internet access control. Authenticated/private online hosting 
 
 The following must never be emitted: the dashboard/editor, Electron source, logs, local paths, app settings, drafts, Git state, credentials/tokens, account profile data, machine metadata, internal files, or unrelated assets.
 
+Dashboard previews stored as `.pagemaker/preview.png` are private app metadata. They are generated from validated saved content for card display and must never be copied into public output.
+
+For the first publishing version, the generated output may contain only static files rendered from the validated title/layout model and explicitly referenced public assets. The page workspace itself—including `.git/`, `.pagemaker/`, editable `data.json`, previews, and editor state—is never the publishing source.
+
 ## Credentials And Authorization
 
 - GitHub connection is global to the PageMaker installation and uses a secure browser-based authorization flow.

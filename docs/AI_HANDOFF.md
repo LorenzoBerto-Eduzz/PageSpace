@@ -4,9 +4,9 @@
 
 - Project name: `PageMaker`.
 - Product: `Business-grade Windows desktop app for managing local-only and explicitly published static websites`.
-- Source: `project/` contains the Electron + electron-vite + React + TypeScript scaffold and the approved static dashboard foundation.
+- Source: `project/` contains the Electron + electron-vite + React + TypeScript application, functional local dashboard, and first local visual editor.
 - Confirmed stack: `Electron + electron-vite + React + TypeScript`.
-- Local state: `versioned JSON files under Electron userData`; no cloud sync or database in the MVP. Secrets use protected OS storage, never normal JSON.
+- Local state: each portable page workspace stores versioned public content plus private `.pagemaker/` metadata under `PageMaker/Pages/`; future global machine settings may use Electron `userData`. There is no cloud sync or database in the MVP. Secrets use protected OS storage, never normal JSON.
 - Run command: `cd project; npm run dev`.
 - Validation: `cd project; npm run lint`, `npm run typecheck`, and `npm run build`.
 - Development review build: `cd project; npm run build:unpack`, which refreshes the owner's portable folder at `project/dist/PageMaker/` while preserving `Pages/`.
@@ -31,13 +31,12 @@ The owner wants PageMaker to be a portable, friendly, business-grade desktop con
 
 ## Suggested Near-Term Next Steps
 
-- Define and validate the versioned local-only card/data model, including explicit deployment state and migration/version fields.
-- Implement a narrow main/preload IPC contract and an atomic local configuration store before making the dashboard interactive.
-- Build the first create-card flow and a focused editor shell backed by that local model.
-- Implement and verify the sanitized static `links-hub-v1` generator, then local preview/ZIP export.
-- Build global GitHub authorization, then the explicit `Publicar online` flow that creates a repo, configures Pages, and publishes only the chosen card.
-- Add importing/connecting an existing repository as a secondary advanced flow.
-- Update this handoff with `memcheck` after material decisions or implementation milestones.
+- Implement and verify a sanitized static-site generator for the existing title/layout content model. This is the required security boundary before any GitHub work: publishing must consume only its clean allowlisted output.
+- Build global GitHub authorization in dashboard settings with a supported browser flow and protected OS credential storage.
+- Add per-page publishing settings and an explicit confirmation screen. For the first version, `Publicar online` creates a public repository by default.
+- Create/configure the selected repository and GitHub Pages deployment, then commit and push only generated public output. A configured public page uses `Salvar e Postar`.
+- Verify a clean colleague-ready `localrelease` with an empty `Pages/`.
+- Defer richer element families, ZIP export/import, and broader folder management until the publishing MVP is reliable.
 
 ## Durable Decisions
 
@@ -56,7 +55,14 @@ The owner wants PageMaker to be a portable, friendly, business-grade desktop con
 - Local app configuration uses versioned JSON under Electron's `userData` location, not a cloud service or database.
 - In a packaged build, `Pages/` sits beside `PageMaker.exe`. Each real card owns a stable subfolder named from the PT-BR creation name, with a local `.git` repository, `assets/`, and private `.pagemaker/page.json` metadata. Rebuilding the app preserves `Pages/`; a future dashboard rename changes only the displayed card name, not the folder/Git location.
 - Creating a page is functional: the modal asks for a PT-BR name and optional description, then atomically creates the folder and initializes local Git without requiring system Git or GitHub. Creation requests are serialized and duplicate form submits are blocked.
+- A transient creation failure receives one short internal retry. Preview generation is best-effort and cannot turn an otherwise successful page creation into a failure.
+- Every new page starts with a plain white canvas, independent left/right margins, positional vertical gaps, and one ordinary single-line title element containing the original creation name.
+- The versioned content model currently supports ordered title elements. Users can directly edit, add, delete, and pointer-drag them; positional gap sizes remain in place when elements reorder.
+- The movable editor panel contains app/meta controls. View mode hides editor chrome except the pencil control; save-state handling protects unsaved work on return and window close.
+- Saving persists validated content, refreshes a clean private `.pagemaker/preview.png` without flashing the live editor, and moves the card to the front. A newly created card initially appends where the create control was.
+- Browser spellchecking is disabled on PageMaker editing surfaces so user text is not marked with red spelling underlines.
 - `localrelease` means the clean shareable folder at `project/dist/localrelease/PageMaker/`, not the owner's populated development copy. It has the same structure as the future downloadable portable app, but its `Pages/` is always empty and it contains no local settings, page metadata, credentials, or developer/user content. Never deliver `project/dist/PageMaker/` to a colleague.
-- Editable content uses a future-extensible ordered pages/elements model. The initial UI exposes only hero/text/section-card-grid editing.
+- Editable content uses a future-extensible ordered elements model. The current UI deliberately exposes only the foundational title element; the plus control is temporary rather than the final element-library UX.
+- The first colleague-usable version prioritizes solid local organization/editing and explicit GitHub publishing. Additional elements and ZIP export come afterward.
 - `Salvar e Postar` writes/generates/publishes only the active website card. Never make empty commits or automatically resolve merge conflicts.
 - The repository, not chat memory, is the source of truth. `memcheck` writes durable memory only; `gitcheck` validates, commits, and pushes only on request.

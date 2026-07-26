@@ -5,12 +5,14 @@ export type DashboardPage = {
   name: string
   description: string
   status: 'local' | 'published'
-  preview: 'links-hub' | 'empty'
+  preview: 'captured' | 'empty'
+  previewDataUrl?: string
   isPlaceholder?: boolean
 }
 
 type SiteCardProps = {
   page: DashboardPage
+  onOpen?: (pageId: string) => void
 }
 
 function PreviewCanvas({ page }: SiteCardProps): React.JSX.Element {
@@ -18,10 +20,14 @@ function PreviewCanvas({ page }: SiteCardProps): React.JSX.Element {
     return <div className="site-preview site-preview--empty" aria-label="Prévia vazia da página" />
   }
 
-  return <div className="site-preview" aria-label={`Prévia da página ${page.name}`} />
+  return (
+    <div className="site-preview" aria-label={`Prévia da página ${page.name}`}>
+      <img src={page.previewDataUrl} alt="" />
+    </div>
+  )
 }
 
-export function SiteCard({ page }: SiteCardProps): React.JSX.Element {
+export function SiteCard({ page, onOpen }: SiteCardProps): React.JSX.Element {
   const className = page.isPlaceholder ? 'site-card site-card--placeholder' : 'site-card'
 
   return (
@@ -32,7 +38,17 @@ export function SiteCard({ page }: SiteCardProps): React.JSX.Element {
       aria-label={`Abrir edição de ${page.name}`}
       onClick={(event) => {
         if (!(event.target instanceof Element && event.target.closest('.card-action'))) {
-          event.currentTarget.focus()
+          if (page.isPlaceholder) {
+            event.currentTarget.focus()
+          } else {
+            onOpen?.(page.id)
+          }
+        }
+      }}
+      onKeyDown={(event) => {
+        if (!page.isPlaceholder && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault()
+          onOpen?.(page.id)
         }
       }}
     >
