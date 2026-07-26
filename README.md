@@ -22,7 +22,7 @@ PageMaker/
 
 ## Project Status
 
-The product direction is agreed and the initial local Git foundation is committed on `main`, but the Electron application has not yet been scaffolded. The settled facts and next implementation priorities are in [docs/PROJECT_BRIEF.md](docs/PROJECT_BRIEF.md) and [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md).
+The product direction is agreed, the initial Git foundation is committed on `main`, and the Electron application now has its first static dashboard visual. The settled facts and next implementation priorities are in [docs/PROJECT_BRIEF.md](docs/PROJECT_BRIEF.md) and [docs/AI_HANDOFF.md](docs/AI_HANDOFF.md).
 
 The confirmed stack is Electron, `electron-vite`, React, and TypeScript. The first public template is `links-hub-v1`, with a versioned pages/elements content model serialized to `data.json` and generated static files suitable for GitHub Pages. PageMaker is desktop-first; a browser/localhost mode is a future option, not a replacement for the installed local backend.
 
@@ -43,4 +43,4 @@ PageMaker's local configuration may contain local paths and repository metadata,
 
 ## Delivery
 
-The target distribution is a Windows installer or portable executable. Packaging and release steps are not yet established, so do not create release artifacts until `docs/DELIVERY_PROCESS.md` is updated with the real process.
+The target distribution is a Windows installer or portable executable. For ongoing local review, `localrelease` refreshes the stable unpacked folder at `project/dist/win-unpacked/`; the bookmarked `PageMaker.exe` there will always open the latest completed review build. It remains unsigned and is not a public production release.

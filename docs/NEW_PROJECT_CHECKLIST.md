@@ -12,10 +12,10 @@ Use this checklist when adapting the template into a real project. It is stack-n
 
 ## 2. Source And Tooling
 
-- [ ] Inspect the real source, package manifests, and configuration files before declaring the stack.
-- [ ] Record real run, test, lint, format, build, and development commands. Write `unknown` where a command is not yet established.
+- [x] Inspect the real source, package manifests, and configuration files before declaring the stack.
+- [x] Record real run, test, lint, format, build, and development commands.
 - [x] Update `.gitignore`, `.gitattributes`, and `.editorconfig` for the chosen Electron/TypeScript stack and generated outputs.
-- [ ] Keep source, tests, assets, integrations, configuration, and temporary diagnostics organized by responsibility.
+- [x] Keep the first source, assets, and static dashboard presentation components organized by responsibility.
 
 ## 3. Data, Secrets, And External Services
 
@@ -43,8 +43,8 @@ Use this checklist when adapting the template into a real project. It is stack-n
 
 ## 6. Delivery And Verification
 
-- [ ] Define the smallest useful smoke test before broad implementation.
-- [ ] Document the real validation commands in `docs/PROJECT_BRIEF.md`.
-- [ ] Decide whether the project has a build, export, package, deploy, or release process.
-- [ ] If it does, document it in `docs/DELIVERY_PROCESS.md` before using a named delivery command.
-- [ ] Keep generated delivery artifacts out of Git unless the project intentionally tracks them.
+- [x] Define the smallest useful smoke test: run the unpacked `PageMaker.exe` after a successful build.
+- [x] Document the real validation commands in `docs/PROJECT_BRIEF.md`.
+- [x] Decide the approved local-review build process; production release remains undecided.
+- [x] Document `localrelease` in `docs/DELIVERY_PROCESS.md` before using it as a named delivery command.
+- [x] Keep generated delivery artifacts out of Git unless the project intentionally tracks them.

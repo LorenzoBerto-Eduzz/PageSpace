@@ -4,11 +4,13 @@
 
 - Project name: `PageMaker`.
 - Product: `Business-grade Windows desktop app for managing local-only and explicitly published static websites`.
-- Source: `project/` (not scaffolded yet; it intentionally contains only the source-root keeper file).
+- Source: `project/` contains the Electron + electron-vite + React + TypeScript scaffold and the approved static dashboard foundation.
 - Confirmed stack: `Electron + electron-vite + React + TypeScript`.
 - Local state: `versioned JSON files under Electron userData`; no cloud sync or database in the MVP. Secrets use protected OS storage, never normal JSON.
-- Run/test commands: `unknown until the Electron scaffold is created`.
-- Delivery: `Windows installer or portable .exe is the target; no package/release command is approved yet`.
+- Run command: `cd project; npm run dev`.
+- Validation: `cd project; npm run lint`, `npm run typecheck`, and `npm run build`.
+- Local review build: `cd project; npm run build:unpack`, which refreshes `project/dist/win-unpacked/PageMaker.exe`.
+- Delivery: `localrelease` is approved for repeatable local review builds after completed app milestones. A signed installer/public release is not approved yet.
 - Git: `initialized on main`; local identity is configured and the `.githooks` email guard is enabled. The real `.git-identity` is local-only and ignored.
 - Remote: `none configured yet`; initial setup is a local root commit only.
 - Durable context is in `docs/`; `notes/` is owner scratch space; `asset_staging/` accepts Git-safe references; `local_assets/` remains private and ignored.
@@ -28,9 +30,10 @@ The owner wants PageMaker to be an installable, friendly, business-grade desktop
 
 ## Suggested Near-Term Next Steps
 
-- Scaffold Electron + electron-vite + React + TypeScript in `project/`; document real run/test/lint/build commands.
-- Define the versioned local-only card/data model, including an explicit deployment state.
-- Implement and verify the sanitized static `links-hub-v1` generator and local-only preview/ZIP export path.
+- Define and validate the versioned local-only card/data model, including explicit deployment state and migration/version fields.
+- Implement a narrow main/preload IPC contract and an atomic local configuration store before making the dashboard interactive.
+- Build the first create-card flow and a focused editor shell backed by that local model.
+- Implement and verify the sanitized static `links-hub-v1` generator, then local preview/ZIP export.
 - Build global GitHub authorization, then the explicit `Publicar online` flow that creates a repo, configures Pages, and publishes only the chosen card.
 - Add importing/connecting an existing repository as a secondary advanced flow.
 - Update this handoff with `memcheck` after material decisions or implementation milestones.
@@ -45,6 +48,10 @@ The owner wants PageMaker to be an installable, friendly, business-grade desktop
 - Local-only cards can be exported as sanitized static ZIPs. This is not the same as future authenticated private online hosting.
 - Electron desktop is the primary application form. A localhost/browser interface may be added later only behind a loopback-only, authenticated local service.
 - The renderer uses React; `electron-vite` is the application scaffold; `electron-builder` is the planned Windows packager once release work begins.
+- The static visual foundation uses a light PT-BR `Minhas Páginas` dashboard with a subtle smoky blue/gold background, a maximized light-theme Windows window, one empty placeholder card, and a compact square plus control. The card preview is intentionally blank; its labels are placeholders only.
+- Cards use a common soft-gray contour and consistent corner radius. The whole card is the future editor-entry target; its local/private and settings icon controls remain independently targetable. No dashboard action has business behavior yet.
+- Full-screen dashboard layout is prepared for four card columns/two rows. The dashboard content area owns a thin, light-gray internal scrollbar aligned under the global settings control when more rows overflow.
+- `project/dist/win-unpacked/` is the stable local review target. Refresh it with `localrelease` after each completed user-visible app change or milestone, then run the same `PageMaker.exe` shortcut to review the latest build.
 - Local app configuration uses versioned JSON under Electron's `userData` location, not a cloud service or database.
 - Editable content uses a future-extensible ordered pages/elements model. The initial UI exposes only hero/text/section-card-grid editing.
 - `Salvar e Postar` writes/generates/publishes only the active website card. Never make empty commits or automatically resolve merge conflicts.

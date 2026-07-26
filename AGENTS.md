@@ -64,5 +64,5 @@ Do not copy `.git/` into a new project. A copied project must receive its own Gi
 - `memcheck`: thoroughly update durable project memory with distilled decisions, functionality, plans, workflow rules, commands, constraints, and pitfalls. Do not commit or push by default.
 - `gitcheck`: perform `memcheck`, inspect the worktree and diffs, run relevant checks, verify the Git identity guard, stage the intended files, commit, and push to the configured remote unless the owner says not to.
 - `gitcheck` commit messages must use a concise objective title followed by one or more `-` bullet points describing the completed changes.
-- A project-specific delivery command such as `localrelease` may exist only after it is defined in `docs/DELIVERY_PROCESS.md`. Never invent or run one merely because this template contains `scripts/`.
+- `localrelease`: refresh the stable local review folder at `project/dist/win-unpacked/` after each completed app milestone or user-visible code change, unless the owner says not to. Read and follow `docs/DELIVERY_PROCESS.md`; this is not a public release or Git push.
 - The identity guard enforces the Git email, which controls GitHub attribution when that email is verified on the intended GitHub account. Configure the requested `user.name` too, but do not enforce it in hooks because device-specific display names may be intentional.

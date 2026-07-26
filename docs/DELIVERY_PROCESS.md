@@ -8,6 +8,47 @@ Do not create PageMaker generated delivery artifacts, installers, portable execu
 
 This restriction concerns distribution of the PageMaker desktop app. Its future `Salvar e Postar` feature is a normal, per-website user workflow: it generates and Git-publishes the active managed website's clean static files. That feature still needs explicit implementation, validation, and user-visible confirmation.
 
+## Approved Local Review Build
+
+The owner may request a local review build so a trusted colleague can evaluate the current desktop interface before an installer, signing, or public release exists.
+
+- Purpose: visual/functionality review only; it is not a supported public release.
+- Packager: `electron-builder` through `npm run build:unpack` in `project/`.
+- Expected output: `project/dist/win-unpacked/`.
+- Windows entry point: `project/dist/win-unpacked/PageMaker.exe`.
+- Sharing rule: copy/share the entire `win-unpacked` folder, not only the executable; Electron needs the adjacent runtime files.
+- Validation: run lint, type checks, a production build, then open `PageMaker.exe` from the unpacked folder.
+- Security: inspect the output folder before sharing; it must not contain `.env` files, `.git-identity`, app-local data, user content, credentials, exports, or development sources.
+- Signing: this review build is unsigned, so Windows may show a SmartScreen warning. Do not present it as a signed or production-ready installer.
+
+The generated `dist/` output is ignored by Git. Do not commit, push, or publish this review build unless the owner explicitly asks.
+
+## localrelease Workflow
+
+`localrelease` is the project command for a repeatable local review build. After each completed user-visible app change or implementation milestone, refresh this same folder unless the owner says not to:
+
+```text
+project/dist/win-unpacked/
+```
+
+The owner can bookmark or create a shortcut to this stable executable:
+
+```text
+project/dist/win-unpacked/PageMaker.exe
+```
+
+Do not rebuild after every intermediate edit in a multi-step task. Rebuild when that task is complete and ready for the owner's visual/functional review.
+
+Procedure:
+
+1. Inspect the worktree and confirm the completed change is in scope.
+2. Close every running PageMaker review window/process so Windows does not lock output files.
+3. Run `npm run lint`, `npm run typecheck`, and `npm run build:unpack` from `project/`.
+4. Verify the refreshed `win-unpacked` folder contains `PageMaker.exe` and no private/configuration files.
+5. Launch `PageMaker.exe` once as a smoke test, then report the stable folder path.
+
+`localrelease` overwrites the prior local review build in place. It does not create a commit, push a remote, upload an artifact, or imply that the build is signed/production-ready.
+
 ## When A Project Needs Delivery
 
 Before establishing a named command such as `localrelease`, document:

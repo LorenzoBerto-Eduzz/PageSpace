@@ -105,6 +105,8 @@ Use shared folders only when the file really is shared. Do not put feature-speci
 
 ## Current Project Status
 
-The source application is not scaffolded yet. This is a documented target structure, not permission to create speculative abstractions. Start with the Electron/Vite defaults and make the first focused additions only when the dashboard, template, config, and publish workflows require them.
+The Electron + electron-vite + React + TypeScript application is scaffolded in `project/`. It currently keeps the selected toolchain's standard `main`, `preload`, and renderer source areas, plus small focused dashboard components and static presentation data. The renderer is intentionally non-privileged; the preload surface is empty until a specific local capability is implemented.
+
+The planned structure above remains direction, not permission to create speculative abstractions. Add the first focused main-process services, typed IPC, feature folders, or templates only when the local card/config/editor workflow requires them.
 
 Do not perform broad reorganizations casually. If a folder move will change many imports, paths, generated files, or user understanding, confirm first and do it as one focused structural change.

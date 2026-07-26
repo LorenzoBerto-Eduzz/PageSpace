@@ -24,15 +24,18 @@ Build the functional desktop MVP with a PT-BR multi-site dashboard; local-only w
 ## Run And Test Commands
 
 ```text
-Run: unknown — Electron/Vite scaffold not yet created
-Test: unknown — establish a practical unit/smoke-test path during scaffolding
+Run: cd project; npm run dev
+Lint: cd project; npm run lint
+Type check: cd project; npm run typecheck
+Build: cd project; npm run build
+Local review build: cd project; npm run build:unpack
 ```
 
 If commands are not known yet, write `unknown` and ask before assuming.
 
 ## Delivery Or Release Process
 
-- Delivery command/policy: `No delivery command yet. Package only after a documented Windows release process exists.`
+- Delivery command/policy: `localrelease refreshes project/dist/win-unpacked/PageMaker.exe after each completed user-visible app milestone. It is an unsigned local review build, not a public release.`
 - Versioning/release authority: `Owner approval required for versions, artifacts, and releases.`
 
 Keep this brief summary current. Put detailed build, export, package, deployment, or publish instructions in `docs/DELIVERY_PROCESS.md` only after the project has a real process.
@@ -59,14 +62,22 @@ Keep this brief summary current. Put detailed build, export, package, deployment
 
 ## Current Priorities
 
-1. Scaffold and validate the Electron + electron-vite + React + TypeScript application in `project/`.
-2. Define validated data contracts for local-only cards, pages/elements, assets, deployment state, and generated output manifests.
-3. Build local configuration, the dashboard, the editor, local preview, and sanitized ZIP export.
+1. Define validated data contracts for local-only cards, pages/elements, assets, deployment state, and generated output manifests.
+2. Build a narrow Electron IPC contract and reliable local configuration store, then connect the dashboard to that data.
+3. Build the first create-card flow, focused editor shell, local preview, and sanitized ZIP export.
 4. Implement and test the sanitized `links-hub-v1` generator with strict public-output allowlisting.
 5. Implement global GitHub authorization and the explicit online-publish confirmation flow.
 6. Create/configure the selected GitHub repository and Pages deployment, then publish only that card.
 7. Add existing-repository import as an advanced workflow; test local, GitHub, and failure/recovery paths.
 8. Define Windows packaging and end-user setup only after the core local and public flows work.
+
+## Current Visual Foundation
+
+- The first dashboard is a non-functional PT-BR visual baseline: `Minhas Páginas`, global settings, one blank placeholder website card, and a square create-page control.
+- The installed review build starts maximized with a light native Windows frame. Its dashboard canvas uses a restrained smoky blue/gold light background and soft dark-gray text.
+- Cards and controls use the same soft-gray contour and corner radius. The full card is the visual editor entry target, with compact local/private and settings icon actions at its lower right.
+- Full-screen layout is designed for four card columns and two rows. When later card data creates overflow, only the dashboard field scrolls, using a thin light-gray scrollbar aligned beneath the global settings control.
+- This is presentation scaffolding only: no card is stored, created, opened, edited, exported, or published yet.
 
 ## Glossary
 
@@ -89,6 +100,7 @@ Keep this brief summary current. Put detailed build, export, package, deployment
 - Local-only does not mean password-protected on the internet; it means not deployed. Future authenticated/private online sites are a separate capability.
 - Never publish a workspace folder directly. Publish only a fresh generated output folder verified against its manifest.
 - Do not include image metadata, hidden files, local drafts, machine paths, or internal configuration in public/ZIP output.
+- Before refreshing `localrelease`, close any running PageMaker review executable; Windows can lock files in `project/dist/win-unpacked/`. After the build, the same `PageMaker.exe` shortcut points to the refreshed app.
 - A successful Git push does not mean GitHub Pages is instantly live; show the public link after push, but allow GitHub's publishing delay.
 - A no-change publish must not create an empty commit; communicate `Nenhuma alteração para publicar`.
 - `git pull --rebase` may be useful before publishing, but conflicts require user resolution outside automatic MVP handling.
