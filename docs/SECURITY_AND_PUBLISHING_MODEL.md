@@ -8,7 +8,7 @@ PageMaker is business-grade local software. A generated website or exported ZIP 
 
 - Default state for every new card.
 - Stored only in PageMaker's controlled local workspace and application data.
-- Has no GitHub repository, remote, public URL, or network publishing action.
+- Has no GitHub repository, remote, public URL, or network publishing action. It may have a local Git repository initialized only for future app-managed history and publishing.
 - May be previewed locally and exported as a sanitized static ZIP.
 
 ### Public online

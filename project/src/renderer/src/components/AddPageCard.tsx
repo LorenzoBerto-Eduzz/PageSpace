@@ -1,8 +1,19 @@
 import { PlusIcon } from './icons'
 
-export function AddPageCard(): React.JSX.Element {
+type AddPageCardProps = {
+  onClick: () => void
+  disabled?: boolean
+}
+
+export function AddPageCard({ onClick, disabled = false }: AddPageCardProps): React.JSX.Element {
   return (
-    <button className="add-page-card" type="button" aria-label="Criar página">
+    <button
+      className="add-page-card"
+      type="button"
+      aria-label="Criar página"
+      onClick={onClick}
+      disabled={disabled}
+    >
       <PlusIcon size={28} />
       <span>Criar página</span>
     </button>

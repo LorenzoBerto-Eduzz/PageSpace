@@ -43,4 +43,6 @@ PageMaker's local configuration may contain local paths and repository metadata,
 
 ## Delivery
 
-The target distribution is a Windows installer or portable executable. For ongoing local review, `localrelease` refreshes the stable unpacked folder at `project/dist/win-unpacked/`; the bookmarked `PageMaker.exe` there will always open the latest completed review build. It remains unsigned and is not a public production release.
+PageMaker is distributed as a portable Windows folder, not an installer. The owner's ongoing development copy is `project/dist/PageMaker/`; its executable is `PageMaker.exe` and persistent user pages live in `Pages/`.
+
+When the owner requests `localrelease`, run `npm run export:localrelease` to create `project/dist/localrelease/PageMaker/`. That shareable folder deliberately mirrors the future downloadable GitHub Release layout and always contains an empty `Pages/`. Never share or upload the owner's populated development copy.

@@ -9,15 +9,16 @@
 - Local state: `versioned JSON files under Electron userData`; no cloud sync or database in the MVP. Secrets use protected OS storage, never normal JSON.
 - Run command: `cd project; npm run dev`.
 - Validation: `cd project; npm run lint`, `npm run typecheck`, and `npm run build`.
-- Local review build: `cd project; npm run build:unpack`, which refreshes `project/dist/win-unpacked/PageMaker.exe`.
-- Delivery: `localrelease` is approved for repeatable local review builds after completed app milestones. A signed installer/public release is not approved yet.
+- Development review build: `cd project; npm run build:unpack`, which refreshes the owner's portable folder at `project/dist/PageMaker/` while preserving `Pages/`.
+- Clean colleague handoff: `cd project; npm run export:localrelease`, which refreshes the development build first and creates `project/dist/localrelease/PageMaker/` with an empty `Pages/` and no local user/developer data.
+- Delivery: `localrelease` is approved for clean, repeatable colleague handoff folders after completed app milestones. An uploaded/public release is not approved yet.
 - Git: `initialized on main`; local identity is configured and the `.githooks` email guard is enabled. The real `.git-identity` is local-only and ignored.
 - Remote: `none configured yet`; initial setup is a local root commit only.
 - Durable context is in `docs/`; `notes/` is owner scratch space; `asset_staging/` accepts Git-safe references; `local_assets/` remains private and ignored.
 
 ## User Intent
 
-The owner wants PageMaker to be an installable, friendly, business-grade desktop control center for non-technical users. Each user manages multiple website cards, which begin local-only. Users can edit and preview safely, then explicitly choose to publish an individual site online without seeing Git mechanics.
+The owner wants PageMaker to be a portable, friendly, business-grade desktop control center for non-technical users. Each user manages multiple website cards, which begin local-only. Users can edit and preview safely, then explicitly choose to publish an individual site online without seeing Git mechanics.
 
 ## Working Procedure For Future AI Sessions
 
@@ -51,8 +52,11 @@ The owner wants PageMaker to be an installable, friendly, business-grade desktop
 - The static visual foundation uses a light PT-BR `Minhas Páginas` dashboard with a subtle smoky blue/gold background, a maximized light-theme Windows window, one empty placeholder card, and a compact square plus control. The card preview is intentionally blank; its labels are placeholders only.
 - Cards use a common soft-gray contour and consistent corner radius. The whole card is the future editor-entry target; its local/private and settings icon controls remain independently targetable. No dashboard action has business behavior yet.
 - Full-screen dashboard layout is prepared for four card columns/two rows. The dashboard content area owns a thin, light-gray internal scrollbar aligned under the global settings control when more rows overflow.
-- `project/dist/win-unpacked/` is the stable local review target. Refresh it with `localrelease` after each completed user-visible app change or milestone, then run the same `PageMaker.exe` shortcut to review the latest build.
+- `project/dist/PageMaker/` is the owner's stable development-review target. Refresh it after each completed user-visible app change or milestone, preserve its `Pages/`, and run its `PageMaker.exe` to review the latest build.
 - Local app configuration uses versioned JSON under Electron's `userData` location, not a cloud service or database.
+- In a packaged build, `Pages/` sits beside `PageMaker.exe`. Each real card owns a stable subfolder named from the PT-BR creation name, with a local `.git` repository, `assets/`, and private `.pagemaker/page.json` metadata. Rebuilding the app preserves `Pages/`; a future dashboard rename changes only the displayed card name, not the folder/Git location.
+- Creating a page is functional: the modal asks for a PT-BR name and optional description, then atomically creates the folder and initializes local Git without requiring system Git or GitHub. Creation requests are serialized and duplicate form submits are blocked.
+- `localrelease` means the clean shareable folder at `project/dist/localrelease/PageMaker/`, not the owner's populated development copy. It has the same structure as the future downloadable portable app, but its `Pages/` is always empty and it contains no local settings, page metadata, credentials, or developer/user content. Never deliver `project/dist/PageMaker/` to a colleague.
 - Editable content uses a future-extensible ordered pages/elements model. The initial UI exposes only hero/text/section-card-grid editing.
 - `Salvar e Postar` writes/generates/publishes only the active website card. Never make empty commits or automatically resolve merge conflicts.
 - The repository, not chat memory, is the source of truth. `memcheck` writes durable memory only; `gitcheck` validates, commits, and pushes only on request.

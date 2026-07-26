@@ -80,7 +80,7 @@ Keep product behaviour grouped by the concept it serves. For example, the site e
 
 ## Data And Generated Output
 
-- Local app configuration is machine-local, versioned JSON stored beneath Electron's `userData` path. A card's deployment state is explicit (`local-only` or `public-online`); local paths, remote URLs, public URLs, template names, and publish status may be recorded. It must not contain passwords or GitHub tokens.
+- Global app configuration remains machine-local and may use versioned JSON beneath Electron's `userData` path. Each managed card lives in the portable release's `Pages/<stable-folder-name>/` workspace. Private `.pagemaker/page.json` metadata records its local state; it must not contain passwords or GitHub tokens.
 - Per-website public content is stored in `data.json` for the MVP. Its canonical schema uses ordered pages/elements, with first-generation hero/text/section-card-grid element types.
 - The public-output service creates a fresh generated folder from an explicit manifest. It receives only public `index.html`, `styles.css`, `app.js`, `data.json`, sanitized public `assets/`, and safe `.PageMaker.json` metadata.
 - Do not mix PageMaker's own Electron project/repository into a managed website repository.
@@ -105,7 +105,7 @@ Use shared folders only when the file really is shared. Do not put feature-speci
 
 ## Current Project Status
 
-The Electron + electron-vite + React + TypeScript application is scaffolded in `project/`. It currently keeps the selected toolchain's standard `main`, `preload`, and renderer source areas, plus small focused dashboard components and static presentation data. The renderer is intentionally non-privileged; the preload surface is empty until a specific local capability is implemented.
+The Electron + electron-vite + React + TypeScript application is scaffolded in `project/`. It currently keeps the selected toolchain's standard `main`, `preload`, and renderer source areas, plus focused dashboard and page-creation components. The renderer is intentionally non-privileged; a narrow typed preload API exposes only page listing and creation. The main-process workspace service owns atomic metadata writes and local Git initialization.
 
 The planned structure above remains direction, not permission to create speculative abstractions. Add the first focused main-process services, typed IPC, feature folders, or templates only when the local card/config/editor workflow requires them.
 

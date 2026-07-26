@@ -29,20 +29,22 @@ Lint: cd project; npm run lint
 Type check: cd project; npm run typecheck
 Build: cd project; npm run build
 Local review build: cd project; npm run build:unpack
+Clean shareable localrelease: cd project; npm run export:localrelease
 ```
 
 If commands are not known yet, write `unknown` and ask before assuming.
 
 ## Delivery Or Release Process
 
-- Delivery command/policy: `localrelease refreshes project/dist/win-unpacked/PageMaker.exe after each completed user-visible app milestone. It is an unsigned local review build, not a public release.`
+- Delivery command/policy: `build:unpack refreshes the owner's project/dist/PageMaker/ development copy and preserves its Pages/. localrelease runs export:localrelease and creates project/dist/localrelease/PageMaker/ with an empty Pages/ and no local user/developer data.`
 - Versioning/release authority: `Owner approval required for versions, artifacts, and releases.`
 
 Keep this brief summary current. Put detailed build, export, package, deployment, or publish instructions in `docs/DELIVERY_PROCESS.md` only after the project has a real process.
 
 ## Important Constraints
 
-- Primary platform is Windows; distribution target is an installer or portable `.exe`.
+- Primary platform is Windows; distribution target is a portable `PageMaker/` folder, not an installer. Users may place the folder wherever they choose and run `PageMaker.exe` directly.
+- Every page lives in `PageMaker/Pages/<creation-name>/`. Normal PT-BR accents and spaces are preserved in the folder name; only Windows-forbidden characters are made safe. A later dashboard rename changes the card label only and leaves the stable folder/local Git repository unchanged.
 - Use `electron-vite` with React and TypeScript. Do not substitute a framework without owner approval.
 - Use versioned JSON in Electron's `userData` folder for machine-local app configuration. Do not introduce a database or cloud sync in the MVP.
 - Treat PageMaker as business-grade software: use schema validation, atomic writes, recoverable backups, idempotent operations, redacted diagnostic logs, publish history, and focused automated tests around generation and publishing.
@@ -73,11 +75,11 @@ Keep this brief summary current. Put detailed build, export, package, deployment
 
 ## Current Visual Foundation
 
-- The first dashboard is a non-functional PT-BR visual baseline: `Minhas Páginas`, global settings, one blank placeholder website card, and a square create-page control.
+- The PT-BR dashboard shows `Minhas Páginas`, global settings, stored website cards, and a square create-page control.
 - The installed review build starts maximized with a light native Windows frame. Its dashboard canvas uses a restrained smoky blue/gold light background and soft dark-gray text.
 - Cards and controls use the same soft-gray contour and corner radius. The full card is the visual editor entry target, with compact local/private and settings icon actions at its lower right.
 - Full-screen layout is designed for four card columns and two rows. When later card data creates overflow, only the dashboard field scrolls, using a thin light-gray scrollbar aligned beneath the global settings control.
-- This is presentation scaffolding only: no card is stored, created, opened, edited, exported, or published yet.
+- Page creation and persistent card listing are functional. Opening/editing a card, its settings, export, and publishing are not implemented yet.
 
 ## Glossary
 
@@ -100,7 +102,7 @@ Keep this brief summary current. Put detailed build, export, package, deployment
 - Local-only does not mean password-protected on the internet; it means not deployed. Future authenticated/private online sites are a separate capability.
 - Never publish a workspace folder directly. Publish only a fresh generated output folder verified against its manifest.
 - Do not include image metadata, hidden files, local drafts, machine paths, or internal configuration in public/ZIP output.
-- Before refreshing `localrelease`, close any running PageMaker review executable; Windows can lock files in `project/dist/win-unpacked/`. After the build, the same `PageMaker.exe` shortcut points to the refreshed app.
+- Before refreshing the development build or creating `localrelease`, close any running PageMaker review executable; Windows can lock files in `project/dist/PageMaker/`. The development build replaces only generated runtime files and preserves `Pages/`; the separate localrelease is recreated clean with an empty `Pages/`.
 - A successful Git push does not mean GitHub Pages is instantly live; show the public link after push, but allow GitHub's publishing delay.
 - A no-change publish must not create an empty commit; communicate `Nenhuma alteração para publicar`.
 - `git pull --rebase` may be useful before publishing, but conflicts require user resolution outside automatic MVP handling.

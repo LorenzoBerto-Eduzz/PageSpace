@@ -1,6 +1,6 @@
 # Delivery Process: PageMaker
 
-PageMaker is intended to be distributed to end users as a Windows installer or portable executable. `electron-builder` is the selected packager, but its configuration, signing approach, artifact name, versioning process, and release workflow are not decided yet.
+PageMaker is intended to be distributed as a portable Windows `PageMaker/` folder, not an installer. `electron-builder` creates the runtime and the project build script places it beside the persistent `Pages/` workspace.
 
 ## Default Rule
 
@@ -8,46 +8,59 @@ Do not create PageMaker generated delivery artifacts, installers, portable execu
 
 This restriction concerns distribution of the PageMaker desktop app. Its future `Salvar e Postar` feature is a normal, per-website user workflow: it generates and Git-publishes the active managed website's clean static files. That feature still needs explicit implementation, validation, and user-visible confirmation.
 
-## Approved Local Review Build
+## Owner Development Review Build
 
-The owner may request a local review build so a trusted colleague can evaluate the current desktop interface before an installer, signing, or public release exists.
+The owner runs and pins this copy during active development.
 
-- Purpose: visual/functionality review only; it is not a supported public release.
+- Purpose: the owner's current visual/functionality review copy.
 - Packager: `electron-builder` through `npm run build:unpack` in `project/`.
-- Expected output: `project/dist/win-unpacked/`.
-- Windows entry point: `project/dist/win-unpacked/PageMaker.exe`.
-- Sharing rule: copy/share the entire `win-unpacked` folder, not only the executable; Electron needs the adjacent runtime files.
+- Expected output: `project/dist/PageMaker/`.
+- Windows entry point: `project/dist/PageMaker/PageMaker.exe`.
+- Sharing rule: do not share this folder because its persistent `Pages/` may contain the owner's local pages and Git metadata. Use `localrelease` for colleague handoff.
 - Validation: run lint, type checks, a production build, then open `PageMaker.exe` from the unpacked folder.
 - Security: inspect the output folder before sharing; it must not contain `.env` files, `.git-identity`, app-local data, user content, credentials, exports, or development sources.
 - Signing: this review build is unsigned, so Windows may show a SmartScreen warning. Do not present it as a signed or production-ready installer.
 
 The generated `dist/` output is ignored by Git. Do not commit, push, or publish this review build unless the owner explicitly asks.
 
-## localrelease Workflow
+## Clean localrelease Workflow
 
-`localrelease` is the project command for a repeatable local review build. After each completed user-visible app change or implementation milestone, refresh this same folder unless the owner says not to:
-
-```text
-project/dist/win-unpacked/
-```
-
-The owner can bookmark or create a shortcut to this stable executable:
+`localrelease` means a clean, shareable portable folder for a colleague and is also the intended shape of a future GitHub Release:
 
 ```text
-project/dist/win-unpacked/PageMaker.exe
+project/dist/localrelease/PageMaker/
 ```
 
-Do not rebuild after every intermediate edit in a multi-step task. Rebuild when that task is complete and ready for the owner's visual/functional review.
+Create it with:
+
+```text
+cd project
+npm run export:localrelease
+```
 
 Procedure:
 
 1. Inspect the worktree and confirm the completed change is in scope.
 2. Close every running PageMaker review window/process so Windows does not lock output files.
-3. Run `npm run lint`, `npm run typecheck`, and `npm run build:unpack` from `project/`.
-4. Verify the refreshed `win-unpacked` folder contains `PageMaker.exe` and no private/configuration files.
-5. Launch `PageMaker.exe` once as a smoke test, then report the stable folder path.
+3. Run `npm run lint`, `npm run typecheck`, and `npm run export:localrelease` from `project/`.
+4. Verify the owner's `project/dist/PageMaker/Pages/` remains unchanged.
+5. Verify `project/dist/localrelease/PageMaker/` contains `PageMaker.exe`, an empty `Pages/`, and no `.git`, `.pagemaker`, `.git-identity`, `.env`, credentials, settings, page content, logs, or local paths.
+6. Launch the clean executable once as a smoke test, then report the shareable folder path.
 
-`localrelease` overwrites the prior local review build in place. It does not create a commit, push a remote, upload an artifact, or imply that the build is signed/production-ready.
+`localrelease` refreshes the owner's development runtime while preserving its data, then recreates the separate clean handoff folder. It does not create a commit, push a remote, upload an artifact, or imply that the build is signed/production-ready.
+
+## Future Public Portable Release
+
+The future downloadable artifact will be a ZIP containing one portable `PageMaker/` folder with the same layout used by local review:
+
+```text
+PageMaker/
+  PageMaker.exe
+  Pages/
+  resources and runtime files
+```
+
+The public artifact must be assembled through the same clean-export boundary as `localrelease`, with an empty `Pages/` folder. Never ZIP or upload the developer's populated `project/dist/PageMaker/` folder. The release process must still repeat all privacy checks before upload.
 
 ## When A Project Needs Delivery
 

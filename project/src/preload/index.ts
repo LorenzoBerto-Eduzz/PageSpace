@@ -1,5 +1,16 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
+import type { CreatePageInput } from '../shared/page-contracts'
 
-// Privileged APIs are added here deliberately as PageMaker features need them.
-// The dashboard receives no filesystem, shell, Git, credential, or Electron API.
-contextBridge.exposeInMainWorld('pageMaker', Object.freeze({}))
+contextBridge.exposeInMainWorld(
+  'pageMaker',
+  Object.freeze({
+    listPages: () => ipcRenderer.invoke('pages:list'),
+    createPage: async (input: CreatePageInput) => {
+      try {
+        return await ipcRenderer.invoke('pages:create', input)
+      } catch {
+        throw new Error('Não foi possível criar a página local. Tente novamente.')
+      }
+    }
+  })
+)

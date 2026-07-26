@@ -1,7 +1,13 @@
-import { app, BrowserWindow, nativeTheme } from 'electron'
-import { join } from 'path'
+import { app, BrowserWindow, ipcMain, nativeTheme } from 'electron'
+import { dirname, join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { PageWorkspaceService } from './page-workspace-service'
+import type { CreatePageInput } from '../shared/page-contracts'
+
+function getPagesRoot(): string {
+  return app.isPackaged ? join(dirname(process.execPath), 'Pages') : join(app.getAppPath(), 'Pages')
+}
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -45,6 +51,10 @@ function createWindow(): void {
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.pagemaker.app')
   nativeTheme.themeSource = 'light'
+
+  const pageWorkspace = new PageWorkspaceService(getPagesRoot())
+  ipcMain.handle('pages:list', () => pageWorkspace.listPages())
+  ipcMain.handle('pages:create', (_, input: CreatePageInput) => pageWorkspace.createPage(input))
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
