@@ -1,4 +1,32 @@
-export type PageStatus = 'local'
+export type PageStatus = 'local' | 'published'
+
+export type LocalPageDeployment = {
+  kind: 'local-only'
+}
+
+export type PublishingPageDeployment = {
+  kind: 'publishing'
+  owner: string
+  repository: string
+  repositoryUrl: string
+  publicUrl: string
+  phase: 'repository-created' | 'content-pushed'
+}
+
+export type PublishedPageDeployment = {
+  kind: 'published'
+  owner: string
+  repository: string
+  repositoryUrl: string
+  publicUrl: string
+  publishedAt: string
+  lastPublishedAt: string
+  lastCommitOid: string
+  pendingCommitOid?: string
+}
+
+export type PageDeployment =
+  LocalPageDeployment | PublishingPageDeployment | PublishedPageDeployment
 
 export type PageSummary = {
   id: string
@@ -12,6 +40,7 @@ export type PageSummary = {
   health: 'healthy' | 'damaged'
   canRecover: boolean
   healthMessage?: string
+  deployment: PageDeployment
   previewDataUrl?: string
 }
 
@@ -78,4 +107,14 @@ export type GitHubDeviceAuthorization = {
   userCode: string
   verificationUri: string
   expiresAt: string
+}
+
+export type PublishPageInput = {
+  pageId: string
+  repositoryName?: string
+}
+
+export type PublishPageResult = {
+  page: PageSummary
+  outcome: 'published' | 'no-changes'
 }

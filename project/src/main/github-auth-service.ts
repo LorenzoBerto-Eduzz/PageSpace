@@ -29,6 +29,7 @@ const AUTH_FILE = 'github-authorization.json'
 const GITHUB_DEVICE_CODE_URL = 'https://github.com/login/device/code'
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token'
 const GITHUB_USER_URL = 'https://api.github.com/user'
+const GITHUB_REQUEST_TIMEOUT_MS = 20_000
 
 export class GitHubAuthService {
   private activeFlow: ActiveDeviceFlow | null = null
@@ -36,26 +37,43 @@ export class GitHubAuthService {
   constructor(private readonly storageDirectory: string) {}
 
   async getStatus(): Promise<GitHubConnectionStatus> {
-    const storedAuthorization = await this.readStoredAuthorization()
-    return storedAuthorization
-      ? { state: 'connected', account: storedAuthorization.account }
+    const storedSession = await this.readStoredAuthorization()
+    return storedSession
+      ? { state: 'connected', account: storedSession.authorization.account }
       : { state: 'disconnected' }
+  }
+
+  async getAuthenticatedSession(): Promise<{
+    account: GitHubAccount
+    accessToken: string
+  }> {
+    const storedSession = await this.readStoredAuthorization()
+    if (!storedSession) throw new Error('Vincule uma conta GitHub antes de publicar.')
+    const account = await this.fetchAccount(storedSession.accessToken)
+    if (JSON.stringify(account) !== JSON.stringify(storedSession.authorization.account)) {
+      await this.storeAuthorization(storedSession.accessToken, account)
+    }
+    return { account, accessToken: storedSession.accessToken }
   }
 
   async beginDeviceFlow(): Promise<GitHubDeviceAuthorization> {
     this.cancelDeviceFlow()
-    const response = await fetch(GITHUB_DEVICE_CODE_URL, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'PageMaker'
+    const response = await fetchWithTimeout(
+      GITHUB_DEVICE_CODE_URL,
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'PageMaker'
+        },
+        body: new URLSearchParams({
+          client_id: GITHUB_OAUTH_CLIENT_ID,
+          scope: GITHUB_OAUTH_SCOPE
+        })
       },
-      body: new URLSearchParams({
-        client_id: GITHUB_OAUTH_CLIENT_ID,
-        scope: GITHUB_OAUTH_SCOPE
-      })
-    })
+      'Não foi possível acessar o GitHub para iniciar a vinculação.'
+    )
 
     if (!response.ok) throw new Error('O GitHub não iniciou a vinculação da conta.')
     const candidate = (await response.json()) as Record<string, unknown>
@@ -144,19 +162,23 @@ export class GitHubAuthService {
     | { kind: 'pending' | 'slow-down' | 'denied' | 'expired' }
     | { kind: 'authorized'; accessToken: string }
   > {
-    const response = await fetch(GITHUB_TOKEN_URL, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'PageMaker'
+    const response = await fetchWithTimeout(
+      GITHUB_TOKEN_URL,
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'PageMaker'
+        },
+        body: new URLSearchParams({
+          client_id: GITHUB_OAUTH_CLIENT_ID,
+          device_code: deviceCode,
+          grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
+        })
       },
-      body: new URLSearchParams({
-        client_id: GITHUB_OAUTH_CLIENT_ID,
-        device_code: deviceCode,
-        grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
-      })
-    })
+      'Não foi possível acessar o GitHub para concluir a vinculação.'
+    )
     if (!response.ok) throw new Error('Não foi possível concluir a vinculação com o GitHub.')
 
     const candidate = (await response.json()) as Record<string, unknown>
@@ -185,14 +207,18 @@ export class GitHubAuthService {
   }
 
   private async fetchAccount(accessToken: string): Promise<GitHubAccount> {
-    const response = await fetch(GITHUB_USER_URL, {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        Authorization: `Bearer ${accessToken}`,
-        'X-GitHub-Api-Version': GITHUB_API_VERSION,
-        'User-Agent': 'PageMaker'
-      }
-    })
+    const response = await fetchWithTimeout(
+      GITHUB_USER_URL,
+      {
+        headers: {
+          Accept: 'application/vnd.github+json',
+          Authorization: `Bearer ${accessToken}`,
+          'X-GitHub-Api-Version': GITHUB_API_VERSION,
+          'User-Agent': 'PageMaker'
+        }
+      },
+      'Não foi possível acessar o GitHub para validar a conta.'
+    )
     if (!response.ok) throw new Error('Não foi possível validar a conta vinculada.')
 
     const candidate = (await response.json()) as Record<string, unknown>
@@ -240,7 +266,10 @@ export class GitHubAuthService {
     await this.writeJsonAtomically(join(this.storageDirectory, AUTH_FILE), storedAuthorization)
   }
 
-  private async readStoredAuthorization(): Promise<StoredGitHubAuthorization | null> {
+  private async readStoredAuthorization(): Promise<{
+    authorization: StoredGitHubAuthorization
+    accessToken: string
+  } | null> {
     try {
       const candidate = JSON.parse(
         await fileSystem.readFile(join(this.storageDirectory, AUTH_FILE), 'utf8')
@@ -256,7 +285,10 @@ export class GitHubAuthService {
       if (!safeStorage.isEncryptionAvailable()) return null
       const decrypted = safeStorage.decryptString(Buffer.from(candidate.encryptedToken, 'base64'))
       if (!decrypted) return null
-      return candidate as StoredGitHubAuthorization
+      return {
+        authorization: candidate as StoredGitHubAuthorization,
+        accessToken: decrypted
+      }
     } catch {
       return null
     }
@@ -283,4 +315,19 @@ function isGitHubAccount(value: unknown): value is GitHubAccount {
 
 function wait(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds))
+}
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  failureMessage: string
+): Promise<Response> {
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: AbortSignal.timeout(GITHUB_REQUEST_TIMEOUT_MS)
+    })
+  } catch {
+    throw new Error(failureMessage)
+  }
 }

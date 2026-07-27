@@ -65,11 +65,10 @@ Keep this brief summary current. Put detailed build, export, package, deployment
 
 ## Current Priorities
 
-1. Add per-page publishing settings and the explicit online-publish confirmation flow.
-2. Create/configure the selected public GitHub repository and Pages deployment, then publish only generated output for that card.
-3. Add retryable `Salvar e Postar`, no-change handling, account/repository mismatch protection, and friendly publication status/errors.
-4. Validate account linking, first publication, later updates, restart persistence, and clean portable colleague handoff with a second GitHub account.
-5. Add richer elements, ZIP export/import, built-in runtime updates, and existing-repository import in later versions.
+1. Validate account linking, first publication, later updates, restart persistence, and retry behavior from a clean portable copy on a second computer/account.
+2. Add non-destructive online publication health/reconciliation and refine safe status/error presentation.
+3. Define the first colleague pilot version, acceptance checklist, and concise first-use guidance.
+4. Add richer elements, ZIP export/import, built-in runtime updates, and existing-repository import in later versions.
 
 ## Current Visual Foundation
 
@@ -80,7 +79,7 @@ Keep this brief summary current. Put detailed build, export, package, deployment
 - Page creation, persistent listing, clean private previews, and opening/editing/saving a card are functional.
 - The page editor currently supports ordinary ordered single-line title elements, direct editing, add/delete/reorder, independent side margins, positional vertical gaps, and unsaved-change protection.
 - Sanitized generated output and reusable local page settings are functional. Settings can rename dashboard metadata without renaming the stable folder, open the folder in Explorer, and recycle a local page after confirmation.
-- Global local-app settings, workspace backup/recovery, and personal GitHub account linking are functional. Export and per-page publishing are not implemented yet.
+- Global local-app settings, workspace backup/recovery, personal GitHub account linking, explicit repository creation, allowlisted Git publication, retryable updates, and GitHub Pages activation are functional. Export is not implemented yet.
 
 ## Frontend Modularity Rule
 

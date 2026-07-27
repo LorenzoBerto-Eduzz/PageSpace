@@ -1,11 +1,14 @@
-import { app, BrowserWindow, clipboard, ipcMain, nativeTheme, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, nativeTheme, shell } from 'electron'
 import { dirname, join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { PageWorkspaceService } from './page-workspace-service'
 import { GitHubAuthService } from './github-auth-service'
+import { GitHubPublishingService } from './github-publishing-service'
+import { PublicationDiagnostics } from './publication-diagnostics'
 import type {
   CreatePageInput,
+  PublishPageInput,
   SavePageContentInput,
   UpdatePageDetailsInput
 } from '../shared/page-contracts'
@@ -14,7 +17,7 @@ function getPagesRoot(): string {
   return app.isPackaged ? join(dirname(process.execPath), 'Pages') : join(app.getAppPath(), 'Pages')
 }
 
-function createWindow(): void {
+function createWindow(hasActivePublications: () => boolean): void {
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 820,
@@ -42,6 +45,36 @@ function createWindow(): void {
 
   mainWindow.webContents.setWindowOpenHandler(() => {
     return { action: 'deny' }
+  })
+
+  let allowCloseDuringPublication = false
+  let isShowingPublicationWarning = false
+  mainWindow.on('close', (event) => {
+    if (allowCloseDuringPublication || !hasActivePublications()) return
+    event.preventDefault()
+    if (isShowingPublicationWarning) return
+    isShowingPublicationWarning = true
+    void dialog
+      .showMessageBox(mainWindow, {
+        type: 'warning',
+        title: 'Publicação em andamento',
+        message: 'Uma página ainda está sendo publicada.',
+        detail:
+          'Fechar agora pode interromper o envio. O PageMaker manterá o estado local para permitir uma nova tentativa.',
+        buttons: ['Continuar aguardando', 'Fechar mesmo assim'],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true
+      })
+      .then(({ response }) => {
+        if (response === 1) {
+          allowCloseDuringPublication = true
+          mainWindow.close()
+        }
+      })
+      .finally(() => {
+        isShowingPublicationWarning = false
+      })
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -92,6 +125,11 @@ app.whenReady().then(() => {
 
   const pageWorkspace = new PageWorkspaceService(getPagesRoot())
   const githubAuth = new GitHubAuthService(app.getPath('userData'))
+  const githubPublishing = new GitHubPublishingService(
+    githubAuth,
+    pageWorkspace,
+    new PublicationDiagnostics(app.getPath('userData'))
+  )
   ipcMain.handle('pages:list', () => pageWorkspace.listPages())
   ipcMain.handle('pages:create', async (_, input: CreatePageInput) => {
     const createdPage = await pageWorkspace.createPage(input)
@@ -117,6 +155,18 @@ app.whenReady().then(() => {
     const folderPath = await pageWorkspace.getPageFolderPath(pageId)
     const openError = await shell.openPath(folderPath)
     if (openError) throw new Error(openError)
+  })
+  ipcMain.handle('pages:open-public', async (_, pageId: string) => {
+    const page = (await pageWorkspace.getPage(pageId)).page
+    if (page.deployment.kind !== 'published') throw new Error('A página ainda não foi publicada.')
+    const publicUrl = new URL(page.deployment.publicUrl)
+    if (
+      publicUrl.protocol !== 'https:' ||
+      !publicUrl.hostname.toLowerCase().endsWith('.github.io')
+    ) {
+      throw new Error('O endereço público salvo é inválido.')
+    }
+    await shell.openExternal(publicUrl.toString())
   })
   ipcMain.handle('pages:delete-local', async (_, pageId: string) => {
     const folderPath = await pageWorkspace.getPageFolderPath(pageId)
@@ -176,17 +226,21 @@ app.whenReady().then(() => {
     shell.openExternal('https://github.com/login/device')
   )
   ipcMain.handle('github:disconnect', () => githubAuth.disconnect())
+  ipcMain.handle('github:status', () => githubAuth.getStatus())
+  ipcMain.handle('pages:publish', (_, input: PublishPageInput) => githubPublishing.publish(input))
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  createWindow()
+  createWindow(() => githubPublishing.hasActivePublications())
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow(() => githubPublishing.hasActivePublications())
+    }
   })
 })
 

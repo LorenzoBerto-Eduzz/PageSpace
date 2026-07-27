@@ -7,6 +7,7 @@ import { generatePublicSite, type GeneratedSite } from './public-site-generator'
 import type {
   CreatePageInput,
   PageContent,
+  PageDeployment,
   PageEditorData,
   PageSummary,
   SavePageContentInput,
@@ -15,11 +16,18 @@ import type {
 
 type StoredPage = Omit<
   PageSummary,
-  'previewDataUrl' | 'health' | 'canRecover' | 'healthMessage'
+  'previewDataUrl' | 'health' | 'canRecover' | 'healthMessage' | 'deployment'
 > & {
   schemaVersion: 1
   folderName: string
-  deployment: { kind: 'local-only' }
+  deployment: PageDeployment
+}
+
+export type PublishingWorkspace = {
+  folderPath: string
+  name: string
+  description: string
+  deployment: PageDeployment
 }
 
 const METADATA_FOLDER = '.pagemaker'
@@ -159,6 +167,44 @@ export class PageWorkspaceService {
     return (await this.findPageWorkspace(pageId)).folderPath
   }
 
+  async preparePageForPublishing(pageId: string): Promise<PublishingWorkspace> {
+    const locatedPage = await this.findPage(pageId)
+    const content = await this.readContent(locatedPage.folderPath, locatedPage.page)
+    const generatedSite = await generatePublicSite(
+      join(locatedPage.folderPath, METADATA_FOLDER),
+      content
+    )
+    await this.replacePublishableDocs(locatedPage.folderPath, generatedSite.directoryPath)
+    await fileSystem.writeFile(
+      join(locatedPage.folderPath, '.gitignore'),
+      `${METADATA_FOLDER}/\n${CONTENT_FILE}\nassets/\n`,
+      'utf8'
+    )
+
+    return {
+      folderPath: locatedPage.folderPath,
+      name: locatedPage.page.name,
+      description: locatedPage.page.description,
+      deployment: locatedPage.page.deployment
+    }
+  }
+
+  async updatePageDeployment(pageId: string, deployment: PageDeployment): Promise<PageSummary> {
+    const locatedPage = await this.findPage(pageId)
+    await this.backupCurrentSnapshot(locatedPage.folderPath)
+    const updatedPage: StoredPage = {
+      ...locatedPage.page,
+      status: deployment.kind === 'published' ? 'published' : 'local',
+      deployment,
+      updatedAt: new Date().toISOString()
+    }
+    await this.writeJsonAtomically(
+      join(locatedPage.folderPath, METADATA_FOLDER, METADATA_FILE),
+      updatedPage
+    )
+    return this.toSummary(updatedPage, await this.readPreview(locatedPage.folderPath))
+  }
+
   async recoverPage(pageId: string): Promise<PageSummary> {
     const workspace = await this.findPageWorkspace(pageId)
     const backup = await this.readBackupSnapshot(workspace.folderPath)
@@ -293,6 +339,7 @@ export class PageWorkspaceService {
       folderName,
       health: 'damaged',
       canRecover: false,
+      deployment: { kind: 'local-only' },
       healthMessage: 'Não foi possível encontrar dados válidos nem um backup desta página.'
     }
   }
@@ -303,6 +350,37 @@ export class PageWorkspaceService {
       return this.toPngDataUrl(preview)
     } catch {
       return undefined
+    }
+  }
+
+  private async replacePublishableDocs(
+    folderPath: string,
+    generatedDirectory: string
+  ): Promise<void> {
+    const destination = join(folderPath, 'docs')
+    const staging = join(folderPath, METADATA_FOLDER, `.docs-${randomUUID()}.tmp`)
+    const backup = join(folderPath, METADATA_FOLDER, `.docs-${randomUUID()}.backup`)
+    await fileSystem.mkdir(staging, { recursive: false })
+
+    try {
+      for (const fileName of ['index.html', 'styles.css']) {
+        await fileSystem.copyFile(join(generatedDirectory, fileName), join(staging, fileName))
+      }
+      const hadDestination = await this.pathExists(destination)
+      if (hadDestination) await fileSystem.rename(destination, backup)
+      try {
+        await fileSystem.rename(staging, destination)
+        if (hadDestination) await fileSystem.rm(backup, { recursive: true, force: true })
+      } catch (error) {
+        if (hadDestination && !(await this.pathExists(destination))) {
+          await fileSystem.rename(backup, destination)
+        }
+        throw error
+      }
+    } catch (error) {
+      await fileSystem.rm(staging, { recursive: true, force: true })
+      await fileSystem.rm(backup, { recursive: true, force: true })
+      throw error
     }
   }
 
@@ -575,14 +653,15 @@ export class PageWorkspaceService {
       typeof candidate.id !== 'string' ||
       typeof candidate.name !== 'string' ||
       typeof candidate.description !== 'string' ||
-      candidate.status !== 'local' ||
+      (candidate.status !== 'local' && candidate.status !== 'published') ||
       typeof candidate.createdAt !== 'string' ||
       typeof candidate.updatedAt !== 'string' ||
       (candidate.lastSavedAt !== undefined &&
         candidate.lastSavedAt !== null &&
         typeof candidate.lastSavedAt !== 'string') ||
       typeof candidate.folderName !== 'string' ||
-      candidate.deployment?.kind !== 'local-only'
+      !this.isPageDeployment(candidate.deployment) ||
+      (candidate.status === 'published' && candidate.deployment.kind !== 'published')
     ) {
       return null
     }
@@ -591,6 +670,31 @@ export class PageWorkspaceService {
       ...(candidate as StoredPage),
       lastSavedAt: candidate.lastSavedAt ?? null
     }
+  }
+
+  private isPageDeployment(value: unknown): value is PageDeployment {
+    if (!value || typeof value !== 'object') return false
+    const deployment = value as Partial<PageDeployment>
+    if (deployment.kind === 'local-only') return true
+    if (
+      (deployment.kind !== 'publishing' && deployment.kind !== 'published') ||
+      typeof deployment.owner !== 'string' ||
+      typeof deployment.repository !== 'string' ||
+      typeof deployment.repositoryUrl !== 'string' ||
+      typeof deployment.publicUrl !== 'string'
+    ) {
+      return false
+    }
+    if (deployment.kind === 'publishing') {
+      return deployment.phase === 'repository-created' || deployment.phase === 'content-pushed'
+    }
+    const published = deployment as Partial<Extract<PageDeployment, { kind: 'published' }>>
+    return (
+      typeof published.publishedAt === 'string' &&
+      typeof published.lastPublishedAt === 'string' &&
+      typeof published.lastCommitOid === 'string' &&
+      (published.pendingCommitOid === undefined || typeof published.pendingCommitOid === 'string')
+    )
   }
 
   private toSummary(
@@ -611,6 +715,7 @@ export class PageWorkspaceService {
       folderName: page.folderName,
       health,
       canRecover,
+      deployment: page.deployment,
       ...(healthMessage ? { healthMessage } : {}),
       ...(previewDataUrl ? { previewDataUrl } : {})
     }

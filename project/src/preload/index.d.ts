@@ -6,7 +6,9 @@ import type {
   SavePageContentInput,
   UpdatePageDetailsInput,
   GitHubConnectionStatus,
-  GitHubDeviceAuthorization
+  GitHubDeviceAuthorization,
+  PublishPageInput,
+  PublishPageResult
 } from '../shared/page-contracts'
 
 declare global {
@@ -19,6 +21,7 @@ declare global {
       capturePagePreview: (pageId: string) => Promise<string>
       updatePageDetails: (input: UpdatePageDetailsInput) => Promise<PageSummary>
       openPageFolder: (pageId: string) => Promise<void>
+      openPublishedPage: (pageId: string) => Promise<void>
       deleteLocalPage: (pageId: string) => Promise<void>
       recoverPage: (pageId: string) => Promise<PageSummary>
       getAppSettings: () => Promise<AppSettingsSnapshot>
@@ -29,6 +32,8 @@ declare global {
       copyGitHubCode: (userCode: string) => Promise<void>
       openGitHubDevicePage: () => Promise<void>
       disconnectGitHub: () => Promise<void>
+      getGitHubStatus: () => Promise<GitHubConnectionStatus>
+      publishPage: (input: PublishPageInput) => Promise<PublishPageResult>
     }>
   }
 }

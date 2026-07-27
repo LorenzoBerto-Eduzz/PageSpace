@@ -13,7 +13,7 @@
 - Clean colleague handoff: `cd project; npm run export:localrelease`, which refreshes the development build first and creates `project/dist/localrelease/PageMaker/` with an empty `Pages/` and no local user/developer data.
 - Delivery: `localrelease` is approved for clean, repeatable colleague handoff folders after completed app milestones. An uploaded/public release is not approved yet.
 - Git: `initialized on main`; local identity is configured and the `.githooks` email guard is enabled. The real `.git-identity` is local-only and ignored.
-- Remote: `none configured yet`; initial setup is a local root commit only.
+- Remote: `origin` points to `https://github.com/LorenzoBerto-Eduzz/PageMaker.git`; `main` is the active branch.
 - Durable context is in `docs/`; `notes/` is owner scratch space; `asset_staging/` accepts Git-safe references; `local_assets/` remains private and ignored.
 
 ## User Intent
@@ -31,12 +31,10 @@ The owner wants PageMaker to be a portable, friendly, business-grade desktop con
 
 ## Suggested Near-Term Next Steps
 
-- Implement the first explicit per-page `Publicar online` flow against the connected personal GitHub account, using a disposable test page/repository first.
-- Publish only verified generated files, persist resumable per-page repository/deployment state, and keep local saves successful even when network publication fails.
-- Add per-page publishing settings and an explicit confirmation screen. For the first version, `Publicar online` creates a public repository by default.
-- Create/configure the selected repository and GitHub Pages deployment, then commit and push only generated public output. A configured public page uses `Salvar e Postar`.
-- Verify a clean colleague-ready `localrelease` with an empty `Pages/`.
-- Defer richer element families, ZIP export/import, and broader folder management until the publishing MVP is reliable.
+- Perform the clean second-computer/account acceptance test: link a different personal GitHub account, create/edit/publish/update/restart/retry, and verify the portable folder carries no source-machine account or page data.
+- Add a non-destructive per-page online health check and clearer durable publication-status presentation without coupling mechanics to the provisional UI.
+- Define the first real pilot version and colleague guidance only after the clean-machine acceptance test passes.
+- Defer richer element families, ZIP export/import, updater work, and broader folder management until the colleague publishing pilot is accepted.
 
 ## Durable Decisions
 
@@ -82,4 +80,10 @@ The owner wants PageMaker to be a portable, friendly, business-grade desktop con
 - Editable content uses a future-extensible ordered elements model. The current UI deliberately exposes only the foundational title element; the plus control is temporary rather than the final element-library UX.
 - The first colleague-usable version prioritizes solid local organization/editing and explicit GitHub publishing. Additional elements and ZIP export come afterward.
 - `Salvar e Postar` writes/generates/publishes only the active website card. Never make empty commits or automatically resolve merge conflicts.
+- Explicit `Publicar online` is functional. It creates one public repository in the linked personal account, commits only `.gitignore`, `docs/index.html`, and `docs/styles.css`, pushes `main`, and configures GitHub Pages from `/docs`.
+- Per-page deployment metadata is durable and resumable across repository creation, content push, Pages activation, process interruption, and restart. A published page may retain a `pendingCommitOid` until a failed update is successfully retried.
+- Before every update, PageMaker validates the connected account, repository ownership/visibility/archive/write state, saved remote association, and remote `main` commit. External changes stop publication rather than being overwritten.
+- Publication is single-flight per page. Normal window close during an active publication warns the user; forced close remains possible and leaves retryable local state.
+- Publication diagnostics are bounded, local-only, and redacted: event, timestamp, page UUID, duration, and safe error code only.
+- Vitest is the automated test runner (`cd project; npm test`). The current suite exercises policy, diagnostics, errors, and complete publication sequences with real temporary local Git repositories plus simulated GitHub/push/Pages outcomes.
 - The repository, not chat memory, is the source of truth. `memcheck` writes durable memory only; `gitcheck` validates, commits, and pushes only on request.

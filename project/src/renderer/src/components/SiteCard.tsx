@@ -1,4 +1,4 @@
-import { LockIcon, SettingsIcon, WarningIcon } from './icons'
+import { GlobeIcon, LockIcon, SettingsIcon, WarningIcon } from './icons'
 
 export type DashboardPage = {
   id: string
@@ -92,12 +92,12 @@ export function SiteCard({
           <button
             className="card-action"
             type="button"
-            aria-label="Página somente local"
+            aria-label={page.status === 'published' ? 'Página publicada' : 'Página somente local'}
             onClick={() => {
               if (page.health === 'damaged') onProblem?.(page.id)
             }}
           >
-            <LockIcon size={18} />
+            {page.status === 'published' ? <GlobeIcon size={18} /> : <LockIcon size={18} />}
           </button>
           <button
             className="card-action"

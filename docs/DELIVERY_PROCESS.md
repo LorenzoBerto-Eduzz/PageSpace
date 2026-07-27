@@ -6,7 +6,7 @@ PageMaker is intended to be distributed as a portable Windows `PageMaker/` folde
 
 Do not create PageMaker generated delivery artifacts, installers, portable executables, GitHub Releases, or deployments unless the owner explicitly asks and this document has been updated with a tested process.
 
-This restriction concerns distribution of the PageMaker desktop app. Its future `Salvar e Postar` feature is a normal, per-website user workflow: it generates and Git-publishes the active managed website's clean static files. That feature still needs explicit implementation, validation, and user-visible confirmation.
+This restriction concerns distribution of the PageMaker desktop app. `Salvar e Postar` is a normal, per-website user workflow: it generates and Git-publishes only the active managed website's clean static files after explicit initial publication. It does not authorize publishing or releasing the PageMaker application itself.
 
 ## Owner Development Review Build
 
@@ -43,6 +43,7 @@ Procedure:
 1. Inspect the worktree and confirm the completed change is in scope.
 2. Close every running PageMaker review window/process so Windows does not lock output files.
 3. Run `npm run lint`, `npm run typecheck`, and `npm run export:localrelease` from `project/`.
+   Run `npm test` before packaging a colleague-test milestone.
 4. Verify the owner's `project/dist/PageMaker/Pages/` remains unchanged.
 5. Verify `project/dist/localrelease/PageMaker/` contains `PageMaker.exe`, an empty `Pages/`, and no `.git`, `.pagemaker`, `.git-identity`, `.env`, credentials, settings, page content, logs, or local paths.
 6. Launch the clean executable once as a smoke test, then report the shareable folder path.

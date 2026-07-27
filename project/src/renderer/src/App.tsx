@@ -39,6 +39,7 @@ function App(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [openPageId, setOpenPageId] = useState<string | null>(null)
   const [settingsPageId, setSettingsPageId] = useState<string | null>(null)
+  const [settingsHasUnsavedChanges, setSettingsHasUnsavedChanges] = useState(false)
   const [problemPageId, setProblemPageId] = useState<string | null>(null)
   const [isRecovering, setIsRecovering] = useState(false)
   const [recoveryError, setRecoveryError] = useState<string | null>(null)
@@ -132,7 +133,10 @@ function App(): React.JSX.Element {
         <PageEditor
           pageId={openPageId}
           onBack={() => setOpenPageId(null)}
-          onOpenSettings={setSettingsPageId}
+          onOpenSettings={(pageId, hasUnsavedChanges) => {
+            setSettingsHasUnsavedChanges(hasUnsavedChanges)
+            setSettingsPageId(pageId)
+          }}
           onSaved={(savedPage) => {
             setPages((currentPages) => [
               savedPage.page,
@@ -146,6 +150,7 @@ function App(): React.JSX.Element {
             onClose={() => setSettingsPageId(null)}
             onUpdated={updatePage}
             onDeleted={deletePage}
+            hasUnsavedChanges={settingsHasUnsavedChanges}
           />
         ) : null}
       </>
@@ -175,7 +180,14 @@ function App(): React.JSX.Element {
                 key={page.id}
                 page={page}
                 onOpen={setOpenPageId}
-                onOpenSettings={page.isPlaceholder ? undefined : setSettingsPageId}
+                onOpenSettings={
+                  page.isPlaceholder
+                    ? undefined
+                    : (pageId) => {
+                        setSettingsHasUnsavedChanges(false)
+                        setSettingsPageId(pageId)
+                      }
+                }
                 onProblem={setProblemPageId}
               />
             ))}
@@ -201,6 +213,7 @@ function App(): React.JSX.Element {
           onClose={() => setSettingsPageId(null)}
           onUpdated={updatePage}
           onDeleted={deletePage}
+          hasUnsavedChanges={settingsHasUnsavedChanges}
         />
       ) : null}
       {problemPage ? (

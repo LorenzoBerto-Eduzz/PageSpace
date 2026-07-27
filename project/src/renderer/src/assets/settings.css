@@ -75,6 +75,64 @@
   gap: 16px;
 }
 
+.page-publishing-section {
+  display: grid;
+  gap: 8px;
+  padding: 15px 0;
+  border-top: 1px solid rgba(210, 215, 221, 0.86);
+  border-bottom: 1px solid rgba(210, 215, 221, 0.86);
+}
+
+.page-publishing-section h3,
+.page-publishing-section p,
+.page-publishing-section small {
+  margin: 0;
+}
+
+.page-publishing-section h3 {
+  color: #565b64;
+  font-size: 14px;
+}
+
+.page-publishing-section p,
+.page-publishing-section .page-public-link,
+.page-publishing-section small {
+  overflow-wrap: anywhere;
+  color: #777e88;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.page-publishing-section .page-public-link {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  color: #526a91;
+  background: transparent;
+  text-align: left;
+  text-decoration: underline;
+}
+
+.publish-confirmation-dialog label {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 15px;
+  color: #565b64;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.publish-confirmation-dialog input {
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(190, 197, 208, 0.9);
+  border-radius: 10px;
+  color: #3f444d;
+  background: #fff;
+  font: inherit;
+}
+
 .page-settings-dialog label {
   display: grid;
   gap: 7px;

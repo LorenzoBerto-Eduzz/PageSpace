@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   CreatePageInput,
+  PublishPageInput,
   SavePageContentInput,
   UpdatePageDetailsInput
 } from '../shared/page-contracts'
@@ -49,6 +50,13 @@ contextBridge.exposeInMainWorld(
         await ipcRenderer.invoke('pages:open-folder', pageId)
       } catch {
         throw new Error('Não foi possível abrir a pasta da página.')
+      }
+    },
+    openPublishedPage: async (pageId: string) => {
+      try {
+        await ipcRenderer.invoke('pages:open-public', pageId)
+      } catch {
+        throw new Error('Não foi possível abrir o endereço público.')
       }
     },
     deleteLocalPage: async (pageId: string) => {
@@ -111,6 +119,15 @@ contextBridge.exposeInMainWorld(
         await ipcRenderer.invoke('github:disconnect')
       } catch {
         throw new Error('Não foi possível desvincular a conta GitHub.')
+      }
+    },
+    getGitHubStatus: () => ipcRenderer.invoke('github:status'),
+    publishPage: async (input: PublishPageInput) => {
+      try {
+        return await ipcRenderer.invoke('pages:publish', input)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        throw new Error(message.replace(/^Error invoking remote method '[^']+': Error:\s*/, ''))
       }
     }
   })

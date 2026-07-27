@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { PageContent, PageEditorData, TitleElement } from '../../../shared/page-contracts'
+import type {
+  PageContent,
+  PageEditorData,
+  PageSummary,
+  TitleElement
+} from '../../../shared/page-contracts'
 import {
   ArrowLeftIcon,
   EyeIcon,
@@ -16,7 +21,7 @@ type PageEditorProps = {
   pageId: string
   onBack: () => void
   onSaved: (data: PageEditorData) => void
-  onOpenSettings: (pageId: string) => void
+  onOpenSettings: (pageId: string, hasUnsavedChanges: boolean) => void
 }
 
 type PanelPosition = {
@@ -73,6 +78,7 @@ export function PageEditor({
 }: PageEditorProps): React.JSX.Element {
   const [content, setContent] = useState<PageContent | null>(null)
   const [savedContent, setSavedContent] = useState<PageContent | null>(null)
+  const [page, setPage] = useState<PageSummary | null>(null)
   const [position, setPosition] = useState<PanelPosition>(initialPanelPosition)
   const [isViewing, setIsViewing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -108,6 +114,7 @@ export function PageEditor({
       .getPage(pageId)
       .then((loadedPage) => {
         if (!isCurrent) return
+        setPage(loadedPage.page)
         setContent(cloneContent(loadedPage.content))
         setSavedContent(cloneContent(loadedPage.content))
       })
@@ -299,6 +306,7 @@ export function PageEditor({
     setSaveError(null)
     try {
       const savedPage = await window.pageMaker.savePageContent({ pageId, content })
+      setPage(savedPage.page)
       setContent(cloneContent(savedPage.content))
       setSavedContent(cloneContent(savedPage.content))
       let previewDataUrl = savedPage.page.previewDataUrl
@@ -307,13 +315,34 @@ export function PageEditor({
       } catch {
         setSaveError('A página foi salva, mas não foi possível atualizar sua imagem.')
       }
-      onSaved({
+      let completedSave: PageEditorData = {
         ...savedPage,
         page: {
           ...savedPage.page,
           ...(previewDataUrl ? { previewDataUrl } : {})
         }
-      })
+      }
+      if (savedPage.page.status === 'published') {
+        try {
+          const published = await window.pageMaker.publishPage({ pageId })
+          completedSave = { ...completedSave, page: published.page }
+          setPage(published.page)
+        } catch (publishError) {
+          try {
+            const currentPage = (await window.pageMaker.getPage(pageId)).page
+            completedSave = { ...completedSave, page: currentPage }
+            setPage(currentPage)
+          } catch {
+            // Keep the local save result if refreshing publication state also fails.
+          }
+          setSaveError(
+            publishError instanceof Error
+              ? publishError.message
+              : 'A página foi salva localmente, mas não foi publicada.'
+          )
+        }
+      }
+      onSaved(completedSave)
       return true
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : 'Não foi possível salvar a página.')
@@ -558,14 +587,14 @@ export function PageEditor({
               className="editor-panel-action editor-settings-action"
               type="button"
               aria-label="Configurações da página"
-              onClick={() => onOpenSettings(pageId)}
+              onClick={() => onOpenSettings(pageId, isDirty)}
             >
               <SettingsIcon size={24} />
             </button>
             <button
               className="editor-panel-action editor-save-action"
               type="button"
-              aria-label="Salvar página"
+              aria-label={page?.status === 'published' ? 'Salvar e postar página' : 'Salvar página'}
               disabled={!isDirty || isSaving}
               onClick={save}
             >

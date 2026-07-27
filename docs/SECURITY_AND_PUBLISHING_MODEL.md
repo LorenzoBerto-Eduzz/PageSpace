@@ -56,6 +56,17 @@ The current generator stores verified `index.html` and `styles.css` under `.page
 - Recovery uses one private validated previous snapshot of page metadata and editable content. Damaged current files are never automatically replaced; restoration requires an explicit user action.
 - Test generation, manifest validation, asset sanitization, local export, publish failures, and recovery paths.
 
+## Current Publishing Implementation
+
+- The first publish confirmation creates a public repository in the connected personal account; an existing-name collision is rejected rather than adopted or overwritten.
+- The committed public tree is restricted to `.gitignore`, `docs/index.html`, and `docs/styles.css`. Unexpected staged additions are rejected; obsolete generated `docs/` files may only be committed as deletions.
+- Repository creation, content push, and final Pages activation are persisted as resumable per-page deployment phases. Published updates persist a pending local commit before network push and clear it only after the remote/Pages workflow succeeds.
+- A retry reuses the saved repository association and never creates a duplicate repository. A no-change retry does not create an empty commit.
+- Before update, the main process validates account ownership, public visibility, archive state, push permission, and the remote `main` commit. A remote commit that matches neither the last confirmed commit nor the local pending commit is treated as an external conflict and is never overwritten automatically.
+- GitHub API calls have bounded timeouts. Publication is single-flight per page, and closing during active publication presents an interruption warning.
+- Bounded local diagnostics contain only operational state, timestamp, page UUID, duration, and a stable safe error code. They exclude tokens, content, paths, account details, repository payloads, and API responses.
+- Automated tests use real temporary local Git repositories with simulated remote operations to verify first publication, push failure/retry, Pages failure/retry, duplicate prevention, no-change handling, concurrency, conflict protection, allowlisting, and diagnostic privacy.
+
 ## Application Form
 
 Electron desktop is the primary release form because it provides the secure local backend needed for filesystem, credentials, GitHub, Git, and publishing work.
