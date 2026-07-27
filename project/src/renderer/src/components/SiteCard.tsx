@@ -1,4 +1,4 @@
-import { LockIcon, SettingsIcon } from './icons'
+import { LockIcon, SettingsIcon, WarningIcon } from './icons'
 
 export type DashboardPage = {
   id: string
@@ -8,12 +8,14 @@ export type DashboardPage = {
   preview: 'captured' | 'empty'
   previewDataUrl?: string
   isPlaceholder?: boolean
+  health?: 'healthy' | 'damaged'
 }
 
 type SiteCardProps = {
   page: DashboardPage
   onOpen?: (pageId: string) => void
   onOpenSettings?: (pageId: string) => void
+  onProblem?: (pageId: string) => void
 }
 
 function PreviewCanvas({ page }: SiteCardProps): React.JSX.Element {
@@ -28,8 +30,25 @@ function PreviewCanvas({ page }: SiteCardProps): React.JSX.Element {
   )
 }
 
-export function SiteCard({ page, onOpen, onOpenSettings }: SiteCardProps): React.JSX.Element {
-  const className = page.isPlaceholder ? 'site-card site-card--placeholder' : 'site-card'
+export function SiteCard({
+  page,
+  onOpen,
+  onOpenSettings,
+  onProblem
+}: SiteCardProps): React.JSX.Element {
+  const className = [
+    'site-card',
+    page.isPlaceholder ? 'site-card--placeholder' : '',
+    page.health === 'damaged' ? 'site-card--damaged' : ''
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  function activate(): void {
+    if (page.isPlaceholder) return
+    if (page.health === 'damaged') onProblem?.(page.id)
+    else onOpen?.(page.id)
+  }
 
   return (
     <article
@@ -42,14 +61,14 @@ export function SiteCard({ page, onOpen, onOpenSettings }: SiteCardProps): React
           if (page.isPlaceholder) {
             event.currentTarget.focus()
           } else {
-            onOpen?.(page.id)
+            activate()
           }
         }
       }}
       onKeyDown={(event) => {
         if (!page.isPlaceholder && (event.key === 'Enter' || event.key === ' ')) {
           event.preventDefault()
-          onOpen?.(page.id)
+          activate()
         }
       }}
     >
@@ -60,14 +79,33 @@ export function SiteCard({ page, onOpen, onOpenSettings }: SiteCardProps): React
         <p className="site-description">{page.description}</p>
 
         <footer className="site-card-actions">
-          <button className="card-action" type="button" aria-label="Página somente local">
+          {page.health === 'damaged' ? (
+            <button
+              className="card-action card-action--warning"
+              type="button"
+              aria-label="Página com problema"
+              onClick={() => onProblem?.(page.id)}
+            >
+              <WarningIcon size={19} />
+            </button>
+          ) : null}
+          <button
+            className="card-action"
+            type="button"
+            aria-label="Página somente local"
+            onClick={() => {
+              if (page.health === 'damaged') onProblem?.(page.id)
+            }}
+          >
             <LockIcon size={18} />
           </button>
           <button
             className="card-action"
             type="button"
             aria-label="Configurar página"
-            onClick={() => onOpenSettings?.(page.id)}
+            onClick={() =>
+              page.health === 'damaged' ? onProblem?.(page.id) : onOpenSettings?.(page.id)
+            }
           >
             <SettingsIcon size={19} />
           </button>

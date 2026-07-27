@@ -64,13 +64,12 @@ Keep this brief summary current. Put detailed build, export, package, deployment
 
 ## Current Priorities
 
-1. Complete local workspace health, recovery, and backup behavior around page metadata/content, previews, and generated output.
-2. Implement the useful local portion of global app settings, including opening the main `Pages/` folder and displaying app/workspace information and health.
-3. Implement global GitHub authorization through dashboard settings with protected credential storage.
-4. Add per-page publishing settings and the explicit online-publish confirmation flow.
-5. Create/configure the selected public GitHub repository and Pages deployment, then publish only generated output for that card.
-6. Validate the clean portable colleague handoff and publishing failure/recovery paths.
-7. Add richer elements, ZIP export/import, and existing-repository import in later versions.
+1. Checkpoint and verify the completed local backup, recovery, rescan, and app-settings milestone.
+2. Implement global GitHub authorization through dashboard settings with protected credential storage.
+3. Add per-page publishing settings and the explicit online-publish confirmation flow.
+4. Create/configure the selected public GitHub repository and Pages deployment, then publish only generated output for that card.
+5. Validate the clean portable colleague handoff and publishing failure/recovery paths.
+6. Add richer elements, ZIP export/import, and existing-repository import in later versions.
 
 ## Current Visual Foundation
 
@@ -81,7 +80,11 @@ Keep this brief summary current. Put detailed build, export, package, deployment
 - Page creation, persistent listing, clean private previews, and opening/editing/saving a card are functional.
 - The page editor currently supports ordinary ordered single-line title elements, direct editing, add/delete/reorder, independent side margins, positional vertical gaps, and unsaved-change protection.
 - Sanitized generated output and reusable local page settings are functional. Settings can rename dashboard metadata without renaming the stable folder, open the folder in Explorer, and recycle a local page after confirmation.
-- Global app settings, workspace health/recovery UI, GitHub connection, export, and publishing are not implemented yet.
+- Global local-app settings and workspace backup/recovery are functional. GitHub connection, export, and publishing are not implemented yet.
+
+## Frontend Modularity Rule
+
+The current interface is a clear working baseline, not a frozen design system. Visual layout, component placement, grouping, icons, labels, sizing, colors, and modal composition are expected to change during later product design. Keep visual components focused, reusable, and easy to rearrange. Storage, validation, recovery, generation, GitHub, Git, and publishing services must remain independent of the current React layout.
 
 ## Glossary
 

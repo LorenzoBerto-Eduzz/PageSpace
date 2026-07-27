@@ -57,6 +57,27 @@ contextBridge.exposeInMainWorld(
       } catch {
         throw new Error('Não foi possível mover a página para a Lixeira.')
       }
+    },
+    recoverPage: async (pageId: string) => {
+      try {
+        return await ipcRenderer.invoke('pages:recover', pageId)
+      } catch {
+        throw new Error('Não foi possível recuperar o último backup válido.')
+      }
+    },
+    getAppSettings: async () => {
+      try {
+        return await ipcRenderer.invoke('app-settings:refresh')
+      } catch {
+        throw new Error('Não foi possível verificar as páginas locais.')
+      }
+    },
+    openPagesFolder: async () => {
+      try {
+        await ipcRenderer.invoke('app-settings:open-pages-folder')
+      } catch {
+        throw new Error('Não foi possível abrir a pasta Pages.')
+      }
     }
   })
 )

@@ -120,6 +120,38 @@ app.whenReady().then(() => {
     const folderPath = await pageWorkspace.getPageFolderPath(pageId)
     await shell.trashItem(folderPath)
   })
+  ipcMain.handle('pages:recover', (_, pageId: string) => pageWorkspace.recoverPage(pageId))
+  ipcMain.handle('app-settings:open-pages-folder', async () => {
+    const pagesRoot = getPagesRoot()
+    await pageWorkspace.ensurePagesRoot()
+    const openError = await shell.openPath(pagesRoot)
+    if (openError) throw new Error(openError)
+  })
+  ipcMain.handle('app-settings:refresh', async () => {
+    const pages = await pageWorkspace.listPages()
+    const refreshedPages = await Promise.all(
+      pages.map(async (page) => {
+        if (page.health === 'damaged') return page
+        try {
+          await pageWorkspace.generatePageSite(page.id)
+          if (!page.previewDataUrl) {
+            return {
+              ...page,
+              previewDataUrl: await captureCleanPagePreview(pageWorkspace, page.id)
+            }
+          }
+        } catch {
+          // Replaceable output failures do not turn valid editable content into corruption.
+        }
+        return page
+      })
+    )
+    return {
+      version: app.getVersion(),
+      githubLinked: false as const,
+      pages: refreshedPages
+    }
+  })
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

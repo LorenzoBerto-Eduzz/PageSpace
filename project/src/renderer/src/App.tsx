@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AddPageCard } from './components/AddPageCard'
+import { AppSettingsDialog } from './components/AppSettingsDialog'
 import { CreatePageDialog } from './components/CreatePageDialog'
 import { PageEditor } from './components/PageEditor'
+import { PageRecoveryDialog } from './components/PageRecoveryDialog'
 import { PageSettingsDialog } from './components/PageSettingsDialog'
 import { SettingsIcon } from './components/icons'
 import { SiteCard } from './components/SiteCard'
@@ -24,7 +26,8 @@ function toDashboardPage(page: PageSummary): DashboardPage {
     description: page.description || 'Sem descrição',
     status: page.status,
     preview: page.previewDataUrl ? 'captured' : 'empty',
-    previewDataUrl: page.previewDataUrl
+    previewDataUrl: page.previewDataUrl,
+    health: page.health
   }
 }
 
@@ -36,6 +39,10 @@ function App(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [openPageId, setOpenPageId] = useState<string | null>(null)
   const [settingsPageId, setSettingsPageId] = useState<string | null>(null)
+  const [problemPageId, setProblemPageId] = useState<string | null>(null)
+  const [isRecovering, setIsRecovering] = useState(false)
+  const [recoveryError, setRecoveryError] = useState<string | null>(null)
+  const [isAppSettingsOpen, setIsAppSettingsOpen] = useState(false)
 
   useEffect(() => {
     let isCurrent = true
@@ -81,6 +88,7 @@ function App(): React.JSX.Element {
 
   const displayedPages = pages.length > 0 ? pages.map(toDashboardPage) : [placeholderPage]
   const settingsPage = pages.find((page) => page.id === settingsPageId)
+  const problemPage = pages.find((page) => page.id === problemPageId)
 
   function updatePage(updatedPage: PageSummary): void {
     setPages((currentPages) =>
@@ -92,6 +100,30 @@ function App(): React.JSX.Element {
     setPages((currentPages) => currentPages.filter((page) => page.id !== pageId))
     if (openPageId === pageId) setOpenPageId(null)
     if (settingsPageId === pageId) setSettingsPageId(null)
+  }
+
+  async function recoverPage(): Promise<void> {
+    if (!problemPage || isRecovering) return
+    setIsRecovering(true)
+    setRecoveryError(null)
+    try {
+      const recoveredPage = await window.pageMaker.recoverPage(problemPage.id)
+      try {
+        recoveredPage.previewDataUrl = await window.pageMaker.capturePagePreview(recoveredPage.id)
+      } catch {
+        // The recovered editable page remains valid if its replaceable preview cannot be rebuilt.
+      }
+      updatePage(recoveredPage)
+      setProblemPageId(null)
+    } catch (recoverError) {
+      setRecoveryError(
+        recoverError instanceof Error
+          ? recoverError.message
+          : 'Não foi possível recuperar a página.'
+      )
+    } finally {
+      setIsRecovering(false)
+    }
   }
 
   if (openPageId) {
@@ -128,6 +160,7 @@ function App(): React.JSX.Element {
           className="icon-button global-settings"
           type="button"
           aria-label="Configurações gerais"
+          onClick={() => setIsAppSettingsOpen(true)}
         >
           <SettingsIcon size={26} />
         </button>
@@ -143,6 +176,7 @@ function App(): React.JSX.Element {
                 page={page}
                 onOpen={setOpenPageId}
                 onOpenSettings={page.isPlaceholder ? undefined : setSettingsPageId}
+                onProblem={setProblemPageId}
               />
             ))}
             <AddPageCard onClick={() => setIsCreateDialogOpen(true)} disabled={isLoading} />
@@ -167,6 +201,26 @@ function App(): React.JSX.Element {
           onClose={() => setSettingsPageId(null)}
           onUpdated={updatePage}
           onDeleted={deletePage}
+        />
+      ) : null}
+      {problemPage ? (
+        <PageRecoveryDialog
+          page={problemPage}
+          isRecovering={isRecovering}
+          error={recoveryError}
+          onClose={() => {
+            setRecoveryError(null)
+            setProblemPageId(null)
+          }}
+          onRecover={recoverPage}
+        />
+      ) : null}
+      {isAppSettingsOpen ? (
+        <AppSettingsDialog
+          initialPages={pages}
+          onClose={() => setIsAppSettingsOpen(false)}
+          onPagesRefreshed={setPages}
+          onOpenProblem={setProblemPageId}
         />
       ) : null}
     </main>

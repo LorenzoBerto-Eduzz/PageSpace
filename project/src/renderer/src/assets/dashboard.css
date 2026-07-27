@@ -209,6 +209,24 @@
   outline-offset: 3px;
 }
 
+.site-card--damaged,
+.site-card--damaged:hover,
+.site-card--damaged:focus {
+  border-color: rgba(181, 78, 71, 0.72);
+}
+
+.card-action--warning {
+  margin-right: auto;
+  color: #b34f48;
+}
+
+.card-action--warning:hover,
+.card-action--warning:focus,
+.card-action--warning:active {
+  border-color: rgba(181, 78, 71, 0.72);
+  color: #a33f39;
+}
+
 .add-page-card {
   display: inline-flex;
   width: 44px;

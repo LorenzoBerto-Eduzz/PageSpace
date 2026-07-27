@@ -1,3 +1,45 @@
+.modal-close-button {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #626872;
+  background: transparent;
+}
+
+.modal-close-button:hover,
+.modal-close-button:focus {
+  border-color: #9eaaba;
+  outline: 0;
+}
+
+.modal-close-button:focus-visible {
+  outline: 3px solid rgba(75, 104, 159, 0.18);
+  outline-offset: 2px;
+}
+
+.modal-close-button:disabled {
+  cursor: wait;
+  opacity: 0.45;
+}
+
+.create-page-dialog > header,
+.page-settings-dialog > header,
+.delete-confirmation-dialog > header,
+.page-recovery-dialog > header,
+.app-settings-dialog > header,
+.unsaved-dialog > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .page-settings-backdrop {
   z-index: 20;
 }
@@ -22,6 +64,10 @@
   font-size: 27px;
   font-weight: 550;
   letter-spacing: -0.04em;
+}
+
+.delete-confirmation-dialog > header {
+  margin-bottom: 16px;
 }
 
 .page-settings-dialog form {
@@ -141,7 +187,7 @@
 }
 
 .delete-confirmation-dialog h2 {
-  margin-bottom: 16px;
+  margin-bottom: 0;
   font-size: 24px;
 }
 
@@ -169,4 +215,249 @@
 .delete-confirmation-dialog button:disabled {
   cursor: wait;
   opacity: 0.6;
+}
+
+.page-recovery-backdrop {
+  z-index: 22;
+}
+
+.page-recovery-dialog {
+  width: min(100%, 450px);
+  padding: 28px;
+  border: 1px solid rgba(181, 78, 71, 0.58);
+  border-radius: 10px;
+  background: #fbfbfa;
+  box-shadow: 0 22px 60px rgba(45, 51, 64, 0.22);
+}
+
+.page-recovery-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 13px;
+}
+
+.page-recovery-symbol {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid rgba(181, 78, 71, 0.68);
+  border-radius: 10px;
+  color: #a7433d;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.page-recovery-dialog h2 {
+  margin: 0;
+  color: #3c3f45;
+  font-size: 24px;
+  font-weight: 550;
+  letter-spacing: -0.035em;
+}
+
+.page-recovery-dialog > header {
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.app-settings-backdrop {
+  z-index: 20;
+}
+
+.app-settings-dialog {
+  width: min(100%, 570px);
+  max-height: min(760px, calc(100vh - 48px));
+  padding: 28px;
+  overflow-y: auto;
+  border: 1px solid rgba(190, 197, 208, 0.9);
+  border-radius: 10px;
+  background: #fbfbfa;
+  box-shadow: 0 22px 60px rgba(45, 51, 64, 0.2);
+}
+
+.app-settings-dialog > header {
+  margin-bottom: 22px;
+}
+
+.app-settings-dialog h2 {
+  margin: 0;
+  color: #3c3f45;
+  font-size: 27px;
+  font-weight: 550;
+  letter-spacing: -0.04em;
+}
+
+.app-settings-section {
+  padding: 18px 0;
+  border-top: 1px solid rgba(210, 215, 221, 0.86);
+}
+
+.app-settings-section h3 {
+  margin: 0 0 13px;
+  color: #565b64;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.app-settings-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin: 0;
+}
+
+.app-settings-facts div {
+  padding: 12px;
+  border: 1px solid rgba(205, 210, 218, 0.86);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.app-settings-facts dt {
+  margin-bottom: 7px;
+  color: #858b95;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.app-settings-facts dd {
+  margin: 0;
+  color: #4c515a;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.app-settings-facts .app-settings-problem-count {
+  color: #a7433d;
+}
+
+.app-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.app-settings-actions button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 13px;
+  border: 1px solid rgba(190, 197, 208, 0.9);
+  border-radius: 10px;
+  cursor: pointer;
+  color: #565b64;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.app-settings-actions button:hover:not(:disabled) {
+  border-color: #9eaaba;
+}
+
+.app-settings-actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.app-settings-damaged-list {
+  display: grid;
+  gap: 7px;
+}
+
+.app-settings-damaged-list button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(181, 78, 71, 0.42);
+  border-radius: 10px;
+  cursor: pointer;
+  color: #a7433d;
+  background: rgba(255, 251, 250, 0.9);
+  text-align: left;
+}
+
+.app-settings-damaged-list button:hover {
+  border-color: rgba(181, 78, 71, 0.78);
+}
+
+.app-settings-damaged-list span,
+.app-settings-damaged-list strong,
+.app-settings-damaged-list small {
+  display: block;
+}
+
+.app-settings-damaged-list span {
+  min-width: 0;
+}
+
+.app-settings-damaged-list strong {
+  overflow: hidden;
+  color: #5b4a49;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-settings-damaged-list small {
+  margin-top: 2px;
+  overflow: hidden;
+  color: #9a7774;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-settings-github-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.app-settings-github-section h3 {
+  margin-bottom: 4px;
+}
+
+.app-settings-github-section p {
+  margin: 0;
+  color: #8a9099;
+  font-size: 12px;
+}
+
+.app-settings-github-section > span {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border: 1px solid rgba(190, 197, 208, 0.9);
+  border-radius: 10px;
+  color: #747b86;
+  font-size: 12px;
+}
+
+.page-recovery-dialog p {
+  margin: 0 0 9px;
+  color: #686e78;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.page-recovery-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.page-recovery-button {
+  border-color: #934e47;
+  color: #fff;
+  background: #934e47;
 }

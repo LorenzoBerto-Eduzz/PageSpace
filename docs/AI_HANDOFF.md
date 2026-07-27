@@ -31,8 +31,8 @@ The owner wants PageMaker to be a portable, friendly, business-grade desktop con
 
 ## Suggested Near-Term Next Steps
 
-- Finish the local reliability layer: detect damaged/incomplete page workspaces, surface friendly health warnings, recover replaceable previews/generated output, and add recoverable content/metadata backups.
-- Build global GitHub authorization in dashboard settings with a supported browser flow and protected OS credential storage.
+- Perform a focused checkpoint/verification of the completed local backup, recovery, rescan, and app-settings foundation.
+- Build global GitHub authorization in the existing modular dashboard-settings surface with a supported browser flow and protected OS credential storage.
 - Add per-page publishing settings and an explicit confirmation screen. For the first version, `Publicar online` creates a public repository by default.
 - Create/configure the selected repository and GitHub Pages deployment, then commit and push only generated public output. A configured public page uses `Salvar e Postar`.
 - Verify a clean colleague-ready `localrelease` with an empty `Pages/`.
@@ -65,6 +65,11 @@ The owner wants PageMaker to be a portable, friendly, business-grade desktop con
 - The same centered page-settings modal opens from a dashboard card or the editor panel. It edits dashboard-only name/description metadata, shows the permanent original folder name, opens the validated page folder in Explorer, and moves local deletion to the Windows Recycle Bin after separate confirmation.
 - A dashboard metadata rename never renames the stable folder, changes its local Git identity, or alters website elements.
 - Local deletion never implies remote deletion. A future published-page flow must present local removal and destructive GitHub repository deletion as distinct explicit choices.
+- Every healthy page keeps exactly one validated previous snapshot containing both `data.json` and `.pagemaker/page.json`. Existing pages receive an initial snapshot during inspection; every later durable content or metadata change replaces it with the immediately previous valid pair.
+- A damaged page remains visible on the dashboard with a red warning state. Any card interaction opens the recovery warning instead of the editor/settings. Recovery is explicit, validates the backup pair, restores it, regenerates the clean site, and attempts to rebuild the preview. Questionable files are never overwritten automatically.
+- The global app-settings modal shows app version `v0.0.0`, total/damaged page counts, opens the portable `Pages/` folder, rescans external folder changes, rebuilds replaceable output, lists damaged pages, and truthfully shows GitHub as not linked.
+- All current modals share a reusable top-right X close control. Close/cancel footer actions were removed where the X represents the same operation.
+- Current visual composition is deliberately provisional. Layout, grouping, styling, icons, labels, and button placement must remain modular and easy to replace as product design evolves. Functional services and domain mechanics must not depend on the current frontend arrangement.
 - Browser spellchecking is disabled on PageMaker editing surfaces so user text is not marked with red spelling underlines.
 - `localrelease` means the clean shareable folder at `project/dist/localrelease/PageMaker/`, not the owner's populated development copy. It has the same structure as the future downloadable portable app, but its `Pages/` is always empty and it contains no local settings, page metadata, credentials, or developer/user content. Never deliver `project/dist/PageMaker/` to a colleague.
 - Editable content uses a future-extensible ordered elements model. The current UI deliberately exposes only the foundational title element; the plus control is temporary rather than the final element-library UX.

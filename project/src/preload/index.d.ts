@@ -1,4 +1,5 @@
 import type {
+  AppSettingsSnapshot,
   CreatePageInput,
   PageEditorData,
   PageSummary,
@@ -17,6 +18,9 @@ declare global {
       updatePageDetails: (input: UpdatePageDetailsInput) => Promise<PageSummary>
       openPageFolder: (pageId: string) => Promise<void>
       deleteLocalPage: (pageId: string) => Promise<void>
+      recoverPage: (pageId: string) => Promise<PageSummary>
+      getAppSettings: () => Promise<AppSettingsSnapshot>
+      openPagesFolder: () => Promise<void>
     }>
   }
 }

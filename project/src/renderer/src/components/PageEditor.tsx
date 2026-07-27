@@ -10,6 +10,7 @@ import {
   SettingsIcon,
   TrashIcon
 } from './icons'
+import { ModalCloseButton } from './ModalCloseButton'
 
 type PageEditorProps = {
   pageId: string
@@ -817,12 +818,12 @@ function UnsavedChangesDialog({
         aria-labelledby="unsaved-dialog-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <h2 id="unsaved-dialog-title">Salvar alterações?</h2>
+        <header>
+          <h2 id="unsaved-dialog-title">Salvar alterações?</h2>
+          <ModalCloseButton onClick={onContinue} disabled={isSaving} />
+        </header>
         <p>Existem alterações nesta página que ainda não foram salvas.</p>
         <footer>
-          <button type="button" onClick={onContinue} disabled={isSaving}>
-            Continuar editando
-          </button>
           <button type="button" onClick={onDiscard} disabled={isSaving}>
             Descartar alterações
           </button>

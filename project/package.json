@@ -1,6 +1,6 @@
 {
   "name": "pagemaker",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "A local-first desktop manager for simple static websites.",
   "main": "./out/main/index.js",
   "author": "PageMaker",

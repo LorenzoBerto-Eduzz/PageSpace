@@ -111,3 +111,29 @@ export function TrashIcon(props: IconProps): React.JSX.Element {
     </Icon>
   )
 }
+
+export function WarningIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M12 4 3.5 20h17L12 4Z" />
+      <path d="M12 9v5" />
+      <circle cx="12" cy="17" r="0.8" fill="currentColor" stroke="none" />
+    </Icon>
+  )
+}
+
+export function CloseIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="m6 6 12 12M18 6 6 18" />
+    </Icon>
+  )
+}
+
+export function FolderIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M3 6h7l2 2h9v11H3V6Z" />
+    </Icon>
+  )
+}

@@ -1,5 +1,5 @@
 import * as fs from 'node:fs'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { promises as fileSystem } from 'node:fs'
 import { join } from 'node:path'
 import git from 'isomorphic-git'
@@ -13,7 +13,10 @@ import type {
   UpdatePageDetailsInput
 } from '../shared/page-contracts'
 
-type StoredPage = PageSummary & {
+type StoredPage = Omit<
+  PageSummary,
+  'previewDataUrl' | 'health' | 'canRecover' | 'healthMessage'
+> & {
   schemaVersion: 1
   folderName: string
   deployment: { kind: 'local-only' }
@@ -23,6 +26,9 @@ const METADATA_FOLDER = '.pagemaker'
 const METADATA_FILE = 'page.json'
 const PREVIEW_FILE = 'preview.png'
 const CONTENT_FILE = 'data.json'
+const BACKUP_FOLDER = 'backup'
+const BACKUP_METADATA_FILE = 'page.json'
+const BACKUP_CONTENT_FILE = 'data.json'
 const DEFAULT_SIDE_MARGIN = 80
 const DEFAULT_VERTICAL_GAP = 48
 
@@ -31,13 +37,17 @@ export class PageWorkspaceService {
 
   constructor(private readonly pagesRoot: string) {}
 
+  async ensurePagesRoot(): Promise<void> {
+    await fileSystem.mkdir(this.pagesRoot, { recursive: true })
+  }
+
   async listPages(): Promise<PageSummary[]> {
     await fileSystem.mkdir(this.pagesRoot, { recursive: true })
     const entries = await fileSystem.readdir(this.pagesRoot, { withFileTypes: true })
     const pages = await Promise.all(
       entries
         .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
-        .map((entry) => this.readPage(join(this.pagesRoot, entry.name)))
+        .map((entry) => this.inspectPage(join(this.pagesRoot, entry.name), entry.name))
     )
 
     return pages
@@ -107,6 +117,7 @@ export class PageWorkspaceService {
       lastSavedAt: updatedAt
     }
 
+    await this.backupCurrentSnapshot(locatedPage.folderPath)
     await this.writeJsonAtomically(join(locatedPage.folderPath, CONTENT_FILE), content)
     await this.writeJsonAtomically(
       join(locatedPage.folderPath, METADATA_FOLDER, METADATA_FILE),
@@ -136,6 +147,7 @@ export class PageWorkspaceService {
       updatedAt: new Date().toISOString()
     }
 
+    await this.backupCurrentSnapshot(locatedPage.folderPath)
     await this.writeJsonAtomically(
       join(locatedPage.folderPath, METADATA_FOLDER, METADATA_FILE),
       updatedPage
@@ -144,7 +156,27 @@ export class PageWorkspaceService {
   }
 
   async getPageFolderPath(pageId: string): Promise<string> {
-    return (await this.findPage(pageId)).folderPath
+    return (await this.findPageWorkspace(pageId)).folderPath
+  }
+
+  async recoverPage(pageId: string): Promise<PageSummary> {
+    const workspace = await this.findPageWorkspace(pageId)
+    const backup = await this.readBackupSnapshot(workspace.folderPath)
+    if (!backup) throw new Error('Nenhum backup válido foi encontrado para esta página.')
+
+    await this.writeJsonAtomically(
+      join(workspace.folderPath, METADATA_FOLDER, METADATA_FILE),
+      backup.page
+    )
+    await this.writeJsonAtomically(join(workspace.folderPath, CONTENT_FILE), backup.content)
+    await generatePublicSite(join(workspace.folderPath, METADATA_FOLDER), backup.content)
+
+    return this.toSummary(
+      backup.page,
+      await this.readPreview(workspace.folderPath),
+      'healthy',
+      true
+    )
   }
 
   private async createPageSafely(input: CreatePageInput): Promise<PageSummary> {
@@ -186,6 +218,7 @@ export class PageWorkspaceService {
       } satisfies PageContent)
       const initialContent = await this.readContent(stagingDirectory, storedPage)
       await generatePublicSite(join(stagingDirectory, METADATA_FOLDER), initialContent)
+      await this.writeBackupSnapshot(stagingDirectory, storedPage, initialContent)
       await fileSystem.writeFile(
         join(stagingDirectory, '.gitignore'),
         `${METADATA_FOLDER}/\n`,
@@ -217,16 +250,50 @@ export class PageWorkspaceService {
     }
   }
 
-  private async readPage(folderPath: string): Promise<PageSummary | null> {
-    try {
-      const rawPage = await fileSystem.readFile(
-        join(folderPath, METADATA_FOLDER, METADATA_FILE),
-        'utf8'
+  private async inspectPage(folderPath: string, folderName: string): Promise<PageSummary> {
+    const page = await this.readStoredPage(folderPath)
+    const content = page ? await this.readValidatedContent(folderPath, page) : null
+    const backup = await this.readBackupSnapshot(folderPath)
+
+    if (page && content) {
+      let canRecover = Boolean(backup)
+      if (!backup) {
+        try {
+          await this.writeBackupSnapshot(folderPath, page, content)
+          canRecover = true
+        } catch {
+          // A healthy page remains usable if its first safety snapshot cannot be created.
+        }
+      }
+      return this.toSummary(page, await this.readPreview(folderPath), 'healthy', canRecover)
+    }
+
+    const fallbackPage = page ?? backup?.page
+    if (fallbackPage) {
+      return this.toSummary(
+        fallbackPage,
+        await this.readPreview(folderPath),
+        'damaged',
+        Boolean(backup),
+        page
+          ? 'O conteúdo editável da página está ausente ou danificado.'
+          : 'Os dados de identificação da página estão ausentes ou danificados.'
       )
-      const page = this.parseStoredPage(JSON.parse(rawPage))
-      return page ? this.toSummary(page, await this.readPreview(folderPath)) : null
-    } catch {
-      return null
+    }
+
+    const timestamp = new Date(0).toISOString()
+    return {
+      id: this.damagedWorkspaceId(folderName),
+      name: folderName,
+      description: 'A pasta desta página precisa de atenção.',
+      status: 'local',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      lastSavedAt: null,
+      folderName,
+      health: 'damaged',
+      canRecover: false,
+      healthMessage: 'Não foi possível encontrar dados válidos nem um backup desta página.'
     }
   }
 
@@ -262,6 +329,29 @@ export class PageWorkspaceService {
     throw new Error('Página local não encontrada.')
   }
 
+  private async findPageWorkspace(
+    pageId: string
+  ): Promise<{ folderPath: string; folderName: string }> {
+    if (typeof pageId !== 'string' || !pageId) throw new Error('Página inválida.')
+
+    await fileSystem.mkdir(this.pagesRoot, { recursive: true })
+    const entries = await fileSystem.readdir(this.pagesRoot, { withFileTypes: true })
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith('.')) continue
+      const folderPath = join(this.pagesRoot, entry.name)
+      const page = await this.readStoredPage(folderPath)
+      const backup = await this.readBackupSnapshot(folderPath)
+      if (
+        page?.id === pageId ||
+        backup?.page.id === pageId ||
+        this.damagedWorkspaceId(entry.name) === pageId
+      ) {
+        return { folderPath, folderName: entry.name }
+      }
+    }
+    throw new Error('Página local não encontrada.')
+  }
+
   private async readStoredPage(folderPath: string): Promise<StoredPage | null> {
     try {
       const rawPage = await fileSystem.readFile(
@@ -294,6 +384,67 @@ export class PageWorkspaceService {
     }
 
     return this.createInitialContent(page, page.name)
+  }
+
+  private async readValidatedContent(
+    folderPath: string,
+    page: StoredPage
+  ): Promise<PageContent | null> {
+    try {
+      const candidate = JSON.parse(
+        await fileSystem.readFile(join(folderPath, CONTENT_FILE), 'utf8')
+      ) as unknown
+      const parsedContent = this.parsePageContent(candidate)
+      if (parsedContent) return parsedContent
+      if (
+        candidate &&
+        typeof candidate === 'object' &&
+        (candidate as { schemaVersion?: unknown }).schemaVersion === 1 &&
+        typeof (candidate as { title?: unknown }).title === 'string'
+      ) {
+        return this.createInitialContent(page, (candidate as { title: string }).title)
+      }
+      return null
+    } catch {
+      return null
+    }
+  }
+
+  private async backupCurrentSnapshot(folderPath: string): Promise<void> {
+    const page = await this.readStoredPage(folderPath)
+    if (!page) throw new Error('Os dados atuais da página estão danificados.')
+    const content = await this.readValidatedContent(folderPath, page)
+    if (!content) throw new Error('O conteúdo atual da página está danificado.')
+    await this.writeBackupSnapshot(folderPath, page, content)
+  }
+
+  private async writeBackupSnapshot(
+    folderPath: string,
+    page: StoredPage,
+    content: PageContent
+  ): Promise<void> {
+    const backupFolder = join(folderPath, METADATA_FOLDER, BACKUP_FOLDER)
+    await fileSystem.mkdir(backupFolder, { recursive: true })
+    await this.writeJsonAtomically(join(backupFolder, BACKUP_METADATA_FILE), page)
+    await this.writeJsonAtomically(join(backupFolder, BACKUP_CONTENT_FILE), content)
+  }
+
+  private async readBackupSnapshot(
+    folderPath: string
+  ): Promise<{ page: StoredPage; content: PageContent } | null> {
+    try {
+      const backupFolder = join(folderPath, METADATA_FOLDER, BACKUP_FOLDER)
+      const page = this.parseStoredPage(
+        JSON.parse(await fileSystem.readFile(join(backupFolder, BACKUP_METADATA_FILE), 'utf8'))
+      )
+      if (!page) return null
+      const content = this.parsePageContent(
+        JSON.parse(await fileSystem.readFile(join(backupFolder, BACKUP_CONTENT_FILE), 'utf8'))
+      )
+      return content ? { page, content } : null
+    } catch {
+      return null
+    }
   }
 
   private async getAvailableFolderName(name: string): Promise<string> {
@@ -442,7 +593,13 @@ export class PageWorkspaceService {
     }
   }
 
-  private toSummary(page: StoredPage, previewDataUrl?: string): PageSummary {
+  private toSummary(
+    page: StoredPage,
+    previewDataUrl?: string,
+    health: PageSummary['health'] = 'healthy',
+    canRecover = true,
+    healthMessage?: string
+  ): PageSummary {
     return {
       id: page.id,
       name: page.name,
@@ -452,8 +609,15 @@ export class PageWorkspaceService {
       updatedAt: page.updatedAt,
       lastSavedAt: page.lastSavedAt,
       folderName: page.folderName,
+      health,
+      canRecover,
+      ...(healthMessage ? { healthMessage } : {}),
       ...(previewDataUrl ? { previewDataUrl } : {})
     }
+  }
+
+  private damagedWorkspaceId(folderName: string): string {
+    return `damaged-${createHash('sha256').update(folderName, 'utf8').digest('hex')}`
   }
 
   private toFolderName(name: string): string {

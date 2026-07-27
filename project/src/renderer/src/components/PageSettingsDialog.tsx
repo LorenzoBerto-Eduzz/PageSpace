@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { PageSummary, UpdatePageDetailsInput } from '../../../shared/page-contracts'
+import { ModalCloseButton } from './ModalCloseButton'
 
 type PageSettingsDialogProps = {
   page: PageSummary
@@ -80,6 +81,7 @@ export function PageSettingsDialog({
       >
         <header>
           <h2 id="page-settings-title">Configurações da página</h2>
+          <ModalCloseButton onClick={onClose} disabled={isSaving || isDeleting} />
         </header>
 
         <form onSubmit={save}>
@@ -137,14 +139,6 @@ export function PageSettingsDialog({
             </button>
             <span className="page-settings-footer-spacer" />
             <button
-              className="dialog-button dialog-button--secondary"
-              type="button"
-              disabled={isSaving || isDeleting}
-              onClick={onClose}
-            >
-              Cancelar
-            </button>
-            <button
               className="dialog-button dialog-button--primary"
               type="submit"
               disabled={!hasChanges || isSaving || isDeleting || !name.trim()}
@@ -163,21 +157,19 @@ export function PageSettingsDialog({
             aria-modal="true"
             aria-labelledby="delete-page-title"
           >
-            <h2 id="delete-page-title">Excluir esta página?</h2>
+            <header>
+              <h2 id="delete-page-title">Excluir esta página?</h2>
+              <ModalCloseButton
+                onClick={() => setIsDeleteConfirmationOpen(false)}
+                disabled={isDeleting}
+              />
+            </header>
             <p>
               A página <strong>{page.name}</strong> e sua pasta local serão movidas para a Lixeira
               do Windows.
             </p>
             <p>Nenhum repositório online será afetado.</p>
             <footer>
-              <button
-                className="dialog-button dialog-button--secondary"
-                type="button"
-                disabled={isDeleting}
-                onClick={() => setIsDeleteConfirmationOpen(false)}
-              >
-                Cancelar
-              </button>
               <button
                 className="dialog-button delete-confirmation-button"
                 type="button"

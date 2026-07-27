@@ -9,6 +9,9 @@ export type PageSummary = {
   updatedAt: string
   lastSavedAt: string | null
   folderName: string
+  health: 'healthy' | 'damaged'
+  canRecover: boolean
+  healthMessage?: string
   previewDataUrl?: string
 }
 
@@ -51,4 +54,10 @@ export type UpdatePageDetailsInput = {
   pageId: string
   name: string
   description: string
+}
+
+export type AppSettingsSnapshot = {
+  version: string
+  githubLinked: false
+  pages: PageSummary[]
 }

@@ -71,6 +71,8 @@ project/
 
 Keep product behaviour grouped by the concept it serves. For example, the site editor's UI, validation, and transformations should remain discoverable together; Git execution must remain in main-process services rather than renderer components.
 
+Frontend composition is intentionally replaceable. Keep modal shells, controls, status presentations, page cards, editor panels, and settings sections as focused components with behavior passed through typed props/contracts. Do not bind domain operations to a specific visual hierarchy, button position, CSS selector, or current layout.
+
 ## Trust Boundaries
 
 - **Renderer:** dashboard, forms, preview, validation messages, and status UI. It has no direct Node, filesystem, or shell access.
@@ -106,6 +108,8 @@ Use shared folders only when the file really is shared. Do not put feature-speci
 ## Current Project Status
 
 The Electron + electron-vite + React + TypeScript application is scaffolded in `project/`. It keeps the selected toolchain's standard `main`, `preload`, and renderer source areas, plus focused dashboard, page-creation, card, settings, and editor components. The renderer is intentionally non-privileged; a narrow typed preload API exposes validated page listing, creation, reading, saving, preview, metadata update, folder opening, and local deletion operations. The main-process workspace service owns atomic metadata/content writes, validation, serialized creation, local Git initialization, private preview persistence, and sanitized site generation. Windows Explorer and Recycle Bin operations remain in the Electron main process.
+
+The current local settings foundation also exposes typed app-health/rescan and explicit recovery operations. Renderer components decide how to present those capabilities; the underlying service behavior must remain reusable if the settings/dashboard layout is redesigned.
 
 `renderer/src/components/PageEditor.tsx` currently contains the first editor implementation: title elements, layout guides, pointer-driven reordering, the movable meta panel, and save/unsaved handling. Split it into focused element, layout-guide, drag-controller, and editor-panel modules before adding several new element families. Do not perform that refactor speculatively while the immediate publishing milestone needs only the current title model.
 

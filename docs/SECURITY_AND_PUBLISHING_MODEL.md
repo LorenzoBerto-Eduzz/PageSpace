@@ -50,6 +50,7 @@ The current generator stores verified `index.html` and `styles.css` under `.page
 - Make retries safe and avoid empty commits or duplicate remote configuration.
 - Never automatically resolve merge conflicts or silently change a site's visibility.
 - Local page deletion uses the Windows Recycle Bin. It never deletes a remote repository. Any future remote deletion must be a separate, strongly confirmed GitHub operation.
+- Recovery uses one private validated previous snapshot of page metadata and editable content. Damaged current files are never automatically replaced; restoration requires an explicit user action.
 - Test generation, manifest validation, asset sanitization, local export, publish failures, and recovery paths.
 
 ## Application Form

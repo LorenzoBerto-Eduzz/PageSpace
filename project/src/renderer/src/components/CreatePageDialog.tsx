@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import type { CreatePageInput } from '../../../shared/page-contracts'
+import { ModalCloseButton } from './ModalCloseButton'
 
 type CreatePageDialogProps = {
   isSaving: boolean
@@ -40,6 +41,7 @@ export function CreatePageDialog({
       >
         <header>
           <h2 id="create-page-title">Criar Página</h2>
+          <ModalCloseButton onClick={onClose} disabled={isSaving} />
         </header>
 
         <form onSubmit={submit}>
@@ -71,14 +73,6 @@ export function CreatePageDialog({
           {error ? <p className="dialog-error">{error}</p> : null}
 
           <footer>
-            <button
-              className="dialog-button dialog-button--secondary"
-              type="button"
-              onClick={onClose}
-              disabled={isSaving}
-            >
-              Cancelar
-            </button>
             <button
               className="dialog-button dialog-button--primary"
               type="submit"
