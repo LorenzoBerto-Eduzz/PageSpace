@@ -82,7 +82,7 @@ Keep product behaviour grouped by the concept it serves. For example, the site e
 
 - Global app configuration remains machine-local and may use versioned JSON beneath Electron's `userData` path. Each managed card lives in the portable release's `Pages/<stable-folder-name>/` workspace. Private `.pagemaker/page.json` metadata records its local state; it must not contain passwords or GitHub tokens.
 - Per-website public content is stored in `data.json` for the MVP. Its current versioned schema uses ordered title elements plus layout margins and positional gaps; it is designed to accept additional element types later.
-- The public-output service creates a fresh generated folder from an explicit manifest. It receives only public `index.html`, `styles.css`, `app.js`, `data.json`, sanitized public `assets/`, and safe `.PageMaker.json` metadata.
+- The current public-output generator creates `.pagemaker/generated-site/` from scratch and emits only verified `index.html` and `styles.css` for the title/layout model. Its hash manifest is private metadata stored beside, not inside, the generated site. Future elements may expand the explicit allowlist; publishing must never copy the workspace wholesale.
 - Do not mix PageMaker's own Electron project/repository into a managed website repository.
 
 ## Shared Foundations
@@ -105,7 +105,7 @@ Use shared folders only when the file really is shared. Do not put feature-speci
 
 ## Current Project Status
 
-The Electron + electron-vite + React + TypeScript application is scaffolded in `project/`. It keeps the selected toolchain's standard `main`, `preload`, and renderer source areas, plus focused dashboard, page-creation, card, and editor components. The renderer is intentionally non-privileged; a narrow typed preload API exposes validated page listing, creation, reading, saving, and preview operations. The main-process workspace service owns atomic metadata/content writes, validation, serialized creation, local Git initialization, and private preview persistence.
+The Electron + electron-vite + React + TypeScript application is scaffolded in `project/`. It keeps the selected toolchain's standard `main`, `preload`, and renderer source areas, plus focused dashboard, page-creation, card, settings, and editor components. The renderer is intentionally non-privileged; a narrow typed preload API exposes validated page listing, creation, reading, saving, preview, metadata update, folder opening, and local deletion operations. The main-process workspace service owns atomic metadata/content writes, validation, serialized creation, local Git initialization, private preview persistence, and sanitized site generation. Windows Explorer and Recycle Bin operations remain in the Electron main process.
 
 `renderer/src/components/PageEditor.tsx` currently contains the first editor implementation: title elements, layout guides, pointer-driven reordering, the movable meta panel, and save/unsaved handling. Split it into focused element, layout-guide, drag-controller, and editor-panel modules before adding several new element families. Do not perform that refactor speculatively while the immediate publishing milestone needs only the current title model.
 

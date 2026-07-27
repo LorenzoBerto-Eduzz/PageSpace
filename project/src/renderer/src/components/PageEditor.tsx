@@ -15,6 +15,7 @@ type PageEditorProps = {
   pageId: string
   onBack: () => void
   onSaved: (data: PageEditorData) => void
+  onOpenSettings: (pageId: string) => void
 }
 
 type PanelPosition = {
@@ -63,7 +64,12 @@ function contentFingerprint(content: PageContent | null): string {
   return content ? JSON.stringify(content) : ''
 }
 
-export function PageEditor({ pageId, onBack, onSaved }: PageEditorProps): React.JSX.Element {
+export function PageEditor({
+  pageId,
+  onBack,
+  onSaved,
+  onOpenSettings
+}: PageEditorProps): React.JSX.Element {
   const [content, setContent] = useState<PageContent | null>(null)
   const [savedContent, setSavedContent] = useState<PageContent | null>(null)
   const [position, setPosition] = useState<PanelPosition>(initialPanelPosition)
@@ -551,6 +557,7 @@ export function PageEditor({ pageId, onBack, onSaved }: PageEditorProps): React.
               className="editor-panel-action editor-settings-action"
               type="button"
               aria-label="Configurações da página"
+              onClick={() => onOpenSettings(pageId)}
             >
               <SettingsIcon size={24} />
             </button>

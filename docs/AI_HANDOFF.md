@@ -31,7 +31,7 @@ The owner wants PageMaker to be a portable, friendly, business-grade desktop con
 
 ## Suggested Near-Term Next Steps
 
-- Implement and verify a sanitized static-site generator for the existing title/layout content model. This is the required security boundary before any GitHub work: publishing must consume only its clean allowlisted output.
+- Finish the local reliability layer: detect damaged/incomplete page workspaces, surface friendly health warnings, recover replaceable previews/generated output, and add recoverable content/metadata backups.
 - Build global GitHub authorization in dashboard settings with a supported browser flow and protected OS credential storage.
 - Add per-page publishing settings and an explicit confirmation screen. For the first version, `Publicar online` creates a public repository by default.
 - Create/configure the selected repository and GitHub Pages deployment, then commit and push only generated public output. A configured public page uses `Salvar e Postar`.
@@ -60,6 +60,11 @@ The owner wants PageMaker to be a portable, friendly, business-grade desktop con
 - The versioned content model currently supports ordered title elements. Users can directly edit, add, delete, and pointer-drag them; positional gap sizes remain in place when elements reorder.
 - The movable editor panel contains app/meta controls. View mode hides editor chrome except the pencil control; save-state handling protects unsaved work on return and window close.
 - Saving persists validated content, refreshes a clean private `.pagemaker/preview.png` without flashing the live editor, and moves the card to the front. A newly created card initially appends where the create control was.
+- Every creation/save generates a clean static site under private `.pagemaker/generated-site/`. The output currently contains only verified `index.html` and `styles.css`; a private hash manifest remains outside the publishable directory. Generation uses a fresh temporary directory, strict file allowlisting, integrity verification, atomic replacement, and rollback protection.
+- Dashboard previews are captured from the exact generated static site, keeping local review and future published rendering on one source of truth.
+- The same centered page-settings modal opens from a dashboard card or the editor panel. It edits dashboard-only name/description metadata, shows the permanent original folder name, opens the validated page folder in Explorer, and moves local deletion to the Windows Recycle Bin after separate confirmation.
+- A dashboard metadata rename never renames the stable folder, changes its local Git identity, or alters website elements.
+- Local deletion never implies remote deletion. A future published-page flow must present local removal and destructive GitHub repository deletion as distinct explicit choices.
 - Browser spellchecking is disabled on PageMaker editing surfaces so user text is not marked with red spelling underlines.
 - `localrelease` means the clean shareable folder at `project/dist/localrelease/PageMaker/`, not the owner's populated development copy. It has the same structure as the future downloadable portable app, but its `Pages/` is always empty and it contains no local settings, page metadata, credentials, or developer/user content. Never deliver `project/dist/PageMaker/` to a colleague.
 - Editable content uses a future-extensible ordered elements model. The current UI deliberately exposes only the foundational title element; the plus control is temporary rather than the final element-library UX.

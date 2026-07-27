@@ -33,6 +33,8 @@ Dashboard previews stored as `.pagemaker/preview.png` are private app metadata. 
 
 For the first publishing version, the generated output may contain only static files rendered from the validated title/layout model and explicitly referenced public assets. The page workspace itself—including `.git/`, `.pagemaker/`, editable `data.json`, previews, and editor state—is never the publishing source.
 
+The current generator stores verified `index.html` and `styles.css` under `.pagemaker/generated-site/` and keeps its integrity manifest outside that directory. Regeneration starts from a new temporary directory and atomically replaces prior output. Dashboard previews render from these exact files.
+
 ## Credentials And Authorization
 
 - GitHub connection is global to the PageMaker installation and uses a secure browser-based authorization flow.
@@ -47,6 +49,7 @@ For the first publishing version, the generated output may contain only static f
 - Keep per-card publish status/history and show human-friendly progress plus redacted technical details.
 - Make retries safe and avoid empty commits or duplicate remote configuration.
 - Never automatically resolve merge conflicts or silently change a site's visibility.
+- Local page deletion uses the Windows Recycle Bin. It never deletes a remote repository. Any future remote deletion must be a separate, strongly confirmed GitHub operation.
 - Test generation, manifest validation, asset sanitization, local export, publish failures, and recovery paths.
 
 ## Application Form

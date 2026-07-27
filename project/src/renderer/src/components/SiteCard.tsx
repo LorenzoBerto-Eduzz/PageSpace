@@ -13,6 +13,7 @@ export type DashboardPage = {
 type SiteCardProps = {
   page: DashboardPage
   onOpen?: (pageId: string) => void
+  onOpenSettings?: (pageId: string) => void
 }
 
 function PreviewCanvas({ page }: SiteCardProps): React.JSX.Element {
@@ -27,7 +28,7 @@ function PreviewCanvas({ page }: SiteCardProps): React.JSX.Element {
   )
 }
 
-export function SiteCard({ page, onOpen }: SiteCardProps): React.JSX.Element {
+export function SiteCard({ page, onOpen, onOpenSettings }: SiteCardProps): React.JSX.Element {
   const className = page.isPlaceholder ? 'site-card site-card--placeholder' : 'site-card'
 
   return (
@@ -62,7 +63,12 @@ export function SiteCard({ page, onOpen }: SiteCardProps): React.JSX.Element {
           <button className="card-action" type="button" aria-label="Página somente local">
             <LockIcon size={18} />
           </button>
-          <button className="card-action" type="button" aria-label="Configurar página">
+          <button
+            className="card-action"
+            type="button"
+            aria-label="Configurar página"
+            onClick={() => onOpenSettings?.(page.id)}
+          >
             <SettingsIcon size={19} />
           </button>
         </footer>

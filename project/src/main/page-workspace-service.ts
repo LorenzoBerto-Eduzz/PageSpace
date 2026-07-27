@@ -3,12 +3,14 @@ import { randomUUID } from 'node:crypto'
 import { promises as fileSystem } from 'node:fs'
 import { join } from 'node:path'
 import git from 'isomorphic-git'
+import { generatePublicSite, type GeneratedSite } from './public-site-generator'
 import type {
   CreatePageInput,
   PageContent,
   PageEditorData,
   PageSummary,
-  SavePageContentInput
+  SavePageContentInput,
+  UpdatePageDetailsInput
 } from '../shared/page-contracts'
 
 type StoredPage = PageSummary & {
@@ -110,11 +112,39 @@ export class PageWorkspaceService {
       join(locatedPage.folderPath, METADATA_FOLDER, METADATA_FILE),
       updatedPage
     )
+    await generatePublicSite(join(locatedPage.folderPath, METADATA_FOLDER), content)
 
     return {
       page: this.toSummary(updatedPage),
       content
     }
+  }
+
+  async generatePageSite(pageId: string): Promise<GeneratedSite> {
+    const locatedPage = await this.findPage(pageId)
+    const content = await this.readContent(locatedPage.folderPath, locatedPage.page)
+    return generatePublicSite(join(locatedPage.folderPath, METADATA_FOLDER), content)
+  }
+
+  async updatePageDetails(input: UpdatePageDetailsInput): Promise<PageSummary> {
+    const validatedInput = this.validateUpdateDetailsInput(input)
+    const locatedPage = await this.findPage(validatedInput.pageId)
+    const updatedPage: StoredPage = {
+      ...locatedPage.page,
+      name: validatedInput.name,
+      description: validatedInput.description,
+      updatedAt: new Date().toISOString()
+    }
+
+    await this.writeJsonAtomically(
+      join(locatedPage.folderPath, METADATA_FOLDER, METADATA_FILE),
+      updatedPage
+    )
+    return this.toSummary(updatedPage, await this.readPreview(locatedPage.folderPath))
+  }
+
+  async getPageFolderPath(pageId: string): Promise<string> {
+    return (await this.findPage(pageId)).folderPath
   }
 
   private async createPageSafely(input: CreatePageInput): Promise<PageSummary> {
@@ -154,6 +184,8 @@ export class PageWorkspaceService {
           gaps: [DEFAULT_VERTICAL_GAP, DEFAULT_VERTICAL_GAP]
         }
       } satisfies PageContent)
+      const initialContent = await this.readContent(stagingDirectory, storedPage)
+      await generatePublicSite(join(stagingDirectory, METADATA_FOLDER), initialContent)
       await fileSystem.writeFile(
         join(stagingDirectory, '.gitignore'),
         `${METADATA_FOLDER}/\n`,
@@ -303,6 +335,18 @@ export class PageWorkspaceService {
     return { pageId: input.pageId, content }
   }
 
+  private validateUpdateDetailsInput(input: UpdatePageDetailsInput): UpdatePageDetailsInput {
+    if (!input || typeof input.pageId !== 'string') {
+      throw new Error('Dados da página inválidos.')
+    }
+
+    const details = this.validateCreateInput({
+      name: input.name,
+      description: input.description
+    })
+    return { pageId: input.pageId, ...details }
+  }
+
   private parsePageContent(value: unknown): PageContent | null {
     if (!value || typeof value !== 'object') return null
 
@@ -407,6 +451,7 @@ export class PageWorkspaceService {
       createdAt: page.createdAt,
       updatedAt: page.updatedAt,
       lastSavedAt: page.lastSavedAt,
+      folderName: page.folderName,
       ...(previewDataUrl ? { previewDataUrl } : {})
     }
   }

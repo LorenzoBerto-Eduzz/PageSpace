@@ -2,7 +2,8 @@ import type {
   CreatePageInput,
   PageEditorData,
   PageSummary,
-  SavePageContentInput
+  SavePageContentInput,
+  UpdatePageDetailsInput
 } from '../shared/page-contracts'
 
 declare global {
@@ -13,6 +14,9 @@ declare global {
       getPage: (pageId: string) => Promise<PageEditorData>
       savePageContent: (input: SavePageContentInput) => Promise<PageEditorData>
       capturePagePreview: (pageId: string) => Promise<string>
+      updatePageDetails: (input: UpdatePageDetailsInput) => Promise<PageSummary>
+      openPageFolder: (pageId: string) => Promise<void>
+      deleteLocalPage: (pageId: string) => Promise<void>
     }>
   }
 }

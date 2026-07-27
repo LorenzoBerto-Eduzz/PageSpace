@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AddPageCard } from './components/AddPageCard'
 import { CreatePageDialog } from './components/CreatePageDialog'
 import { PageEditor } from './components/PageEditor'
+import { PageSettingsDialog } from './components/PageSettingsDialog'
 import { SettingsIcon } from './components/icons'
 import { SiteCard } from './components/SiteCard'
 import type { DashboardPage } from './components/SiteCard'
@@ -34,6 +35,7 @@ function App(): React.JSX.Element {
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [openPageId, setOpenPageId] = useState<string | null>(null)
+  const [settingsPageId, setSettingsPageId] = useState<string | null>(null)
 
   useEffect(() => {
     let isCurrent = true
@@ -78,19 +80,43 @@ function App(): React.JSX.Element {
   }
 
   const displayedPages = pages.length > 0 ? pages.map(toDashboardPage) : [placeholderPage]
+  const settingsPage = pages.find((page) => page.id === settingsPageId)
+
+  function updatePage(updatedPage: PageSummary): void {
+    setPages((currentPages) =>
+      currentPages.map((page) => (page.id === updatedPage.id ? updatedPage : page))
+    )
+  }
+
+  function deletePage(pageId: string): void {
+    setPages((currentPages) => currentPages.filter((page) => page.id !== pageId))
+    if (openPageId === pageId) setOpenPageId(null)
+    if (settingsPageId === pageId) setSettingsPageId(null)
+  }
 
   if (openPageId) {
     return (
-      <PageEditor
-        pageId={openPageId}
-        onBack={() => setOpenPageId(null)}
-        onSaved={(savedPage) => {
-          setPages((currentPages) => [
-            savedPage.page,
-            ...currentPages.filter((page) => page.id !== savedPage.page.id)
-          ])
-        }}
-      />
+      <>
+        <PageEditor
+          pageId={openPageId}
+          onBack={() => setOpenPageId(null)}
+          onOpenSettings={setSettingsPageId}
+          onSaved={(savedPage) => {
+            setPages((currentPages) => [
+              savedPage.page,
+              ...currentPages.filter((page) => page.id !== savedPage.page.id)
+            ])
+          }}
+        />
+        {settingsPage ? (
+          <PageSettingsDialog
+            page={settingsPage}
+            onClose={() => setSettingsPageId(null)}
+            onUpdated={updatePage}
+            onDeleted={deletePage}
+          />
+        ) : null}
+      </>
     )
   }
 
@@ -112,7 +138,12 @@ function App(): React.JSX.Element {
           {error && !isCreateDialogOpen ? <p className="dashboard-error">{error}</p> : null}
           <div className="pages-grid">
             {displayedPages.map((page) => (
-              <SiteCard key={page.id} page={page} onOpen={setOpenPageId} />
+              <SiteCard
+                key={page.id}
+                page={page}
+                onOpen={setOpenPageId}
+                onOpenSettings={page.isPlaceholder ? undefined : setSettingsPageId}
+              />
             ))}
             <AddPageCard onClick={() => setIsCreateDialogOpen(true)} disabled={isLoading} />
           </div>
@@ -128,6 +159,14 @@ function App(): React.JSX.Element {
             setIsCreateDialogOpen(false)
           }}
           onCreate={createPage}
+        />
+      ) : null}
+      {settingsPage ? (
+        <PageSettingsDialog
+          page={settingsPage}
+          onClose={() => setSettingsPageId(null)}
+          onUpdated={updatePage}
+          onDeleted={deletePage}
         />
       ) : null}
     </main>

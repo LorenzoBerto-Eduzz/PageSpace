@@ -8,6 +8,7 @@ export type PageSummary = {
   createdAt: string
   updatedAt: string
   lastSavedAt: string | null
+  folderName: string
   previewDataUrl?: string
 }
 
@@ -44,4 +45,10 @@ export type PageEditorData = {
 export type SavePageContentInput = {
   pageId: string
   content: PageContent
+}
+
+export type UpdatePageDetailsInput = {
+  pageId: string
+  name: string
+  description: string
 }

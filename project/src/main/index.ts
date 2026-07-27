@@ -1,9 +1,13 @@
-import { app, BrowserWindow, ipcMain, nativeTheme } from 'electron'
+import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
 import { dirname, join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { PageWorkspaceService } from './page-workspace-service'
-import type { CreatePageInput, PageContent, SavePageContentInput } from '../shared/page-contracts'
+import type {
+  CreatePageInput,
+  SavePageContentInput,
+  UpdatePageDetailsInput
+} from '../shared/page-contracts'
 
 function getPagesRoot(): string {
   return app.isPackaged ? join(dirname(process.execPath), 'Pages') : join(app.getAppPath(), 'Pages')
@@ -46,64 +50,11 @@ function createWindow(): void {
   }
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;')
-}
-
-function createPreviewHtml(content: PageContent): string {
-  const elements = content.elements
-    .map(
-      (element, index) =>
-        `<div style="height:${content.layout.gaps[index]}px"></div>` +
-        `<h1>${escapeHtml(element.text)}</h1>`
-    )
-    .join('')
-
-  return `<!doctype html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8">
-    <style>
-      * { box-sizing: border-box; }
-      html, body { width: 100%; min-height: 100%; margin: 0; background: #fff; }
-      body {
-        padding-right: ${content.layout.marginRight}px;
-        padding-left: ${content.layout.marginLeft}px;
-        color: #3b3d42;
-        font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif;
-      }
-      h1 {
-        width: fit-content;
-        max-width: 100%;
-        min-height: 1.1em;
-        margin: 0;
-        padding: 7px 8px;
-        overflow: hidden;
-        font-size: 50px;
-        font-weight: 500;
-        line-height: 1.2;
-        letter-spacing: -0.055em;
-        white-space: nowrap;
-      }
-    </style>
-  </head>
-  <body>
-    ${elements}
-    <div style="height:${content.layout.gaps[content.elements.length]}px"></div>
-  </body>
-</html>`
-}
-
 async function captureCleanPagePreview(
   pageWorkspace: PageWorkspaceService,
   pageId: string
 ): Promise<string> {
-  const pageData = await pageWorkspace.getPage(pageId)
+  const generatedSite = await pageWorkspace.generatePageSite(pageId)
   const previewWindow = new BrowserWindow({
     show: false,
     width: 1280,
@@ -119,8 +70,7 @@ async function captureCleanPagePreview(
   })
 
   try {
-    const html = createPreviewHtml(pageData.content)
-    await previewWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+    await previewWindow.loadFile(generatedSite.indexPath)
     await previewWindow.webContents.executeJavaScript(
       'new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))'
     )
@@ -158,6 +108,18 @@ app.whenReady().then(() => {
   ipcMain.handle('pages:capture-preview', (_, pageId: string) =>
     captureCleanPagePreview(pageWorkspace, pageId)
   )
+  ipcMain.handle('pages:update-details', (_, input: UpdatePageDetailsInput) =>
+    pageWorkspace.updatePageDetails(input)
+  )
+  ipcMain.handle('pages:open-folder', async (_, pageId: string) => {
+    const folderPath = await pageWorkspace.getPageFolderPath(pageId)
+    const openError = await shell.openPath(folderPath)
+    if (openError) throw new Error(openError)
+  })
+  ipcMain.handle('pages:delete-local', async (_, pageId: string) => {
+    const folderPath = await pageWorkspace.getPageFolderPath(pageId)
+    await shell.trashItem(folderPath)
+  })
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

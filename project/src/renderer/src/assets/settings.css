@@ -1,0 +1,172 @@
+.page-settings-backdrop {
+  z-index: 20;
+}
+
+.page-settings-dialog {
+  width: min(100%, 520px);
+  padding: 28px 28px 22px;
+  border: 1px solid rgba(190, 197, 208, 0.9);
+  border-radius: 10px;
+  background: #fbfbfa;
+  box-shadow: 0 22px 60px rgba(45, 51, 64, 0.2);
+}
+
+.page-settings-dialog header {
+  margin-bottom: 20px;
+}
+
+.page-settings-dialog h2,
+.delete-confirmation-dialog h2 {
+  margin: 0;
+  color: #3c3f45;
+  font-size: 27px;
+  font-weight: 550;
+  letter-spacing: -0.04em;
+}
+
+.page-settings-dialog form {
+  display: grid;
+  gap: 16px;
+}
+
+.page-settings-dialog label {
+  display: grid;
+  gap: 7px;
+  color: #565b64;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.page-settings-dialog .dialog-label-title span {
+  color: #9aa0aa;
+  font-weight: 500;
+}
+
+.page-settings-dialog input,
+.page-settings-dialog textarea {
+  width: 100%;
+  border: 1px solid rgba(190, 197, 208, 0.9);
+  border-radius: 10px;
+  color: #3f444d;
+  background: #fff;
+  font: inherit;
+  font-weight: 500;
+}
+
+.page-settings-dialog input {
+  height: 42px;
+  padding: 0 12px;
+}
+
+.page-settings-dialog textarea {
+  min-height: 70px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.page-settings-dialog input:focus,
+.page-settings-dialog textarea:focus {
+  border-color: #9eaaba;
+  outline: 3px solid rgba(75, 104, 159, 0.18);
+}
+
+.page-settings-dialog .folder-name-field {
+  gap: 6px;
+}
+
+.folder-name-field input[readonly] {
+  color: #747b86;
+  background: #f2f3f4;
+}
+
+.folder-name-field small {
+  color: #8b919b;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.page-settings-folder-button {
+  width: fit-content;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(190, 197, 208, 0.9);
+  border-radius: 10px;
+  cursor: pointer;
+  color: #565b64;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.page-settings-folder-button:hover:not(:disabled) {
+  border-color: #9eaaba;
+}
+
+.page-settings-dialog footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.page-settings-footer-spacer {
+  flex: 1;
+}
+
+.page-settings-delete-button {
+  border-color: rgba(193, 128, 122, 0.65);
+  color: #91463f;
+  background: transparent;
+}
+
+.delete-confirmation-backdrop {
+  position: fixed;
+  z-index: 21;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(47, 54, 68, 0.3);
+}
+
+.delete-confirmation-dialog {
+  width: min(100%, 430px);
+  padding: 26px;
+  border: 1px solid rgba(190, 197, 208, 0.9);
+  border-radius: 10px;
+  background: #fbfbfa;
+  box-shadow: 0 22px 60px rgba(45, 51, 64, 0.24);
+}
+
+.delete-confirmation-dialog h2 {
+  margin-bottom: 16px;
+  font-size: 24px;
+}
+
+.delete-confirmation-dialog p {
+  margin: 0 0 9px;
+  color: #686e78;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.delete-confirmation-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.delete-confirmation-button {
+  border-color: #934e47;
+  color: #fff;
+  background: #934e47;
+}
+
+.page-settings-dialog button:disabled,
+.delete-confirmation-dialog button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
