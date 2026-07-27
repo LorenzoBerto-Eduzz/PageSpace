@@ -423,6 +423,10 @@
   gap: 20px;
 }
 
+.app-settings-github-heading {
+  min-width: 0;
+}
+
 .app-settings-github-section h3 {
   margin-bottom: 4px;
 }
@@ -433,13 +437,132 @@
   font-size: 12px;
 }
 
-.app-settings-github-section > span {
+.github-account-action {
   flex: 0 0 auto;
-  padding: 6px 9px;
+  min-height: 38px;
+  padding: 0 12px;
   border: 1px solid rgba(190, 197, 208, 0.9);
   border-radius: 10px;
+  cursor: pointer;
   color: #747b86;
+  background: transparent;
+  font: inherit;
   font-size: 12px;
+  font-weight: 650;
+}
+
+.github-account-action:hover:not(:disabled) {
+  border-color: #9eaaba;
+}
+
+.github-account-action:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.github-account-link {
+  border-color: #636f82;
+  color: #fff;
+  background: #58677d;
+}
+
+.github-account {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  margin-top: 11px;
+}
+
+.github-account img {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(190, 197, 208, 0.9);
+  border-radius: 10px;
+}
+
+.github-account span,
+.github-account strong,
+.github-account small {
+  display: block;
+}
+
+.github-account span {
+  min-width: 0;
+}
+
+.github-account strong {
+  overflow: hidden;
+  color: #4d525b;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.github-account small {
+  margin-top: 2px;
+  color: #888e98;
+  font-size: 11px;
+}
+
+.github-device-flow {
+  margin-top: 10px;
+}
+
+.github-device-flow p {
+  margin-bottom: 8px;
+}
+
+.github-device-code {
+  display: inline-block;
+  padding: 7px 10px;
+  border: 1px solid rgba(190, 197, 208, 0.9);
+  border-radius: 10px;
+  cursor: pointer;
+  color: #444a54;
+  background: #fff;
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.github-device-code:hover,
+.github-device-code:focus {
+  border-color: #8f9cac;
+  outline: 0;
+}
+
+.github-device-flow small {
+  display: block;
+  margin-top: 7px;
+  color: #888e98;
+  font-size: 11px;
+}
+
+.github-device-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.github-device-actions button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(190, 197, 208, 0.9);
+  border-radius: 10px;
+  cursor: pointer;
+  color: #686f79;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.github-device-actions button:hover {
+  border-color: #9eaaba;
 }
 
 .page-recovery-dialog p {

@@ -31,8 +31,8 @@ The owner wants PageMaker to be a portable, friendly, business-grade desktop con
 
 ## Suggested Near-Term Next Steps
 
-- Perform a focused checkpoint/verification of the completed local backup, recovery, rescan, and app-settings foundation.
-- Build global GitHub authorization in the existing modular dashboard-settings surface with a supported browser flow and protected OS credential storage.
+- Implement the first explicit per-page `Publicar online` flow against the connected personal GitHub account, using a disposable test page/repository first.
+- Publish only verified generated files, persist resumable per-page repository/deployment state, and keep local saves successful even when network publication fails.
 - Add per-page publishing settings and an explicit confirmation screen. For the first version, `Publicar online` creates a public repository by default.
 - Create/configure the selected repository and GitHub Pages deployment, then commit and push only generated public output. A configured public page uses `Salvar e Postar`.
 - Verify a clean colleague-ready `localrelease` with an empty `Pages/`.
@@ -70,6 +70,13 @@ The owner wants PageMaker to be a portable, friendly, business-grade desktop con
 - The global app-settings modal shows app version `v0.0.0`, total/damaged page counts, opens the portable `Pages/` folder, rescans external folder changes, rebuilds replaceable output, lists damaged pages, and truthfully shows GitHub as not linked.
 - All current modals share a reusable top-right X close control. Close/cancel footer actions were removed where the X represents the same operation.
 - Current visual composition is deliberately provisional. Layout, grouping, styling, icons, labels, and button placement must remain modular and easy to replace as product design evolves. Functional services and domain mechanics must not depend on the current frontend arrangement.
+- PageMaker is registered as a GitHub OAuth App with Device Flow enabled. Its public Client ID is safe to ship; no client secret exists in the desktop application.
+- Any unknown user can link their own personal GitHub account through PageMaker Settings. The temporary code is copied automatically, remains clickable to copy again, and the GitHub device page can be reopened. Linking can be explicitly cancelled; an external browser-tab close cannot be detected by Device Flow.
+- GitHub authorization requests only `public_repo`. PageMaker receives no GitHub password and never asks users to create or paste access tokens.
+- The OAuth token remains in Electron's main process and is encrypted at rest with Windows DPAPI through Electron `safeStorage`. Renderer code receives only the validated account profile.
+- The connected GitHub account persists across PageMaker runtime updates for the same Windows user/application identity. It is not portable to another Windows user or computer and is never included in `localrelease`.
+- Local pages persist across in-place runtime updates because the updater/build must preserve the sibling `Pages/` directory. A fresh PageMaker copy in a different folder intentionally sees that folder's own `Pages/`.
+- A future built-in updater must stage and verify new runtime files, replace only application runtime, never mutate `Pages/`, preserve protected account state, and roll back runtime replacement on failure.
 - Browser spellchecking is disabled on PageMaker editing surfaces so user text is not marked with red spelling underlines.
 - `localrelease` means the clean shareable folder at `project/dist/localrelease/PageMaker/`, not the owner's populated development copy. It has the same structure as the future downloadable portable app, but its `Pages/` is always empty and it contains no local settings, page metadata, credentials, or developer/user content. Never deliver `project/dist/PageMaker/` to a colleague.
 - Editable content uses a future-extensible ordered elements model. The current UI deliberately exposes only the foundational title element; the plus control is temporary rather than the final element-library UX.

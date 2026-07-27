@@ -62,6 +62,8 @@ PageMaker/
 
 The public artifact must be assembled through the same clean-export boundary as `localrelease`, with an empty `Pages/` folder. Never ZIP or upload the developer's populated `project/dist/PageMaker/` folder. The release process must still repeat all privacy checks before upload.
 
+Future in-place updates must stage and verify the new runtime before replacing files. They must preserve the existing sibling `Pages/` directory, must not bundle or migrate any developer/user credential file, and must leave the same Windows user's protected GitHub authorization intact through the stable PageMaker application identity. Runtime replacement needs a rollback path.
+
 ## When A Project Needs Delivery
 
 Before establishing a named command such as `localrelease`, document:

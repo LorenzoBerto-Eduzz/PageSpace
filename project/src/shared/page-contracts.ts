@@ -58,6 +58,24 @@ export type UpdatePageDetailsInput = {
 
 export type AppSettingsSnapshot = {
   version: string
-  githubLinked: false
+  github: GitHubConnectionStatus
   pages: PageSummary[]
+}
+
+export type GitHubAccount = {
+  id: number
+  login: string
+  name: string | null
+  avatarUrl: string
+  profileUrl: string
+}
+
+export type GitHubConnectionStatus =
+  { state: 'disconnected' } | { state: 'connected'; account: GitHubAccount }
+
+export type GitHubDeviceAuthorization = {
+  flowId: string
+  userCode: string
+  verificationUri: string
+  expiresAt: string
 }

@@ -78,6 +78,40 @@ contextBridge.exposeInMainWorld(
       } catch {
         throw new Error('Não foi possível abrir a pasta Pages.')
       }
+    },
+    beginGitHubLink: async () => {
+      try {
+        return await ipcRenderer.invoke('github:begin-link')
+      } catch (error) {
+        throw new Error(
+          error instanceof Error ? error.message : 'Não foi possível iniciar a vinculação.'
+        )
+      }
+    },
+    completeGitHubLink: async (flowId: string) => {
+      try {
+        return await ipcRenderer.invoke('github:complete-link', flowId)
+      } catch (error) {
+        throw new Error(
+          error instanceof Error ? error.message : 'Não foi possível vincular a conta GitHub.'
+        )
+      }
+    },
+    cancelGitHubLink: async (flowId: string) => {
+      await ipcRenderer.invoke('github:cancel-link', flowId)
+    },
+    copyGitHubCode: async (userCode: string) => {
+      await ipcRenderer.invoke('github:copy-code', userCode)
+    },
+    openGitHubDevicePage: async () => {
+      await ipcRenderer.invoke('github:open-device-page')
+    },
+    disconnectGitHub: async () => {
+      try {
+        await ipcRenderer.invoke('github:disconnect')
+      } catch {
+        throw new Error('Não foi possível desvincular a conta GitHub.')
+      }
     }
   })
 )

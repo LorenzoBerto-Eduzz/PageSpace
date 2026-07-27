@@ -1,5 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { AppSettingsSnapshot, PageSummary } from '../../../shared/page-contracts'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type {
+  AppSettingsSnapshot,
+  GitHubDeviceAuthorization,
+  PageSummary
+} from '../../../shared/page-contracts'
 import { FolderIcon, WarningIcon } from './icons'
 import { ModalCloseButton } from './ModalCloseButton'
 
@@ -18,11 +22,16 @@ export function AppSettingsDialog({
 }: AppSettingsDialogProps): React.JSX.Element {
   const [snapshot, setSnapshot] = useState<AppSettingsSnapshot>({
     version: '0.0.0',
-    githubLinked: false,
+    github: { state: 'disconnected' },
     pages: initialPages
   })
   const [isChecking, setIsChecking] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [authorization, setAuthorization] = useState<GitHubDeviceAuthorization | null>(null)
+  const [isLinkingGitHub, setIsLinkingGitHub] = useState(false)
+  const [isDisconnectingGitHub, setIsDisconnectingGitHub] = useState(false)
+  const linkAttemptId = useRef(0)
+  const [codeWasCopied, setCodeWasCopied] = useState(false)
   const damagedPages = useMemo(
     () => snapshot.pages.filter((page) => page.health === 'damaged'),
     [snapshot.pages]
@@ -64,6 +73,76 @@ export function AppSettingsDialog({
     }
   }
 
+  async function beginGitHubLink(): Promise<void> {
+    if (isLinkingGitHub) return
+    setError(null)
+    const attemptId = linkAttemptId.current + 1
+    linkAttemptId.current = attemptId
+    setCodeWasCopied(true)
+    setIsLinkingGitHub(true)
+    try {
+      const nextAuthorization = await window.pageMaker.beginGitHubLink()
+      setAuthorization(nextAuthorization)
+      const status = await window.pageMaker.completeGitHubLink(nextAuthorization.flowId)
+      setSnapshot((current) => ({ ...current, github: status }))
+      setAuthorization(null)
+    } catch (linkError) {
+      setAuthorization(null)
+      if (linkAttemptId.current === attemptId) {
+        setError(
+          linkError instanceof Error
+            ? linkError.message
+            : 'Não foi possível vincular a conta GitHub.'
+        )
+      }
+    } finally {
+      if (linkAttemptId.current === attemptId) setIsLinkingGitHub(false)
+    }
+  }
+
+  async function cancelGitHubLink(): Promise<void> {
+    const activeAuthorization = authorization
+    if (!activeAuthorization) return
+    linkAttemptId.current += 1
+    setAuthorization(null)
+    setCodeWasCopied(false)
+    setError(null)
+    setIsLinkingGitHub(false)
+    await window.pageMaker.cancelGitHubLink(activeAuthorization.flowId)
+  }
+
+  async function copyGitHubCode(): Promise<void> {
+    if (!authorization) return
+    await window.pageMaker.copyGitHubCode(authorization.userCode)
+    setCodeWasCopied(true)
+  }
+
+  async function disconnectGitHub(): Promise<void> {
+    if (isDisconnectingGitHub) return
+    setError(null)
+    setIsDisconnectingGitHub(true)
+    try {
+      await window.pageMaker.disconnectGitHub()
+      setSnapshot((current) => ({ ...current, github: { state: 'disconnected' } }))
+    } catch (disconnectError) {
+      setError(
+        disconnectError instanceof Error
+          ? disconnectError.message
+          : 'Não foi possível desvincular a conta GitHub.'
+      )
+    } finally {
+      setIsDisconnectingGitHub(false)
+    }
+  }
+
+  function closeDialog(): void {
+    if (authorization) {
+      linkAttemptId.current += 1
+      void window.pageMaker.cancelGitHubLink(authorization.flowId)
+    }
+    onClose()
+  }
+
   return (
     <div className="dialog-backdrop app-settings-backdrop" role="presentation">
       <section
@@ -74,7 +153,7 @@ export function AppSettingsDialog({
       >
         <header>
           <h2 id="app-settings-title">Configurações do PageMaker</h2>
-          <ModalCloseButton onClick={onClose} disabled={isChecking} />
+          <ModalCloseButton onClick={closeDialog} disabled={isChecking || isDisconnectingGitHub} />
         </header>
 
         <div className="app-settings-section">
@@ -132,11 +211,63 @@ export function AppSettingsDialog({
         ) : null}
 
         <div className="app-settings-section app-settings-github-section">
-          <div>
+          <div className="app-settings-github-heading">
             <h3>Conta GitHub</h3>
-            <p>A conexão será configurada em uma próxima etapa.</p>
+            {snapshot.github.state === 'connected' ? (
+              <div className="github-account">
+                <img src={snapshot.github.account.avatarUrl} alt="" />
+                <span>
+                  <strong>{snapshot.github.account.name ?? snapshot.github.account.login}</strong>
+                  <small>@{snapshot.github.account.login}</small>
+                </span>
+              </div>
+            ) : authorization ? (
+              <div className="github-device-flow">
+                <p>O GitHub foi aberto no navegador. Use o código copiado:</p>
+                <button
+                  className="github-device-code"
+                  type="button"
+                  title="Copiar código"
+                  onClick={copyGitHubCode}
+                >
+                  {authorization.userCode}
+                </button>
+                <small>
+                  {codeWasCopied ? 'Código copiado. ' : ''}
+                  Aguardando autorização…
+                </small>
+                <div className="github-device-actions">
+                  <button type="button" onClick={() => window.pageMaker.openGitHubDevicePage()}>
+                    Abrir GitHub novamente
+                  </button>
+                  <button type="button" onClick={cancelGitHubLink}>
+                    Cancelar vinculação
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p>Vincule sua conta para publicar páginas em seus repositórios.</p>
+            )}
           </div>
-          <span>Não vinculada</span>
+          {snapshot.github.state === 'connected' ? (
+            <button
+              className="github-account-action"
+              type="button"
+              disabled={isDisconnectingGitHub}
+              onClick={disconnectGitHub}
+            >
+              {isDisconnectingGitHub ? 'Desvinculando…' : 'Desvincular'}
+            </button>
+          ) : (
+            <button
+              className="github-account-action github-account-link"
+              type="button"
+              disabled={isLinkingGitHub}
+              onClick={beginGitHubLink}
+            >
+              {authorization ? 'Aguardando…' : 'Vincular conta GitHub'}
+            </button>
+          )}
         </div>
 
         {error ? <p className="dialog-error">{error}</p> : null}

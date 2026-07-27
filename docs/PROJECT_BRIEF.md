@@ -44,6 +44,7 @@ Keep this brief summary current. Put detailed build, export, package, deployment
 ## Important Constraints
 
 - Primary platform is Windows; distribution target is a portable `PageMaker/` folder, not an installer. Users may place the folder wherever they choose and run `PageMaker.exe` directly.
+- Runtime updates must happen in place and preserve the sibling `Pages/` directory. Protected GitHub authorization persists separately for the same Windows user and PageMaker application identity.
 - Every page lives in `PageMaker/Pages/<creation-name>/`. Normal PT-BR accents and spaces are preserved in the folder name; only Windows-forbidden characters are made safe. A later dashboard rename changes the card label only and leaves the stable folder/local Git repository unchanged.
 - Use `electron-vite` with React and TypeScript. Do not substitute a framework without owner approval.
 - Use versioned JSON in Electron's `userData` folder for machine-local app configuration. Do not introduce a database or cloud sync in the MVP.
@@ -64,12 +65,11 @@ Keep this brief summary current. Put detailed build, export, package, deployment
 
 ## Current Priorities
 
-1. Checkpoint and verify the completed local backup, recovery, rescan, and app-settings milestone.
-2. Implement global GitHub authorization through dashboard settings with protected credential storage.
-3. Add per-page publishing settings and the explicit online-publish confirmation flow.
-4. Create/configure the selected public GitHub repository and Pages deployment, then publish only generated output for that card.
-5. Validate the clean portable colleague handoff and publishing failure/recovery paths.
-6. Add richer elements, ZIP export/import, and existing-repository import in later versions.
+1. Add per-page publishing settings and the explicit online-publish confirmation flow.
+2. Create/configure the selected public GitHub repository and Pages deployment, then publish only generated output for that card.
+3. Add retryable `Salvar e Postar`, no-change handling, account/repository mismatch protection, and friendly publication status/errors.
+4. Validate account linking, first publication, later updates, restart persistence, and clean portable colleague handoff with a second GitHub account.
+5. Add richer elements, ZIP export/import, built-in runtime updates, and existing-repository import in later versions.
 
 ## Current Visual Foundation
 
@@ -80,7 +80,7 @@ Keep this brief summary current. Put detailed build, export, package, deployment
 - Page creation, persistent listing, clean private previews, and opening/editing/saving a card are functional.
 - The page editor currently supports ordinary ordered single-line title elements, direct editing, add/delete/reorder, independent side margins, positional vertical gaps, and unsaved-change protection.
 - Sanitized generated output and reusable local page settings are functional. Settings can rename dashboard metadata without renaming the stable folder, open the folder in Explorer, and recycle a local page after confirmation.
-- Global local-app settings and workspace backup/recovery are functional. GitHub connection, export, and publishing are not implemented yet.
+- Global local-app settings, workspace backup/recovery, and personal GitHub account linking are functional. Export and per-page publishing are not implemented yet.
 
 ## Frontend Modularity Rule
 

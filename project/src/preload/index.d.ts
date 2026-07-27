@@ -4,7 +4,9 @@ import type {
   PageEditorData,
   PageSummary,
   SavePageContentInput,
-  UpdatePageDetailsInput
+  UpdatePageDetailsInput,
+  GitHubConnectionStatus,
+  GitHubDeviceAuthorization
 } from '../shared/page-contracts'
 
 declare global {
@@ -21,6 +23,12 @@ declare global {
       recoverPage: (pageId: string) => Promise<PageSummary>
       getAppSettings: () => Promise<AppSettingsSnapshot>
       openPagesFolder: () => Promise<void>
+      beginGitHubLink: () => Promise<GitHubDeviceAuthorization>
+      completeGitHubLink: (flowId: string) => Promise<GitHubConnectionStatus>
+      cancelGitHubLink: (flowId: string) => Promise<void>
+      copyGitHubCode: (userCode: string) => Promise<void>
+      openGitHubDevicePage: () => Promise<void>
+      disconnectGitHub: () => Promise<void>
     }>
   }
 }

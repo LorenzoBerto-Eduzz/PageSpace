@@ -39,6 +39,9 @@ The current generator stores verified `index.html` and `styles.css` under `.page
 
 - GitHub connection is global to the PageMaker installation and uses a secure browser-based authorization flow.
 - Tokens and other secrets use protected operating-system storage only. Never place them in normal JSON configuration, remote URLs, generated files, ZIPs, source-controlled files, or logs.
+- The current Windows implementation uses GitHub OAuth Device Flow with the public `public_repo` scope and stores the token through Electron `safeStorage`/Windows DPAPI. The token never crosses preload into the renderer.
+- The user code may be displayed/copied because it is temporary authorization state; the device code and resulting access token remain main-process-only.
+- Disconnecting locally removes the protected credential from that computer. GitHub-side authorization remains independently reviewable/revocable from the user's GitHub account settings.
 - Renderer code has no direct access to secrets, filesystem paths beyond explicit results, shell commands, or Git/GitHub clients.
 - The Electron main process owns privileged work; preload exposes only narrow, validated IPC operations.
 

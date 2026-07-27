@@ -1,8 +1,9 @@
-import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
+import { app, BrowserWindow, clipboard, ipcMain, nativeTheme, shell } from 'electron'
 import { dirname, join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { PageWorkspaceService } from './page-workspace-service'
+import { GitHubAuthService } from './github-auth-service'
 import type {
   CreatePageInput,
   SavePageContentInput,
@@ -90,6 +91,7 @@ app.whenReady().then(() => {
   nativeTheme.themeSource = 'light'
 
   const pageWorkspace = new PageWorkspaceService(getPagesRoot())
+  const githubAuth = new GitHubAuthService(app.getPath('userData'))
   ipcMain.handle('pages:list', () => pageWorkspace.listPages())
   ipcMain.handle('pages:create', async (_, input: CreatePageInput) => {
     const createdPage = await pageWorkspace.createPage(input)
@@ -148,10 +150,32 @@ app.whenReady().then(() => {
     )
     return {
       version: app.getVersion(),
-      githubLinked: false as const,
+      github: await githubAuth.getStatus(),
       pages: refreshedPages
     }
   })
+  ipcMain.handle('github:begin-link', async () => {
+    const authorization = await githubAuth.beginDeviceFlow()
+    clipboard.writeText(authorization.userCode)
+    await shell.openExternal(authorization.verificationUri)
+    return authorization
+  })
+  ipcMain.handle('github:complete-link', (_, flowId: string) =>
+    githubAuth.completeDeviceFlow(flowId)
+  )
+  ipcMain.handle('github:cancel-link', (_, flowId: string) => {
+    githubAuth.cancelDeviceFlow(flowId)
+  })
+  ipcMain.handle('github:copy-code', (_, userCode: string) => {
+    if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(userCode)) {
+      throw new Error('Código de vinculação inválido.')
+    }
+    clipboard.writeText(userCode)
+  })
+  ipcMain.handle('github:open-device-page', () =>
+    shell.openExternal('https://github.com/login/device')
+  )
+  ipcMain.handle('github:disconnect', () => githubAuth.disconnect())
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
