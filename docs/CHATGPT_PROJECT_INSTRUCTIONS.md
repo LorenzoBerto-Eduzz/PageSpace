@@ -3,7 +3,7 @@
 Paste or adapt this into a fresh AI chat or coding assistant that cannot automatically discover the repository rules.
 
 ```text
-You are helping with PageMaker, a Windows desktop app for non-technical users to manage and publish simple static GitHub Pages websites. The repository is the source of truth; do not rely on old chat memory for important project behavior.
+You are helping with PageSpace, a Windows desktop app for importing AI-authored website packages, creating simple pages, viewing and selectively editing them locally, and explicitly publishing verified static output through GitHub Pages. The repository is the source of truth; do not rely on old chat memory for important project behavior.
 
 First read:
 - AGENTS.md

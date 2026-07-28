@@ -1,87 +1,72 @@
-# Delivery Process: PageMaker
+# Delivery Process: PageSpace
 
-PageMaker is intended to be distributed as a portable Windows `PageMaker/` folder, not an installer. `electron-builder` creates the runtime and the project build script places it beside the persistent `Pages/` workspace.
+PageSpace is distributed as a portable Windows folder, not an installer.
 
-## Default Rule
-
-Do not create PageMaker generated delivery artifacts, installers, portable executables, GitHub Releases, or deployments unless the owner explicitly asks and this document has been updated with a tested process.
-
-This restriction concerns distribution of the PageMaker desktop app. `Salvar e Postar` is a normal, per-website user workflow: it generates and Git-publishes only the active managed website's clean static files after explicit initial publication. It does not authorize publishing or releasing the PageMaker application itself.
-
-## Owner Development Review Build
-
-The owner runs and pins this copy during active development.
-
-- Purpose: the owner's current visual/functionality review copy.
-- Packager: `electron-builder` through `npm run build:unpack` in `project/`.
-- Expected output: `project/dist/PageMaker/`.
-- Windows entry point: `project/dist/PageMaker/PageMaker.exe`.
-- Sharing rule: do not share this folder because its persistent `Pages/` may contain the owner's local pages and Git metadata. Use `localrelease` for colleague handoff.
-- Validation: run lint, type checks, a production build, then open `PageMaker.exe` from the unpacked folder.
-- Security: inspect the output folder before sharing; it must not contain `.env` files, `.git-identity`, app-local data, user content, credentials, exports, or development sources.
-- Signing: this review build is unsigned, so Windows may show a SmartScreen warning. Do not present it as a signed or production-ready installer.
-
-The generated `dist/` output is ignored by Git. Do not commit, push, or publish this review build unless the owner explicitly asks.
-
-## Clean localrelease Workflow
-
-`localrelease` means a clean, shareable portable folder for a colleague and is also the intended shape of a future GitHub Release:
+## Development Review Copy
 
 ```text
-project/dist/localrelease/PageMaker/
+project/dist/PageSpace/
+  PageSpace.exe
+  Pages/
 ```
 
-Create it with:
+Create or refresh it with:
+
+```text
+cd project
+npm run build:unpack
+```
+
+The script preserves the existing `Pages/` directory. During the rename transition it can also
+carry forward an existing Pages directory from the former review-folder name.
+
+Do not share the owner's development copy because `Pages/` may contain private packages, content,
+local Git repositories, and publication metadata.
+
+## Clean Local Release
+
+The owner command `localrelease` means:
+
+```text
+project/dist/localrelease/PageSpace/
+  PageSpace.exe
+  Pages/                 empty
+```
+
+Create it only after owner authorization:
 
 ```text
 cd project
 npm run export:localrelease
 ```
 
-Procedure:
+Required procedure:
 
-1. Inspect the worktree and confirm the completed change is in scope.
-2. Close every running PageMaker review window/process so Windows does not lock output files.
-3. Run `npm run lint`, `npm run typecheck`, and `npm run export:localrelease` from `project/`.
-   Run `npm test` before packaging a colleague-test milestone.
-4. Verify the owner's `project/dist/PageMaker/Pages/` remains unchanged.
-5. Verify `project/dist/localrelease/PageMaker/` contains `PageMaker.exe`, an empty `Pages/`, and no `.git`, `.pagemaker`, `.git-identity`, `.env`, credentials, settings, page content, logs, or local paths.
-6. Launch the clean executable once as a smoke test, then report the shareable folder path.
+1. Inspect the worktree and intended change.
+2. Close running PageSpace review processes.
+3. Run tests, lint, type checks, and the production build.
+4. Refresh `project/dist/PageSpace/`.
+5. Verify its persistent `Pages/` remains intact.
+6. Create the clean local release with an empty `Pages/`.
+7. Verify it contains no `.git`, `.pagespace`, legacy `.pagemaker`, `.git-identity`, `.env`,
+   credentials, settings, packages, page content, logs, or local paths.
+8. Smoke-test `PageSpace.exe`.
 
-`localrelease` refreshes the owner's development runtime while preserving its data, then recreates the separate clean handoff folder. It does not create a commit, push a remote, upload an artifact, or imply that the build is signed/production-ready.
+## Public Application Release
 
-## Future Public Portable Release
+No GitHub Release, uploaded ZIP, installer, updater, or public PageSpace deployment is authorized
+unless the owner explicitly requests it.
 
-The future downloadable artifact will be a ZIP containing one portable `PageMaker/` folder with the same layout used by local review:
+The user-facing per-page `Publicar online` workflow is not an application release. It publishes
+only the selected page's verified generated output.
 
-```text
-PageMaker/
-  PageMaker.exe
-  Pages/
-  resources and runtime files
-```
+## Rename Transition
 
-The public artifact must be assembled through the same clean-export boundary as `localrelease`, with an empty `Pages/` folder. Never ZIP or upload the developer's populated `project/dist/PageMaker/` folder. The release process must still repeat all privacy checks before upload.
-
-Future in-place updates must stage and verify the new runtime before replacing files. They must preserve the existing sibling `Pages/` directory, must not bundle or migrate any developer/user credential file, and must leave the same Windows user's protected GitHub authorization intact through the stable PageMaker application identity. Runtime replacement needs a rollback path.
-
-## When A Project Needs Delivery
-
-Before establishing a named command such as `localrelease`, document:
-
-- the Electron packager and its configuration;
-- source inputs, generated output location, installer/portable artifact naming, and ignored paths;
-- prerequisite checks, app smoke tests, and packaging validation;
-- versioning rules and owner release authority;
-- Windows code-signing, publishing, and approval requirements, if any;
-- how to test the installed artifact and recover from a failed release.
-
-Keep the process small, repeatable, and specific to the project. Add a repository script only when it reliably performs that documented workflow.
-
-## Before Any Delivery
-
-1. Inspect the intended source changes and Git state.
-2. Run relevant validation for the project.
-3. Confirm the requested target, version, and scope.
-4. Confirm no private data, credentials, or unintended generated files will be included.
-5. Report exactly what was created, uploaded, or deployed.
+- New review and clean-release folders use `PageSpace`.
+- New executable name is `PageSpace.exe`.
+- New Windows application ID is `com.pagespace.app`.
+- The previous local test data and old app-data directory were intentionally cleared.
+- The source GitHub repository is now `LorenzoBerto-Eduzz/PageSpace`, and `origin` uses that URL.
+- The existing GitHub OAuth App display identity was renamed without replacing its Client ID.
+- The remaining local rename is only the outer active workspace folder from `PageMaker` to
+  `PageSpace`; perform it after a clean Git checkpoint and reopen Codex from the new path.

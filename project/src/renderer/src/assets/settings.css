@@ -360,6 +360,19 @@
   font-weight: 650;
 }
 
+.app-settings-section-copy,
+.app-settings-inline-message {
+  margin: 0;
+  color: #858c96;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.app-settings-inline-message {
+  margin-top: 10px;
+  color: #66768a;
+}
+
 .app-settings-facts {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -397,6 +410,10 @@
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 13px;
+}
+
+.app-settings-actions--standalone {
+  margin-top: 0;
 }
 
 .app-settings-actions button {

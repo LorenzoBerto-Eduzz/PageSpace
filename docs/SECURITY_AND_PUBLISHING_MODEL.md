@@ -1,74 +1,89 @@
-# PageMaker Security And Publishing Model
+# PageSpace Security And Publishing Model
 
-PageMaker is business-grade local software. A generated website or exported ZIP must contain only material the user intentionally placed on that website. This document is the durable boundary for implementation and review.
+## Default State
 
-## Website States
+Every simple or imported page begins local-only. Importing, editing, baking, or opening a local page
+does not create a repository or network publication.
 
-### Local-only
+## Trust Model
 
-- Default state for every new card.
-- Stored only in PageMaker's controlled local workspace and application data.
-- Has no GitHub repository, remote, public URL, or network publishing action. It may have a local Git repository initialized only for future app-managed history and publishing.
-- May be previewed locally and exported as a sanitized static ZIP.
+PageSpace is trusted local software. Imported page packages are untrusted.
 
-### Public online
+Imported packages may contain browser-ready HTML, CSS, JavaScript, fonts, images, and supported
+static assets. They may not contain or trigger:
 
-- Reached only through the deliberate `Publicar online` flow.
-- Requires a global GitHub account connection and a clear confirmation of the card, account, repository, URL, and public content.
-- Creates/configures only the selected card's GitHub repository and Pages deployment, then publishes that card's generated output.
+- executables;
+- package-provided PowerShell, Python, shell, or npm build commands;
+- symbolic links;
+- path traversal;
+- hidden control files;
+- credentials or tokens;
+- Node, Electron, preload, filesystem, Git, or GitHub capabilities.
 
-Local-only is not internet access control. Authenticated/private online hosting is a separate future capability.
+Package browser code is previewed with context isolation, Node disabled, sandboxing, and no preload
+bridge.
 
-## One-Way Public Output Boundary
+## Static And Editable Packages
 
-1. The generator starts with an empty temporary output folder.
-2. It accepts only a validated content model, fixed selected-template files, and assets explicitly attached to the active website.
-3. It writes an output manifest of allowed files and validates the generated folder against it.
-4. It sanitizes image metadata, including EXIF/GPS where applicable, before output.
-5. Publishing and ZIP export consume only the verified generated folder, never the app root, workspace root, arbitrary local folders, drafts, or configuration directories.
+- Static package: validated site output only; no generated editor.
+- Editable package: validated site plus declarative schema/default content.
+- PageSpace generates forms from the schema and validates every saved value.
+- Page JavaScript reads only public values generated into `pagespace-content.js`.
+- User-selected images are decoded and re-encoded before becoming package user assets.
+- Stable package IDs and schema keys are required for safe compatible updates.
 
-The following must never be emitted: the dashboard/editor, Electron source, logs, local paths, app settings, drafts, Git state, credentials/tokens, account profile data, machine metadata, internal files, or unrelated assets.
+## One-Way Public Boundary
 
-Dashboard previews stored as `.pagemaker/preview.png` are private app metadata. They are generated from validated saved content for card display and must never be copied into public output.
+1. Read validated simple content or installed package/content.
+2. Create a new temporary generated-output directory.
+3. Copy only validated package site files.
+4. Generate public editable values and sanitized user assets when applicable.
+5. Hash every output file and write a private manifest.
+6. Verify the exact paths, sizes, and hashes.
+7. Atomically replace the previous generated output.
+8. Copy only that output into the managed `docs/` publication tree.
+9. Stage only `.gitignore`, the current dynamic `docs/` allowlist, and deletions of obsolete managed
+   `docs/` files.
 
-For the first publishing version, the generated output may contain only static files rendered from the validated title/layout model and explicitly referenced public assets. The page workspace itself—including `.git/`, `.pagemaker/`, editable `data.json`, previews, and editor state—is never the publishing source.
+Never publish:
 
-The current generator stores verified `index.html` and `styles.css` under `.pagemaker/generated-site/` and keeps its integrity manifest outside that directory. Regeneration starts from a new temporary directory and atomically replaces prior output. Dashboard previews render from these exact files.
+- `.pagespace/`;
+- editable `content.json`;
+- package manifests or schemas unless intentionally part of the public site;
+- previews or backups;
+- application source or UI;
+- local paths;
+- Git state;
+- credentials, authorization state, or account details;
+- unrelated assets.
 
-## Credentials And Authorization
+## Credentials
 
-- GitHub connection is global to the PageMaker installation and uses a secure browser-based authorization flow.
-- Tokens and other secrets use protected operating-system storage only. Never place them in normal JSON configuration, remote URLs, generated files, ZIPs, source-controlled files, or logs.
-- The current Windows implementation uses GitHub OAuth Device Flow with the public `public_repo` scope and stores the token through Electron `safeStorage`/Windows DPAPI. The token never crosses preload into the renderer.
-- The user code may be displayed/copied because it is temporary authorization state; the device code and resulting access token remain main-process-only.
-- Disconnecting locally removes the protected credential from that computer. GitHub-side authorization remains independently reviewable/revocable from the user's GitHub account settings.
-- Renderer code has no direct access to secrets, filesystem paths beyond explicit results, shell commands, or Git/GitHub clients.
-- The Electron main process owns privileged work; preload exposes only narrow, validated IPC operations.
+- GitHub connection uses the existing OAuth App and Device Flow with `public_repo`.
+- The public Client ID may ship; no client secret exists in the desktop app.
+- Access tokens are encrypted with Electron `safeStorage` and Windows protection.
+- Tokens remain in Electron main-process storage and never cross preload.
+- Page packages never receive the account, token, or privileged GitHub API access.
 
-## Reliability Requirements
+## Publication
 
-- Validate data and URLs before save, export, or publish.
-- Use atomic writes and recoverable local backups for editable state and generated output.
-- Keep per-card publish status/history and show human-friendly progress plus redacted technical details.
-- Make retries safe and avoid empty commits or duplicate remote configuration.
-- Never automatically resolve merge conflicts or silently change a site's visibility.
-- Local page deletion uses the Windows Recycle Bin. It never deletes a remote repository. Any future remote deletion must be a separate, strongly confirmed GitHub operation.
-- Recovery uses one private validated previous snapshot of page metadata and editable content. Damaged current files are never automatically replaced; restoration requires an explicit user action.
-- Test generation, manifest validation, asset sanitization, local export, publish failures, and recovery paths.
+- Initial publication explicitly names the page, connected account, repository, URL, and public
+  exposure.
+- PageSpace creates a public repository only for the selected page.
+- Repository-name collisions are rejected.
+- A retry reuses persisted deployment state and never creates a duplicate repository.
+- No-change updates create no empty commit.
+- Before update, PageSpace verifies owner, visibility, archive state, write permission, and remote
+  commit continuity.
+- External remote changes stop publication instead of being overwritten.
+- GitHub Pages uses `main` and `/docs`.
 
-## Current Publishing Implementation
+GitHub Pages is public. Authentication required by a destination link does not make the link
+inventory itself private.
 
-- The first publish confirmation creates a public repository in the connected personal account; an existing-name collision is rejected rather than adopted or overwritten.
-- The committed public tree is restricted to `.gitignore`, `docs/index.html`, and `docs/styles.css`. Unexpected staged additions are rejected; obsolete generated `docs/` files may only be committed as deletions.
-- Repository creation, content push, and final Pages activation are persisted as resumable per-page deployment phases. Published updates persist a pending local commit before network push and clear it only after the remote/Pages workflow succeeds.
-- A retry reuses the saved repository association and never creates a duplicate repository. A no-change retry does not create an empty commit.
-- Before update, the main process validates account ownership, public visibility, archive state, push permission, and the remote `main` commit. A remote commit that matches neither the last confirmed commit nor the local pending commit is treated as an external conflict and is never overwritten automatically.
-- GitHub API calls have bounded timeouts. Publication is single-flight per page, and closing during active publication presents an interruption warning.
-- Bounded local diagnostics contain only operational state, timestamp, page UUID, duration, and a stable safe error code. They exclude tokens, content, paths, account details, repository payloads, and API responses.
-- Automated tests use real temporary local Git repositories with simulated remote operations to verify first publication, push failure/retry, Pages failure/retry, duplicate prevention, no-change handling, concurrency, conflict protection, allowlisting, and diagnostic privacy.
+## Reliability
 
-## Application Form
-
-Electron desktop is the primary release form because it provides the secure local backend needed for filesystem, credentials, GitHub, Git, and publishing work.
-
-A future browser interface is possible only as an installed PageMaker local service. It must bind to loopback only, authenticate local sessions, avoid outside-network exposure, and preserve the same main-process security boundary. A standalone `file://` page or ordinary bookmark cannot replace the installed backend.
+- Use schema validation, atomic writes, one validated backup, fresh generation, hash manifests,
+  bounded network timeouts, single-flight publication, redacted diagnostics, and explicit recovery.
+- Local deletion never implies remote repository deletion.
+- Remote deletion remains a separate irreversible action.

@@ -10,12 +10,12 @@ export function AddPageCard({ onClick, disabled = false }: AddPageCardProps): Re
     <button
       className="add-page-card"
       type="button"
-      aria-label="Criar página"
+      aria-label="Adicionar página"
       onClick={onClick}
       disabled={disabled}
     >
       <PlusIcon size={28} />
-      <span>Criar página</span>
+      <span>Adicionar página</span>
     </button>
   )
 }

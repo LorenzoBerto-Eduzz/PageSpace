@@ -1,8 +1,10 @@
 import type {
   AppSettingsSnapshot,
   CreatePageInput,
+  ImportPagePackageResult,
   PageEditorData,
   PageSummary,
+  SavePackageContentInput,
   SavePageContentInput,
   UpdatePageDetailsInput,
   GitHubConnectionStatus,
@@ -13,19 +15,24 @@ import type {
 
 declare global {
   interface Window {
-    pageMaker: Readonly<{
+    pageSpace: Readonly<{
       listPages: () => Promise<PageSummary[]>
       createPage: (input: CreatePageInput) => Promise<PageSummary>
+      importPagePackage: () => Promise<ImportPagePackageResult | null>
       getPage: (pageId: string) => Promise<PageEditorData>
       savePageContent: (input: SavePageContentInput) => Promise<PageEditorData>
+      savePackageContent: (input: SavePackageContentInput) => Promise<PageEditorData>
+      choosePageImage: (pageId: string) => Promise<string | null>
       capturePagePreview: (pageId: string) => Promise<string>
       updatePageDetails: (input: UpdatePageDetailsInput) => Promise<PageSummary>
       openPageFolder: (pageId: string) => Promise<void>
+      openLocalPage: (pageId: string) => Promise<void>
       openPublishedPage: (pageId: string) => Promise<void>
       deleteLocalPage: (pageId: string) => Promise<void>
       recoverPage: (pageId: string) => Promise<PageSummary>
       getAppSettings: () => Promise<AppSettingsSnapshot>
       openPagesFolder: () => Promise<void>
+      downloadAiInstructions: () => Promise<boolean>
       beginGitHubLink: () => Promise<GitHubDeviceAuthorization>
       completeGitHubLink: (flowId: string) => Promise<GitHubConnectionStatus>
       cancelGitHubLink: (flowId: string) => Promise<void>

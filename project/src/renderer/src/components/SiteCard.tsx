@@ -1,4 +1,5 @@
-import { GlobeIcon, LockIcon, SettingsIcon, WarningIcon } from './icons'
+import { EyeIcon, GlobeIcon, LockIcon, SettingsIcon, WarningIcon } from './icons'
+import type { PageSource } from '../../../shared/pagespace-package-contracts'
 
 export type DashboardPage = {
   id: string
@@ -9,12 +10,14 @@ export type DashboardPage = {
   previewDataUrl?: string
   isPlaceholder?: boolean
   health?: 'healthy' | 'damaged'
+  source: PageSource
 }
 
 type SiteCardProps = {
   page: DashboardPage
   onOpen?: (pageId: string) => void
   onOpenSettings?: (pageId: string) => void
+  onOpenLocal?: (pageId: string) => void
   onProblem?: (pageId: string) => void
 }
 
@@ -34,6 +37,7 @@ export function SiteCard({
   page,
   onOpen,
   onOpenSettings,
+  onOpenLocal,
   onProblem
 }: SiteCardProps): React.JSX.Element {
   const className = [
@@ -87,6 +91,16 @@ export function SiteCard({
               onClick={() => onProblem?.(page.id)}
             >
               <WarningIcon size={19} />
+            </button>
+          ) : null}
+          {!page.isPlaceholder && page.health !== 'damaged' ? (
+            <button
+              className="card-action"
+              type="button"
+              aria-label="Ver página localmente"
+              onClick={() => onOpenLocal?.(page.id)}
+            >
+              <EyeIcon size={18} />
             </button>
           ) : null}
           <button

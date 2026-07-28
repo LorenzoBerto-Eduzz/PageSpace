@@ -110,10 +110,13 @@ export function PageEditor({
   useEffect(() => {
     let isCurrent = true
 
-    window.pageMaker
+    window.pageSpace
       .getPage(pageId)
       .then((loadedPage) => {
         if (!isCurrent) return
+        if (loadedPage.kind !== 'simple') {
+          throw new Error('Esta página usa um editor definido por pacote.')
+        }
         setPage(loadedPage.page)
         setContent(cloneContent(loadedPage.content))
         setSavedContent(cloneContent(loadedPage.content))
@@ -305,17 +308,20 @@ export function PageEditor({
     setIsSaving(true)
     setSaveError(null)
     try {
-      const savedPage = await window.pageMaker.savePageContent({ pageId, content })
+      const savedPage = await window.pageSpace.savePageContent({ pageId, content })
+      if (savedPage.kind !== 'simple') {
+        throw new Error('O PageSpace não retornou o conteúdo simples salvo.')
+      }
       setPage(savedPage.page)
       setContent(cloneContent(savedPage.content))
       setSavedContent(cloneContent(savedPage.content))
       let previewDataUrl = savedPage.page.previewDataUrl
       try {
-        previewDataUrl = await window.pageMaker.capturePagePreview(pageId)
+        previewDataUrl = await window.pageSpace.capturePagePreview(pageId)
       } catch {
         setSaveError('A página foi salva, mas não foi possível atualizar sua imagem.')
       }
-      let completedSave: PageEditorData = {
+      let completedSave: Extract<PageEditorData, { kind: 'simple' }> = {
         ...savedPage,
         page: {
           ...savedPage.page,
@@ -324,12 +330,12 @@ export function PageEditor({
       }
       if (savedPage.page.status === 'published') {
         try {
-          const published = await window.pageMaker.publishPage({ pageId })
+          const published = await window.pageSpace.publishPage({ pageId })
           completedSave = { ...completedSave, page: published.page }
           setPage(published.page)
         } catch (publishError) {
           try {
-            const currentPage = (await window.pageMaker.getPage(pageId)).page
+            const currentPage = (await window.pageSpace.getPage(pageId)).page
             completedSave = { ...completedSave, page: currentPage }
             setPage(currentPage)
           } catch {

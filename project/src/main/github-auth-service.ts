@@ -65,7 +65,7 @@ export class GitHubAuthService {
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'PageMaker'
+          'User-Agent': 'PageSpace'
         },
         body: new URLSearchParams({
           client_id: GITHUB_OAUTH_CLIENT_ID,
@@ -169,7 +169,7 @@ export class GitHubAuthService {
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'PageMaker'
+          'User-Agent': 'PageSpace'
         },
         body: new URLSearchParams({
           client_id: GITHUB_OAUTH_CLIENT_ID,
@@ -200,7 +200,7 @@ export class GitHubAuthService {
       case 'expired_token':
         return { kind: 'expired' }
       case 'device_flow_disabled':
-        throw new Error('O Device Flow não está habilitado para o PageMaker no GitHub.')
+        throw new Error('O Device Flow não está habilitado para o PageSpace no GitHub.')
       default:
         throw new Error('O GitHub não concluiu a vinculação da conta.')
     }
@@ -214,7 +214,7 @@ export class GitHubAuthService {
           Accept: 'application/vnd.github+json',
           Authorization: `Bearer ${accessToken}`,
           'X-GitHub-Api-Version': GITHUB_API_VERSION,
-          'User-Agent': 'PageMaker'
+          'User-Agent': 'PageSpace'
         }
       },
       'Não foi possível acessar o GitHub para validar a conta.'

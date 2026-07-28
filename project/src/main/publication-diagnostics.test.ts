@@ -16,7 +16,7 @@ afterEach(async () => {
 
 describe('publication diagnostics', () => {
   it('stores only bounded operational fields', async () => {
-    const directory = await mkdtemp(join(tmpdir(), 'pagemaker-diagnostics-'))
+    const directory = await mkdtemp(join(tmpdir(), 'pagespace-diagnostics-'))
     temporaryDirectories.push(directory)
     const diagnostics = new PublicationDiagnostics(directory)
 
@@ -40,7 +40,7 @@ describe('publication diagnostics', () => {
   })
 
   it('rotates an oversized diagnostic file', async () => {
-    const directory = await mkdtemp(join(tmpdir(), 'pagemaker-diagnostics-'))
+    const directory = await mkdtemp(join(tmpdir(), 'pagespace-diagnostics-'))
     temporaryDirectories.push(directory)
     const diagnostics = new PublicationDiagnostics(directory)
     const path = join(directory, 'publication-diagnostics.jsonl')

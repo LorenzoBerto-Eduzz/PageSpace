@@ -1,9 +1,9 @@
 {
-  "name": "pagemaker",
-  "version": "0.0.0",
-  "description": "A local-first desktop manager for simple static websites.",
+  "name": "pagespace",
+  "version": "0.1.0",
+  "description": "A local-first desktop space for importing, editing, viewing, and publishing static websites.",
   "main": "./out/main/index.js",
-  "author": "PageMaker",
+  "author": "PageSpace",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",

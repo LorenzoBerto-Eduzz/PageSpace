@@ -150,7 +150,7 @@ describe('complete publication workflow', () => {
     }
     const harness = await createHarness(publishedDeployment)
     harness.verifyPublishedBranch.mockRejectedValue(
-      publicationError('repository_changed', 'O repositório foi alterado fora do PageMaker.')
+      publicationError('repository_changed', 'O repositório foi alterado fora do PageSpace.')
     )
 
     await expect(harness.service.publish({ pageId: harness.pageId })).rejects.toMatchObject({
@@ -164,10 +164,10 @@ describe('complete publication workflow', () => {
 // The inferred return preserves the Vitest mock signatures used by each scenario.
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 async function createHarness(initialDeployment: PageDeployment = { kind: 'local-only' }) {
-  const folderPath = await mkdtemp(join(tmpdir(), 'pagemaker-publish-'))
+  const folderPath = await mkdtemp(join(tmpdir(), 'pagespace-publish-'))
   temporaryDirectories.push(folderPath)
   await mkdir(join(folderPath, 'docs'))
-  await writeFile(join(folderPath, '.gitignore'), '.pagemaker/\ndata.json\nassets/\n', 'utf8')
+  await writeFile(join(folderPath, '.gitignore'), '.pagespace/\ncontent.json\n', 'utf8')
   await writeFile(
     join(folderPath, 'docs', 'index.html'),
     '<!doctype html><title>Teste</title>',
@@ -175,8 +175,8 @@ async function createHarness(initialDeployment: PageDeployment = { kind: 'local-
   )
   await writeFile(join(folderPath, 'docs', 'styles.css'), 'body { color: #333; }', 'utf8')
   await writeFile(join(folderPath, 'data.json'), '{"private":true}', 'utf8')
-  await mkdir(join(folderPath, '.pagemaker'))
-  await writeFile(join(folderPath, '.pagemaker', 'page.json'), '{"private":true}', 'utf8')
+  await mkdir(join(folderPath, '.pagespace'))
+  await writeFile(join(folderPath, '.pagespace', 'page.json'), '{"private":true}', 'utf8')
   await git.init({ fs, dir: folderPath, defaultBranch: 'main' })
 
   const pageId = 'page-id'
@@ -193,7 +193,8 @@ async function createHarness(initialDeployment: PageDeployment = { kind: 'local-
     folderName: 'Minha página',
     health: 'healthy',
     canRecover: true,
-    deployment: currentDeployment
+    deployment: currentDeployment,
+    source: { kind: 'simple' }
   })
   const auth = {
     getAuthenticatedSession: vi.fn().mockResolvedValue({
@@ -212,7 +213,8 @@ async function createHarness(initialDeployment: PageDeployment = { kind: 'local-
       folderPath,
       name: 'Minha página',
       description: 'Descrição',
-      deployment: currentDeployment
+      deployment: currentDeployment,
+      publishablePaths: ['.gitignore', 'docs/index.html', 'docs/styles.css']
     })),
     updatePageDeployment: vi.fn().mockImplementation(async (_pageId, deployment) => {
       currentDeployment = deployment

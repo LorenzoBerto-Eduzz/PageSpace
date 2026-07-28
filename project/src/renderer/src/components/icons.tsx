@@ -146,3 +146,22 @@ export function FolderIcon(props: IconProps): React.JSX.Element {
     </Icon>
   )
 }
+
+export function ImportIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M4 15v5h16v-5" />
+      <path d="M12 3v12" />
+      <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
+    </Icon>
+  )
+}
+
+export function PlusTabIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M4 6h6l2 2h8v12H4V6Z" />
+      <path d="M12 11v6M9 14h6" />
+    </Icon>
+  )
+}

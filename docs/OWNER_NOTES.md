@@ -1,6 +1,6 @@
 # Owner Notes
 
-PageMaker began as a reusable project frame. It now keeps the PageMaker application source separate from durable context so work can continue across devices and AI sessions.
+PageSpace keeps its Electron application source separate from durable context so work can continue across devices and AI sessions. The product evolved from the earlier PageMaker direction; current decisions belong to PageSpace.
 
 ## What The Folders Are For
 

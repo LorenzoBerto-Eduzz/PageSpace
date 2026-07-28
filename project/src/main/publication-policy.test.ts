@@ -15,8 +15,8 @@ describe('publication file boundary', () => {
   )
 
   it.each([
-    '.pagemaker/page.json',
-    '.pagemaker/preview.png',
+    '.pagespace/page.json',
+    '.pagespace/preview.png',
     'data.json',
     'assets/private.png',
     'docs/extra.json',

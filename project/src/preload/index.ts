@@ -2,12 +2,13 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type {
   CreatePageInput,
   PublishPageInput,
+  SavePackageContentInput,
   SavePageContentInput,
   UpdatePageDetailsInput
 } from '../shared/page-contracts'
 
 contextBridge.exposeInMainWorld(
-  'pageMaker',
+  'pageSpace',
   Object.freeze({
     listPages: () => ipcRenderer.invoke('pages:list'),
     createPage: async (input: CreatePageInput) => {
@@ -15,6 +16,14 @@ contextBridge.exposeInMainWorld(
         return await ipcRenderer.invoke('pages:create', input)
       } catch {
         throw new Error('Não foi possível criar a página local. Tente novamente.')
+      }
+    },
+    importPagePackage: async () => {
+      try {
+        return await ipcRenderer.invoke('pages:import-package')
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        throw new Error(message.replace(/^Error invoking remote method '[^']+': Error:\s*/, ''))
       }
     },
     getPage: async (pageId: string) => {
@@ -29,6 +38,21 @@ contextBridge.exposeInMainWorld(
         return await ipcRenderer.invoke('pages:save-content', input)
       } catch {
         throw new Error('Não foi possível salvar as alterações da página.')
+      }
+    },
+    savePackageContent: async (input: SavePackageContentInput) => {
+      try {
+        return await ipcRenderer.invoke('pages:save-package-content', input)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        throw new Error(message.replace(/^Error invoking remote method '[^']+': Error:\s*/, ''))
+      }
+    },
+    choosePageImage: async (pageId: string) => {
+      try {
+        return await ipcRenderer.invoke('pages:choose-image', pageId)
+      } catch {
+        throw new Error('Não foi possível importar a imagem selecionada.')
       }
     },
     capturePagePreview: async (pageId: string) => {
@@ -50,6 +74,13 @@ contextBridge.exposeInMainWorld(
         await ipcRenderer.invoke('pages:open-folder', pageId)
       } catch {
         throw new Error('Não foi possível abrir a pasta da página.')
+      }
+    },
+    openLocalPage: async (pageId: string) => {
+      try {
+        await ipcRenderer.invoke('pages:open-local', pageId)
+      } catch {
+        throw new Error('Não foi possível abrir a página local.')
       }
     },
     openPublishedPage: async (pageId: string) => {
@@ -87,6 +118,7 @@ contextBridge.exposeInMainWorld(
         throw new Error('Não foi possível abrir a pasta Pages.')
       }
     },
+    downloadAiInstructions: () => ipcRenderer.invoke('app-settings:download-ai-instructions'),
     beginGitHubLink: async () => {
       try {
         return await ipcRenderer.invoke('github:begin-link')

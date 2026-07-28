@@ -1,5 +1,3 @@
-export const PUBLISHABLE_PATHS = ['.gitignore', 'docs/index.html', 'docs/styles.css'] as const
-
 export function validateRepositoryName(value: unknown): string {
   if (typeof value !== 'string') throw new Error('Informe o nome do repositório.')
   const name = value.trim()
@@ -15,22 +13,31 @@ export function validateRepositoryName(value: unknown): string {
   return name
 }
 
-export function isPublishablePath(filepath: string): boolean {
-  return PUBLISHABLE_PATHS.some((allowedPath) => filepath === allowedPath)
+export function isPublishablePath(
+  filepath: string,
+  allowedPaths: readonly string[] = PUBLISHABLE_PATHS
+): boolean {
+  return allowedPaths.includes(filepath)
 }
 
 export function isManagedDocsPath(filepath: string): boolean {
-  return filepath.startsWith('docs/')
+  return (
+    filepath.startsWith('docs/') &&
+    filepath.length > 'docs/'.length &&
+    !filepath.includes('\\') &&
+    !filepath.split('/').some((segment) => segment === '.' || segment === '..' || !segment)
+  )
 }
 
 export function isSafeStagedChange(
   filepath: string,
   headStatus: number,
-  stageStatus: number
+  stageStatus: number,
+  allowedPaths: readonly string[] = PUBLISHABLE_PATHS
 ): boolean {
   if (headStatus === stageStatus) return true
   return (
-    isPublishablePath(filepath) ||
+    isPublishablePath(filepath, allowedPaths) ||
     (isManagedDocsPath(filepath) && headStatus !== 0 && stageStatus === 0)
   )
 }
@@ -58,3 +65,4 @@ export function isSafePagesUrl(value: unknown): value is string {
     return false
   }
 }
+export const PUBLISHABLE_PATHS = ['.gitignore', 'docs/index.html', 'docs/styles.css'] as const

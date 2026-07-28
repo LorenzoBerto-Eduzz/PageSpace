@@ -1,27 +1,9 @@
-# PageMaker Organization Direction
-
-This note records the intended structure for PageMaker while the Electron application is scaffolded and grows.
-
-## Core Rule
-
-Keep files near the concept they belong to.
-
-```text
-Feature-specific files live with the feature.
-Domain-specific files live with the domain concept.
-Interface-specific files live with the interface.
-Integration-specific files live with the integration.
-Shared foundations live in shared/common folders.
-```
-
-The goal is to avoid huge folders full of unrelated files and to make deletion/replacement easy later.
+# PageSpace Organization Direction
 
 ## Repository Frame
 
-The root of the repo is the project frame:
-
 ```text
-PageMaker/
+PageSpace/
   project/
   asset_staging/
   local_assets/
@@ -30,89 +12,72 @@ PageMaker/
   scripts/
 ```
 
-The actual PageMaker application lives in `project/`. The rest of the folders help humans and AI collaborate safely.
+The outer folder may temporarily retain the former local name until the final repository rename.
 
-`asset_staging/` is for raw/reference files that are okay to sync through Git. `local_assets/` is for private or machine-local files that should stay ignored unless the user explicitly asks AI to inspect them.
-
-`scripts/` is for small, repeatable repository automation such as setup, validation, export, or delivery helpers. Add a script only after its inputs, outputs, and owner authorization are clear; document delivery scripts in `docs/DELIVERY_PROCESS.md`.
-
-If `project/` is renamed during setup, update this document and every root-level doc that mentions the main project folder.
-
-## Planned Application Structure
-
-The Electron/Vite scaffold should be adapted toward this layout, following the selected toolchain's normal conventions:
+## Application Layers
 
 ```text
-project/
-  src/
-    main/                 privileged Electron operations
-      main.ts
-      config-store.ts
-      github-auth-service.ts
-      git-service.ts
-      site-project-service.ts
-      public-output-service.ts
-      filesystem-service.ts
-    preload/              small, typed IPC bridge only
-      preload.ts
-    renderer/             PT-BR React/TypeScript interface (electron-vite)
-      pages/              dashboard, editor, wizard, site/app settings
-      components/         focused UI pieces such as SiteCard and PublishButton
-      features/           site manager, editor, preview, publishing flows
-      builder/            element contracts, validation, preview rendering
-      styles/
-  templates/
-    links-hub-v1/         public static template, never Electron UI
-      index.html
-      styles.css
-      app.js
-      sample-data.json
+project/src/
+  main/
+    index.ts
+    pagespace-workspace-service.ts
+    pagespace-package-service.ts
+    pagespace-ai-instructions.ts
+    public-site-generator.ts
+    github-auth-service.ts
+    github-publishing-service.ts
+    publication-policy.ts
+  preload/
+    index.ts
+    index.d.ts
+  shared/
+    page-contracts.ts
+    pagespace-package-contracts.ts
+  renderer/
+    dashboard and settings
+    simple editor
+    package editor
 ```
 
-Keep product behaviour grouped by the concept it serves. For example, the site editor's UI, validation, and transformations should remain discoverable together; Git execution must remain in main-process services rather than renderer components.
+## Ownership
 
-Frontend composition is intentionally replaceable. Keep modal shells, controls, status presentations, page cards, editor panels, and settings sections as focused components with behavior passed through typed props/contracts. Do not bind domain operations to a specific visual hierarchy, button position, CSS selector, or current layout.
+- Renderer: presentation, forms, local UI state, human-readable feedback.
+- Preload: narrow typed `window.pageSpace` IPC bridge.
+- Main process: dialogs, validated filesystem operations, images, packages, generation, Git,
+  GitHub, credentials, preview windows, and external URLs.
+- Page package: untrusted static website and declarative editable contract.
+- Generated site: viewer-only public output.
 
-## Trust Boundaries
-
-- **Renderer:** dashboard, forms, preview, validation messages, and status UI. It has no direct Node, filesystem, or shell access.
-- **Preload:** exposes a narrow, typed, allowlisted PageMaker API to the renderer.
-- **Main process:** owns dialogs, app config, protected credential access, filesystem work, public-file generation, Git/GitHub operations, and opening public URLs.
-- **Public template:** runs in generated website repositories only. It reads public content and renders viewer-only pages; it has no PageMaker controls or local/private data.
-
-## Data And Generated Output
-
-- Global app configuration remains machine-local and may use versioned JSON beneath Electron's `userData` path. Each managed card lives in the portable release's `Pages/<stable-folder-name>/` workspace. Private `.pagemaker/page.json` metadata records its local state; it must not contain passwords or GitHub tokens.
-- Per-website public content is stored in `data.json` for the MVP. Its current versioned schema uses ordered title elements plus layout margins and positional gaps; it is designed to accept additional element types later.
-- The current public-output generator creates `.pagemaker/generated-site/` from scratch and emits only verified `index.html` and `styles.css` for the title/layout model. Its hash manifest is private metadata stored beside, not inside, the generated site. Future elements may expand the explicit allowlist; publishing must never copy the workspace wholesale.
-- Do not mix PageMaker's own Electron project/repository into a managed website repository.
-
-## Shared Foundations
-
-Shared files are for foundations genuinely used by many features, domains, or interfaces.
-
-Examples:
+## Workspace Shape
 
 ```text
-project/
-  src/
-    shared/
-      config/
-      logging/
-      errors/
-      test_helpers/
+PageSpace/
+  Pages/
+    Stable Page Folder/
+      .git/
+      .gitignore
+      content.json                 private editable instance values
+      docs/                        current publishable tree
+      .pagespace/
+        page.json                  private instance metadata
+        preview.png
+        package/                   imported fixed package
+        user-assets/               sanitized replacement images
+        backup/snapshot.json
+        generated-site/            verified baked output
+        generated-site-manifest.json
 ```
 
-Use shared folders only when the file really is shared. Do not put feature-specific files in a broad shared folder just because it is convenient at first.
+Simple pages also use `content.json`, `.pagespace/`, generated output, and the same publication
+boundary.
 
-## Current Project Status
+## Modularity Rules
 
-The Electron + electron-vite + React + TypeScript application is scaffolded in `project/`. It keeps the selected toolchain's standard `main`, `preload`, and renderer source areas, plus focused dashboard, page-creation, card, settings, and editor components. The renderer is intentionally non-privileged; a narrow typed preload API exposes validated page listing, creation, reading, saving, preview, metadata update, folder opening, and local deletion operations. The main-process workspace service owns atomic metadata/content writes, validation, serialized creation, local Git initialization, private preview persistence, and sanitized site generation. Windows Explorer and Recycle Bin operations remain in the Electron main process.
-
-The current settings foundation also exposes typed app-health/rescan, explicit recovery, and GitHub account-linking operations. `github-auth-service.ts` owns Device Flow, token protection, and account validation in the main process; renderer components receive only non-secret flow/account state. Renderer components decide how to present those capabilities, and the underlying service behavior must remain reusable if the settings/dashboard layout is redesigned.
-
-`renderer/src/components/PageEditor.tsx` currently contains the first editor implementation: title elements, layout guides, pointer-driven reordering, the movable meta panel, and save/unsaved handling. Split it into focused element, layout-guide, drag-controller, and editor-panel modules before adding several new element families. Do not perform that refactor speculatively while the immediate publishing milestone needs only the current title model.
-
-The planned structure above remains direction, not permission to create speculative abstractions. Add the first focused main-process services, typed IPC, feature folders, or templates only when the local card/config/editor workflow requires them.
-
-Do not perform broad reorganizations casually. If a folder move will change many imports, paths, generated files, or user understanding, confirm first and do it as one focused structural change.
+- Keep package parsing, schema validation, baking, workspace lifecycle, GitHub authentication, and
+  publishing independent from renderer layout.
+- Keep the built-in simple editor as one page source, not the universal representation for imported
+  pages.
+- Add schema field types through shared contracts, validator support, and focused renderer controls.
+- Do not let package-provided values or code select filesystem paths or call privileged IPC.
+- Keep package-format compatibility versioned independently from application versions.
+- Keep intentional legacy migration names confined to migration and cleanup code.

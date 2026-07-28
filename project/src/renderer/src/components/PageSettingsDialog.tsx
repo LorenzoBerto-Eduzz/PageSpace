@@ -36,7 +36,7 @@ export function PageSettingsDialog({
   const hasChanges = name.trim() !== page.name || description.trim() !== page.description
 
   useEffect(() => {
-    window.pageMaker
+    window.pageSpace
       .getGitHubStatus()
       .then(setGitHub)
       .catch(() => setGitHub({ state: 'disconnected' }))
@@ -49,7 +49,7 @@ export function PageSettingsDialog({
     setError(null)
     const input: UpdatePageDetailsInput = { pageId: page.id, name, description }
     try {
-      onUpdated(await window.pageMaker.updatePageDetails(input))
+      onUpdated(await window.pageSpace.updatePageDetails(input))
       onClose()
     } catch (saveError) {
       setError(
@@ -63,7 +63,7 @@ export function PageSettingsDialog({
   async function openFolder(): Promise<void> {
     setError(null)
     try {
-      await window.pageMaker.openPageFolder(page.id)
+      await window.pageSpace.openPageFolder(page.id)
     } catch (openError) {
       setError(openError instanceof Error ? openError.message : 'Não foi possível abrir a pasta.')
     }
@@ -74,7 +74,7 @@ export function PageSettingsDialog({
     setIsDeleting(true)
     setError(null)
     try {
-      await window.pageMaker.deleteLocalPage(page.id)
+      await window.pageSpace.deleteLocalPage(page.id)
       onDeleted(page.id)
       onClose()
     } catch (deleteError) {
@@ -94,7 +94,7 @@ export function PageSettingsDialog({
     setIsPublishing(true)
     setError(null)
     try {
-      const result = await window.pageMaker.publishPage({
+      const result = await window.pageSpace.publishPage({
         pageId: page.id,
         ...(page.deployment.kind === 'local-only' ? { repositoryName } : {})
       })
@@ -102,7 +102,7 @@ export function PageSettingsDialog({
       setIsPublishConfirmationOpen(false)
     } catch (publishError) {
       try {
-        onUpdated((await window.pageMaker.getPage(page.id)).page)
+        onUpdated((await window.pageSpace.getPage(page.id)).page)
       } catch {
         // Preserve the original publishing error below.
       }
@@ -193,7 +193,7 @@ export function PageSettingsDialog({
                 <button
                   className="page-public-link"
                   type="button"
-                  onClick={() => window.pageMaker.openPublishedPage(page.id)}
+                  onClick={() => window.pageSpace.openPublishedPage(page.id)}
                 >
                   {page.deployment.publicUrl}
                 </button>
@@ -314,7 +314,7 @@ export function PageSettingsDialog({
             ) : null}
             <p>
               O repositório será público. Somente os arquivos gerados do site serão enviados; dados
-              internos do PageMaker, backups e credenciais permanecerão locais.
+              internos do PageSpace, backups e credenciais permanecerão locais.
             </p>
             <footer>
               <button

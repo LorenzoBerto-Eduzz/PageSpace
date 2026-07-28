@@ -4,11 +4,11 @@ Use this checklist when adapting the template into a real project. It is stack-n
 
 ## 1. Identity And Scope
 
-- [x] Rename the outer project folder to `PageMaker`.
-- [x] Resolve the project identity placeholders with the PageMaker product facts.
-- [x] Keep `project/` as the PageMaker application source root.
+- [x] Establish the product identity as `PageSpace`.
+- [x] Resolve the project identity placeholders with the PageSpace product facts.
+- [x] Keep `project/` as the PageSpace application source root.
 - [x] Fill `docs/PROJECT_BRIEF.md` with the purpose, users, current scope, priorities, and non-negotiable constraints.
-- [x] Record PageMaker vocabulary in the brief glossary.
+- [x] Record PageSpace vocabulary in the brief glossary.
 
 ## 2. Source And Tooling
 
@@ -38,12 +38,12 @@ Use this checklist when adapting the template into a real project. It is stack-n
 - [x] Immediately after Git is initialized, set clone-local `git config user.name`, set clone-local `git config user.email` to the allowed email, and run `git config core.hooksPath .githooks`.
 - [x] Verify `git config user.name`, `git config user.email`, `.git-identity`, and `git config core.hooksPath` before the first project work is checkpointed.
 - [x] Initialize Git only in the real copied project.
-- [ ] Create/configure the remote only when the owner is ready.
+- [x] Create/configure the remote only when the owner is ready.
 - [x] Make the first focused commit only when explicitly requested.
 
 ## 6. Delivery And Verification
 
-- [x] Define the smallest useful smoke test: run the unpacked `PageMaker.exe` after a successful build.
+- [x] Define the smallest useful smoke test: run the unpacked `PageSpace.exe` after a successful build.
 - [x] Document the real validation commands in `docs/PROJECT_BRIEF.md`.
 - [x] Decide the approved local-review build process; production release remains undecided.
 - [x] Document `localrelease` in `docs/DELIVERY_PROCESS.md` before using it as a named delivery command.

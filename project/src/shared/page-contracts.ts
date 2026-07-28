@@ -1,3 +1,10 @@
+import type {
+  PageSource,
+  PageSpaceEditableContent,
+  PageSpaceEditableSchema,
+  PageSpacePackageManifest
+} from './pagespace-package-contracts'
+
 export type PageStatus = 'local' | 'published'
 
 export type LocalPageDeployment = {
@@ -41,6 +48,7 @@ export type PageSummary = {
   canRecover: boolean
   healthMessage?: string
   deployment: PageDeployment
+  source: PageSource
   previewDataUrl?: string
 }
 
@@ -69,14 +77,35 @@ export type PageContent = {
   layout: PageLayout
 }
 
-export type PageEditorData = {
+export type SimplePageEditorData = {
+  kind: 'simple'
   page: PageSummary
   content: PageContent
 }
 
+export type PackagePageEditorData = {
+  kind: 'package'
+  page: PageSummary
+  manifest: PageSpacePackageManifest
+  schema: PageSpaceEditableSchema | null
+  content: PageSpaceEditableContent | null
+}
+
+export type PageEditorData = SimplePageEditorData | PackagePageEditorData
+
 export type SavePageContentInput = {
   pageId: string
   content: PageContent
+}
+
+export type SavePackageContentInput = {
+  pageId: string
+  content: PageSpaceEditableContent
+}
+
+export type ImportPagePackageResult = {
+  page: PageSummary
+  outcome: 'imported' | 'updated'
 }
 
 export type UpdatePageDetailsInput = {

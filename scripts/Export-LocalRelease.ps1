@@ -1,22 +1,22 @@
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\project')).Path
-$reviewRoot = Join-Path $projectRoot 'dist\PageMaker'
+$reviewRoot = Join-Path $projectRoot 'dist\PageSpace'
 $localReleaseParent = Join-Path $projectRoot 'dist\localrelease'
-$localReleaseRoot = Join-Path $localReleaseParent 'PageMaker'
+$localReleaseRoot = Join-Path $localReleaseParent 'PageSpace'
 
 Push-Location $projectRoot
 try {
   & npm.cmd run build:unpack
   if ($LASTEXITCODE -ne 0) {
-    throw 'A compilação da cópia de desenvolvimento do PageMaker falhou.'
+    throw 'A compilação da cópia de desenvolvimento do PageSpace falhou.'
   }
 }
 finally {
   Pop-Location
 }
 
-if (-not (Test-Path -LiteralPath (Join-Path $reviewRoot 'PageMaker.exe'))) {
+if (-not (Test-Path -LiteralPath (Join-Path $reviewRoot 'PageSpace.exe'))) {
   throw "O executável esperado não foi encontrado: $reviewRoot"
 }
 
@@ -40,7 +40,7 @@ New-Item -ItemType Directory -Path (Join-Path $localReleaseRoot 'Pages') | Out-N
 
 $forbiddenEntries = Get-ChildItem -LiteralPath $localReleaseRoot -Recurse -Force |
   Where-Object {
-    $_.Name -in @('.git', '.pagemaker', '.git-identity', '.env') -or
+    $_.Name -in @('.git', '.pagemaker', '.pagespace', '.git-identity', '.env') -or
     $_.Name -like '.env.*'
   }
 

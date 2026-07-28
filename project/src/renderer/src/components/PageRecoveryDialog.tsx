@@ -36,7 +36,7 @@ export function PageRecoveryDialog({
         <p>{page.healthMessage ?? 'Os arquivos essenciais desta página estão danificados.'}</p>
         <p>
           {page.canRecover
-            ? 'O PageMaker encontrou o último backup válido e pode restaurá-lo.'
+            ? 'O PageSpace encontrou o último backup válido e pode restaurá-lo.'
             : 'Nenhum backup válido foi encontrado. Seus arquivos não serão alterados automaticamente.'}
         </p>
         {error ? <p className="dialog-error">{error}</p> : null}

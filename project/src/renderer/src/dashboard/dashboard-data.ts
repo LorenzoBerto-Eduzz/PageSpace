@@ -8,6 +8,7 @@ export const dashboardPages: DashboardPage[] = [
     description: 'Descrição da página',
     status: 'local',
     preview: 'empty',
-    isPlaceholder: true
+    isPlaceholder: true,
+    source: { kind: 'simple' }
   }
 ]

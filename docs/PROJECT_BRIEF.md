@@ -1,114 +1,107 @@
-# Project Brief: PageMaker
+# Project Brief: PageSpace
 
 ## Identity
 
-- Project name: `PageMaker`
-- Project kind: `Windows desktop website manager and static-site page builder`
-- Main project folder: `project/`
-- Primary language/stack: `Electron + electron-vite + React + TypeScript`
+- Product: `PageSpace`
+- Form: portable Windows desktop application
+- Source: `project/`
+- Stack: Electron + electron-vite + React + TypeScript
+- Repository: `https://github.com/LorenzoBerto-Eduzz/PageSpace`; the local root folder retains its
+  previous directory name until a clean workspace checkpoint.
 
 ## Purpose
 
-PageMaker is a locally installed Windows app that lets non-technical users create, configure, edit, preview, generate, export, and explicitly publish simple static websites. It hides local-file, Git, repository, commit, push, and deployment mechanics behind a visual interface.
+PageSpace is a personal space for websites. It lets non-technical users create basic pages or
+import visually unrestricted websites created by AI, keep them organized as cards, open exact
+local versions, edit only author-declared content, bake safe static output, and explicitly publish
+individual pages through their own GitHub account.
 
-PageMaker is the private local tool. Each managed website is a separate website instance/card. Cards start local-only; a GitHub Pages site exists only after the user deliberately chooses to publish that card online. Every generated public site is clean, static, and viewer-only.
+AI is the primary flexible page-authoring surface. PageSpace provides the trusted package,
+editing, storage, preview, baking, Git, GitHub, and publication lifecycle.
 
-## Audience Or Users
+## Page Types
 
-People who need to maintain small links hubs, portfolios, document portals, or resource pages but should not need to understand code, terminals, Git, GitHub Pages, commits, or pushes.
+### Simple page
 
-## Current Scope
+Created inside PageSpace with the built-in editor. The current simple model supports ordered title
+elements and layout spacing.
 
-Build a colleague-usable desktop MVP with a PT-BR multi-site dashboard, reliable local folders/cards, foundational title-element editing and layout controls, sanitized public-output generation, global GitHub account connection, and an explicit per-site `Publicar online` flow. That flow creates/configures only the selected card's public repository and GitHub Pages deployment, then publishes it with friendly status/error feedback. Additional element families and ZIP export/import are later-version work.
+### Static PageSpace package
 
-## Run And Test Commands
+An already-baked AI-authored website. It can be imported, organized, viewed locally, replaced by a
+newer compatible package, and published. It has no generated edit form.
 
-```text
-Run: cd project; npm run dev
-Lint: cd project; npm run lint
-Type check: cd project; npm run typecheck
-Build: cd project; npm run build
-Local review build: cd project; npm run build:unpack
-Clean shareable localrelease: cd project; npm run export:localrelease
-```
+### Editable PageSpace package
 
-If commands are not known yet, write `unknown` and ask before assuming.
+An AI-authored static website plus a versioned editable schema and default content. PageSpace
+generates the edit form, validates changes, sanitizes replacement images, bakes the public site,
+and preserves compatible user values during package updates.
 
-## Delivery Or Release Process
+## Main Workflow
 
-- Delivery command/policy: `build:unpack refreshes the owner's project/dist/PageMaker/ development copy and preserves its Pages/. localrelease runs export:localrelease and creates project/dist/localrelease/PageMaker/ with an empty Pages/ and no local user/developer data.`
-- Versioning/release authority: `Owner approval required for versions, artifacts, and releases.`
+1. The user selects the left `Trazer página` tile or the right `Criar página` tile.
+2. Imported packages are validated and copied atomically into `Pages/`.
+3. Every page starts local-only.
+4. The user may open the exact baked site in a normal browser.
+5. Editable packages expose only declared fields and collections.
+6. `Salvar` persists private values, keeps a backup, bakes output, and refreshes the preview.
+7. `Publicar online` confirms the page, account, repository, public URL, and exposure.
+8. PageSpace creates or safely updates only that page's repository and GitHub Pages site.
 
-Keep this brief summary current. Put detailed build, export, package, deployment, or publish instructions in `docs/DELIVERY_PROCESS.md` only after the project has a real process.
+## Package Contract
+
+The supported package format is versioned independently from the app. PageSpace exposes one
+button that downloads a TXT containing the AI-authoring instructions supported by the installed
+application version. Those instructions define integration and security requirements without
+constraining visual design.
+
+See `docs/PAGESPACE_PACKAGE_FORMAT.md`.
 
 ## Important Constraints
 
-- Primary platform is Windows; distribution target is a portable `PageMaker/` folder, not an installer. Users may place the folder wherever they choose and run `PageMaker.exe` directly.
-- Runtime updates must happen in place and preserve the sibling `Pages/` directory. Protected GitHub authorization persists separately for the same Windows user and PageMaker application identity.
-- Every page lives in `PageMaker/Pages/<creation-name>/`. Normal PT-BR accents and spaces are preserved in the folder name; only Windows-forbidden characters are made safe. A later dashboard rename changes the card label only and leaves the stable folder/local Git repository unchanged.
-- Use `electron-vite` with React and TypeScript. Do not substitute a framework without owner approval.
-- Use versioned JSON in Electron's `userData` folder for machine-local app configuration. Do not introduce a database or cloud sync in the MVP.
-- Treat PageMaker as business-grade software: use schema validation, atomic writes, recoverable backups, idempotent operations, redacted diagnostic logs, publish history, and focused automated tests around generation and publishing.
-- The canonical content model is ordered pages/elements. The first UI may expose only hero/text/section-card-grid controls.
-- The renderer must never directly execute shell commands. Privileged filesystem, Git, dialogs, and external-URL actions belong in Electron's main process and must be exposed through a narrow preload IPC API.
-- New cards are local-only by default. They have no remote, public URL, or external exposure until the user deliberately completes `Publicar online`.
-- The global GitHub connection must use a secure browser-based authorization flow. Credentials/tokens belong only in protected OS storage, never JSON configuration, logs, public files, remote URLs, or ZIP exports.
-- `Publicar online` creates/configures the selected card's repository and GitHub Pages deployment. Importing an existing repository is a secondary advanced flow.
-- UI language is Brazilian Portuguese. The product should feel visual, friendly, and safe for non-technical users.
-- Public/ZIP output is static and generated from a strict allowlist/manifest. It must never include the dashboard, editor, app settings, Git logs, credentials, local paths, drafts, app metadata, or other private controls/data.
-- Only content and assets the user intentionally places on that website may appear in generated output. Sanitize images to remove EXIF/GPS and similar embedded metadata by default.
-- Publish only the selected website instance; do not publish every dashboard site.
-- Do not turn a local-only card public through a one-click toggle. Use a confirmation flow that identifies the card, destination account/repository, public URL, and content being exposed.
-- Electron is the primary release form. A future browser UI still requires the installed local PageMaker service and must bind only to loopback with local-session protections.
-- Do not automatically resolve Git conflicts in the MVP. Stop with a friendly error and a technical-details view.
-- Validate required titles and `http://`/`https://` card URLs before publishing.
+- Imported packages never execute shell commands, npm, PowerShell, Python, executables, symlinks,
+  or privileged build logic.
+- Package `site/` output must already be browser-ready static content.
+- Editable packages consume validated values through the generated `pagespace-content.js`
+  contract.
+- The renderer never receives filesystem, Git, GitHub token, or shell capabilities.
+- Images selected through PageSpace are decoded and re-encoded before public output.
+- Package identity and stable field keys preserve compatible user content across design updates.
+- Public output is generated from scratch, hashed, and allowlisted before publication.
+- GitHub Pages is public. Link inventories and public assets must be treated as public content.
+- Remote conflicts stop publication; PageSpace never silently overwrites external changes.
+
+## Commands
+
+```text
+Run: cd project; npm run dev
+Test: cd project; npm test
+Lint: cd project; npm run lint
+Type check: cd project; npm run typecheck
+Build: cd project; npm run build
+Review build: cd project; npm run build:unpack
+Clean handoff: cd project; npm run export:localrelease
+```
 
 ## Current Priorities
 
-1. Validate account linking, first publication, later updates, restart persistence, and retry behavior from a clean portable copy on a second computer/account.
-2. Add non-destructive online publication health/reconciliation and refine safe status/error presentation.
-3. Define the first colleague pilot version, acceptance checklist, and concise first-use guidance.
-4. Add richer elements, ZIP export/import, built-in runtime updates, and existing-repository import in later versions.
-
-## Current Visual Foundation
-
-- The PT-BR dashboard shows `Minhas Páginas`, global settings, stored website cards, and a square create-page control.
-- The installed review build starts maximized with a light native Windows frame. Its dashboard canvas uses a restrained smoky blue/gold light background and soft dark-gray text.
-- Cards and controls use the same soft-gray contour and corner radius. The full card is the visual editor entry target, with compact local/private and settings icon actions at its lower right.
-- Full-screen layout is designed for four card columns and two rows. When later card data creates overflow, only the dashboard field scrolls, using a thin light-gray scrollbar aligned beneath the global settings control.
-- Page creation, persistent listing, clean private previews, and opening/editing/saving a card are functional.
-- The page editor currently supports ordinary ordered single-line title elements, direct editing, add/delete/reorder, independent side margins, positional vertical gaps, and unsaved-change protection.
-- Sanitized generated output and reusable local page settings are functional. Settings can rename dashboard metadata without renaming the stable folder, open the folder in Explorer, and recycle a local page after confirmation.
-- Global local-app settings, workspace backup/recovery, personal GitHub account linking, explicit repository creation, allowlisted Git publication, retryable updates, and GitHub Pages activation are functional. Export is not implemented yet.
-
-## Frontend Modularity Rule
-
-The current interface is a clear working baseline, not a frozen design system. Visual layout, component placement, grouping, icons, labels, sizing, colors, and modal composition are expected to change during later product design. Keep visual components focused, reusable, and easy to rearrange. Storage, validation, recovery, generation, GitHub, Git, and publishing services must remain independent of the current React layout.
+1. Validate static and editable package import with disposable sample packages.
+2. Validate local preview, editable content, images, package updates, and dynamic publication
+   allowlisting as one complete vertical slice.
+3. Validate disposable GitHub publication, update, retry, and conflict behavior.
+4. Refine the `Trazer página` and `Criar página` workflows from those findings.
+5. Use SotoDashboard as the first colleague-facing package after the platform is stable.
 
 ## Glossary
 
 | Term | Meaning |
 | --- | --- |
-| PageMaker app | The installed local Electron application. |
-| Website instance / card | One managed website configuration inside PageMaker. |
-| Local-only card | A website that remains on the user's computer, with no remote repository or public address. |
-| Public site | The generated static website hosted through GitHub Pages. |
-| Publicar online | Deliberate confirmation flow that creates/configures the selected site's online destination and publishes it. |
-| Sanitized export | Static public-safe files/ZIP generated from the same strict allowlist used for online publishing. |
-| Bake / generate | Transform editable local content into clean public website files. |
-| `links-hub-v1` | The first public template: a responsive hub of sections and link cards. |
-| Salvar | Save local editable content only. |
-| Salvar e Postar | Save, generate public output, commit, and push the current website. |
-
-## Known Pitfalls
-
-- Do not confuse PageMaker source with generated website repositories. They are separate folders with separate purposes.
-- Local-only does not mean password-protected on the internet; it means not deployed. Future authenticated/private online sites are a separate capability.
-- Never publish a workspace folder directly. Publish only a fresh generated output folder verified against its manifest.
-- Do not include image metadata, hidden files, local drafts, machine paths, or internal configuration in public/ZIP output.
-- Before refreshing the development build or creating `localrelease`, close any running PageMaker review executable; Windows can lock files in `project/dist/PageMaker/`. The development build replaces only generated runtime files and preserves `Pages/`; the separate localrelease is recreated clean with an empty `Pages/`.
-- A successful Git push does not mean GitHub Pages is instantly live; show the public link after push, but allow GitHub's publishing delay.
-- A no-change publish must not create an empty commit; communicate `Nenhuma alteração para publicar`.
-- `git pull --rebase` may be useful before publishing, but conflicts require user resolution outside automatic MVP handling.
-- Keep implementation modular around ordered page elements even if the initial editor UI exposes only structured sections/cards. Do not start with a free-moving canvas.
-- The PageMaker repository is initialized locally on `main` with its email identity guard enabled. No remote is configured yet; do not add or push to one without owner authorization.
+| PageSpace | Trusted local desktop application. |
+| Page package | Portable AI-authored folder following the PageSpace contract. |
+| Page instance | User's managed imported copy inside `Pages/`. |
+| Simple page | Page created with PageSpace's built-in editor. |
+| Static package | Ready website without a declared edit form. |
+| Editable package | Website with declared fields and safe content baking. |
+| Bake | Produce a fresh verified static website from current local content. |
+| Local preview | Exact baked result opened locally without publishing. |
+| Publish | Create or update the selected page's GitHub Pages destination. |

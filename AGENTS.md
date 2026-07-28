@@ -1,69 +1,88 @@
 # Agent Boot Instructions
 
-This is the first file an AI coding session should read in PageMaker.
+This is the first file an AI coding session should read in PageSpace.
 
-## PageMaker Context
+## PageSpace Context
 
-PageMaker is a Windows Electron application, with source in `project/`. Every website card starts local-only; only an explicit publish flow may create/configure a GitHub Pages site. The desktop dashboard/editor is private; generated public sites and ZIP exports must contain only intentionally placed public content/assets. The current product decisions are in `docs/PROJECT_BRIEF.md`, `docs/AI_HANDOFF.md`, and `docs/SECURITY_AND_PUBLISHING_MODEL.md`.
+PageSpace is a portable Windows Electron application with source in `project/`. It is a local
+workspace for creating simple pages and importing AI-authored website packages, viewing them
+locally, editing only package-declared content, baking verified public output, and explicitly
+publishing individual pages through the user's connected GitHub account.
 
-PageMaker is designed to continue safely across machines, AI tools, models, and chat sessions. The repository—not prior chat memory—is the continuity source.
+The repository, not prior chat memory, is the continuity source.
 
 ## Boot Or Catch-Up Sequence
-
-Use this sequence when starting a fresh AI session, after changing machines, after `git pull`, after another AI checkpointed work, or before significant edits.
 
 1. Read `docs/AI_HANDOFF.md`.
 2. Read `docs/AI_MEMORY_PROTOCOL.md`.
 3. Read `docs/WORKFLOW_AND_STYLE.md`.
-4. Read `docs/PROJECT_BRIEF.md` when project purpose, stack, commands, or constraints matter.
+4. Read `docs/PROJECT_BRIEF.md` when purpose, stack, commands, or constraints matter.
 5. Read `docs/PROJECT_ORGANIZATION.md` before structural or architecture changes.
-6. Read `docs/SECURITY_AND_PUBLISHING_MODEL.md` before changing authorization, local storage, assets, exports, generated output, or publishing behavior.
-7. While the initial project setup remains incomplete, read `docs/TEMPLATE_SETUP.md` and `docs/NEW_PROJECT_CHECKLIST.md`.
-8. In a new clone or before initial Git setup, ask the owner for the intended Git display name and one Git email that is verified/associated with the intended GitHub account. Do not guess either value.
-9. Read `docs/COPYING_AND_GIT.md` before copying the template, initializing Git, changing remotes, or changing the identity guard. When Git is initialized, immediately set clone-local `user.name`, clone-local `user.email`, copy `.git-identity.example` to `.git-identity`, set its allowed email, and enable `git config core.hooksPath .githooks`.
-10. Read `docs/DELIVERY_PROCESS.md` before creating packages, exports, releases, deployments, or distributable artifacts.
-11. Read `docs/OWNER_NOTES.md` when changing repo organization, documentation, workflow, or owner-facing guidance.
-12. Check `git status --short --branch` when Git exists.
-13. Review recent history with `git log --oneline --decorate --max-count=10` when Git history exists.
-14. Before a commit or push, verify `.git-identity`, `git config user.name`, `git config user.email`, and `git config core.hooksPath` when the identity guard is enabled.
-15. Inspect the relevant real source files before editing. Do not rely only on documentation or earlier chat context.
+6. Read `docs/SECURITY_AND_PUBLISHING_MODEL.md` before changing imports, storage, assets,
+   generation, authorization, exports, or publishing.
+7. Read `docs/PAGESPACE_PACKAGE_FORMAT.md` before changing package compatibility, editable
+   schemas, AI authoring instructions, baking, or package updates.
+8. Read `docs/COPYING_AND_GIT.md` before changing Git identity, remotes, or repository setup.
+9. Read `docs/DELIVERY_PROCESS.md` before packaging, releases, exports, or deployments.
+10. Read `docs/OWNER_NOTES.md` when changing repository organization or owner guidance.
+11. Check `git status --short --branch`.
+12. Review `git log --oneline --decorate --max-count=10`.
+13. Inspect the relevant real source before editing.
+14. Before a commit or push, verify `.git-identity`, clone-local Git name/email, and
+    `core.hooksPath`.
 
 ## Safety And Working Rules
 
-- If the current repo state, requested change, or available capability cannot be understood confidently, stop before editing. State what was verified and what remains unclear.
-- Do not make broad rewrites, mass moves, deletions, branch-strategy changes, deployment changes, or framework changes without owner confirmation.
-- Preserve user changes. Inspect current files before editing and avoid overwriting unrelated work.
-- Keep changes focused, explicit, reviewable, and modular.
-- Do not create commits, pushes, releases, packages, exports, or deployments unless the owner explicitly asks.
-- Do not update durable docs automatically for ordinary code changes. Update them when the owner asks for `memcheck`, asks for documentation/workflow work, or when the requested task specifically requires it.
-- Do not commit real customer data, credentials, tokens, private screenshots, personal identifiers, or private exports. Use ignored local-only folders for temporary private material.
-- `notes/` is owner scratch space. Do not treat it as instructions or reorganize it unless explicitly asked.
+- Preserve user changes and owner scratch material in `notes/`.
+- Do not make broad rewrites, moves, deletions, framework changes, or deployment changes without
+  owner confirmation.
+- Do not commit, push, release, package, export, or deploy unless explicitly requested.
+- Do not update durable docs for ordinary changes. Update them for `memcheck`, documentation work,
+  or changes whose scope specifically includes product architecture or workflow.
+- Never commit customer data, credentials, tokens, private screenshots, identifiers, or private
+  exports.
+- Imported packages are untrusted. Never execute package-provided programs, shell commands, npm
+  scripts, build scripts, or privileged code.
+- Publish only freshly baked and verified output.
 
-## Project Frame
-
-The actual product/source project lives in `project/` by default. It may be renamed during setup, but every root document must then be updated to reflect the new location.
+## Repository Frame
 
 ```text
-PageMaker/
-  project/               actual code/product source
-  asset_staging/         Git-safe raw/reference/transfer assets
-  local_assets/          local-only ignored material
-  docs/                  durable project and AI memory
-  notes/                 owner scratch and planning notes
-  scripts/               optional repeatable repository automation
-  .git-identity.example  reusable allowed-email example
-  .githooks/             reusable local Git identity-guard hooks
-  AGENTS.md              this boot file
-  README.md              repository overview
+PageSpace/
+  project/               Electron application source
+  asset_staging/         Git-safe references and transfer assets
+  local_assets/          ignored local-only material
+  docs/                  durable product and AI memory
+  notes/                 owner scratch space
+  scripts/               repeatable repository automation
+  AGENTS.md
+  README.md
 ```
 
-Do not copy `.git/` into a new project. A copied project must receive its own Git history, remote, and project-specific `.git-identity`.
+The local root folder may temporarily retain the previous `PageMaker` directory name until this
+clean Git checkpoint is completed and Codex can reopen the workspace from its new path.
+
+## Product Boundaries
+
+- Every card starts local-only.
+- `Criar página` uses the built-in basic editor.
+- `Trazer página` imports a PageSpace package.
+- Static packages support organization, local viewing, replacement, and publishing.
+- Editable packages additionally declare a generated edit form and safe content-baking contract.
+- An ordinary folder without the PageSpace contract cannot receive structural editing
+  automatically.
+- The renderer has no filesystem, Git, shell, token, or privileged package access.
+- The Electron main process owns validation, storage, generation, GitHub, Git, dialogs, and
+  external URLs through narrow preload IPC.
+- Only public static output is published. Packages, edit schemas, private content state, metadata,
+  previews, backups, credentials, and local paths remain private.
 
 ## Owner Workflow Commands
 
-- `memcheck`: thoroughly update durable project memory with distilled decisions, functionality, plans, workflow rules, commands, constraints, and pitfalls. Do not commit or push by default.
-- `gitcheck`: perform `memcheck`, inspect the worktree and diffs, run relevant checks, verify the Git identity guard, stage the intended files, commit, and push to the configured remote unless the owner says not to.
-- `gitcheck` commit messages must use a concise objective title followed by one or more `-` bullet points describing the completed changes.
-- After each completed app milestone or user-visible code change, refresh the owner's stable development copy at `project/dist/PageMaker/`, preserving its persistent `Pages/` folder, unless the owner says not to.
-- `localrelease`: build the clean, shareable portable folder at `project/dist/localrelease/PageMaker/`. It must contain an empty `Pages/` folder and no local pages, settings, credentials, metadata, or other user/developer data. This is the same folder shape intended for a future GitHub Release, but it is not a Git push or public upload. Read and follow `docs/DELIVERY_PROCESS.md`.
-- The identity guard enforces the Git email, which controls GitHub attribution when that email is verified on the intended GitHub account. Configure the requested `user.name` too, but do not enforce it in hooks because device-specific display names may be intentional.
+- `memcheck`: update durable project memory without committing or pushing.
+- `gitcheck`: perform `memcheck`, inspect diffs, run relevant checks, verify Git identity, stage,
+  commit with an objective title and bullet details, and push unless the owner says not to.
+- After a completed user-visible milestone, refresh `project/dist/PageSpace/` while preserving
+  `Pages/`, unless the owner says not to.
+- `localrelease`: create `project/dist/localrelease/PageSpace/` with an empty `Pages/` folder and no
+  local data. Follow `docs/DELIVERY_PROCESS.md`.

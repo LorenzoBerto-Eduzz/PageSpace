@@ -30,12 +30,18 @@ export function AppSettingsDialog({
   const [authorization, setAuthorization] = useState<GitHubDeviceAuthorization | null>(null)
   const [isLinkingGitHub, setIsLinkingGitHub] = useState(false)
   const [isDisconnectingGitHub, setIsDisconnectingGitHub] = useState(false)
+  const [instructionMessage, setInstructionMessage] = useState<string | null>(null)
   const linkAttemptId = useRef(0)
   const [codeWasCopied, setCodeWasCopied] = useState(false)
   const damagedPages = useMemo(
     () => snapshot.pages.filter((page) => page.health === 'damaged'),
     [snapshot.pages]
   )
+
+  async function downloadAiInstructions(): Promise<void> {
+    const saved = await window.pageSpace.downloadAiInstructions()
+    if (saved) setInstructionMessage('Instruções desta versão baixadas em TXT.')
+  }
 
   useEffect(() => {
     void refresh()
@@ -48,7 +54,7 @@ export function AppSettingsDialog({
     setIsChecking(true)
     setError(null)
     try {
-      const nextSnapshot = await window.pageMaker.getAppSettings()
+      const nextSnapshot = await window.pageSpace.getAppSettings()
       setSnapshot(nextSnapshot)
       onPagesRefreshed(nextSnapshot.pages)
     } catch (refreshError) {
@@ -65,7 +71,7 @@ export function AppSettingsDialog({
   async function openPagesFolder(): Promise<void> {
     setError(null)
     try {
-      await window.pageMaker.openPagesFolder()
+      await window.pageSpace.openPagesFolder()
     } catch (openError) {
       setError(
         openError instanceof Error ? openError.message : 'Não foi possível abrir a pasta Pages.'
@@ -81,9 +87,9 @@ export function AppSettingsDialog({
     setCodeWasCopied(true)
     setIsLinkingGitHub(true)
     try {
-      const nextAuthorization = await window.pageMaker.beginGitHubLink()
+      const nextAuthorization = await window.pageSpace.beginGitHubLink()
       setAuthorization(nextAuthorization)
-      const status = await window.pageMaker.completeGitHubLink(nextAuthorization.flowId)
+      const status = await window.pageSpace.completeGitHubLink(nextAuthorization.flowId)
       setSnapshot((current) => ({ ...current, github: status }))
       setAuthorization(null)
     } catch (linkError) {
@@ -108,12 +114,12 @@ export function AppSettingsDialog({
     setCodeWasCopied(false)
     setError(null)
     setIsLinkingGitHub(false)
-    await window.pageMaker.cancelGitHubLink(activeAuthorization.flowId)
+    await window.pageSpace.cancelGitHubLink(activeAuthorization.flowId)
   }
 
   async function copyGitHubCode(): Promise<void> {
     if (!authorization) return
-    await window.pageMaker.copyGitHubCode(authorization.userCode)
+    await window.pageSpace.copyGitHubCode(authorization.userCode)
     setCodeWasCopied(true)
   }
 
@@ -122,7 +128,7 @@ export function AppSettingsDialog({
     setError(null)
     setIsDisconnectingGitHub(true)
     try {
-      await window.pageMaker.disconnectGitHub()
+      await window.pageSpace.disconnectGitHub()
       setSnapshot((current) => ({ ...current, github: { state: 'disconnected' } }))
     } catch (disconnectError) {
       setError(
@@ -138,7 +144,7 @@ export function AppSettingsDialog({
   function closeDialog(): void {
     if (authorization) {
       linkAttemptId.current += 1
-      void window.pageMaker.cancelGitHubLink(authorization.flowId)
+      void window.pageSpace.cancelGitHubLink(authorization.flowId)
     }
     onClose()
   }
@@ -152,7 +158,7 @@ export function AppSettingsDialog({
         aria-labelledby="app-settings-title"
       >
         <header>
-          <h2 id="app-settings-title">Configurações do PageMaker</h2>
+          <h2 id="app-settings-title">Configurações do PageSpace</h2>
           <ModalCloseButton onClick={closeDialog} disabled={isChecking || isDisconnectingGitHub} />
         </header>
 
@@ -210,6 +216,17 @@ export function AppSettingsDialog({
           </div>
         ) : null}
 
+        <div className="app-settings-section">
+          <div className="app-settings-actions app-settings-actions--standalone">
+            <button type="button" onClick={downloadAiInstructions}>
+              Baixar instruções para IA (.txt)
+            </button>
+          </div>
+          {instructionMessage ? (
+            <p className="app-settings-inline-message">{instructionMessage}</p>
+          ) : null}
+        </div>
+
         <div className="app-settings-section app-settings-github-section">
           <div className="app-settings-github-heading">
             <h3>Conta GitHub</h3>
@@ -237,7 +254,7 @@ export function AppSettingsDialog({
                   Aguardando autorização…
                 </small>
                 <div className="github-device-actions">
-                  <button type="button" onClick={() => window.pageMaker.openGitHubDevicePage()}>
+                  <button type="button" onClick={() => window.pageSpace.openGitHubDevicePage()}>
                     Abrir GitHub novamente
                   </button>
                   <button type="button" onClick={cancelGitHubLink}>

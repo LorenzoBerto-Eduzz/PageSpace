@@ -1,48 +1,30 @@
-# PageMaker desktop application
+# PageSpace desktop application
 
-PageMaker is the local Electron application that manages local-only and explicitly published static websites. The first implementation milestone provides a secure desktop shell and static dashboard presentation only; it does not yet read files, persist pages, connect to GitHub, or publish content.
+This folder contains the Electron + electron-vite + React + TypeScript source for PageSpace.
+
+PageSpace creates simple local pages and imports static or manifest-editable AI-authored website
+packages. It keeps pages local by default, opens exact baked output in the browser, and explicitly
+publishes one verified page at a time through the user's connected GitHub account.
 
 ## Development
 
-### Install dependencies
-
-```bash
-$ npm install
+```text
+npm run dev
+npm test
+npm run lint
+npm run typecheck
+npm run build
 ```
 
-### Run the desktop app
+## Portable review
 
-```bash
-$ npm run dev
+```text
+npm run build:unpack
 ```
 
-### Validate
+This creates `dist/PageSpace/PageSpace.exe` and preserves its sibling `Pages/` folder.
 
-```bash
-$ npm run lint
-$ npm run typecheck
-$ npm run build
-```
+Use `npm run export:localrelease` only when the owner requests a clean shareable application
+folder. The clean release is created under `dist/localrelease/PageSpace/` with an empty `Pages/`.
 
-### Packaging
-
-The `build:win`, `build:mac`, and `build:linux` scripts are scaffold defaults. Do not create distributable artifacts until the repository delivery process is documented and explicitly authorized.
-
-### Local review build
-
-```bash
-$ npm run build:unpack
-```
-
-This refreshes the stable review folder at `dist/win-unpacked/`. Close any running PageMaker review window first, then open `dist/win-unpacked/PageMaker.exe`. Copy the entire folder when sharing the review build with someone else.
-
-```bash
-# For windows
-$ npm run build:win
-
-# For macOS
-$ npm run build:mac
-
-# For Linux
-$ npm run build:linux
-```
+See the root documentation for the package contract, security boundary, and delivery rules.

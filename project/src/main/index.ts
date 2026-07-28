@@ -1,14 +1,25 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain, nativeTheme, shell } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  clipboard,
+  dialog,
+  ipcMain,
+  nativeImage,
+  nativeTheme,
+  shell
+} from 'electron'
 import { dirname, join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { PageWorkspaceService } from './page-workspace-service'
+import { PageSpaceWorkspaceService } from './pagespace-workspace-service'
 import { GitHubAuthService } from './github-auth-service'
 import { GitHubPublishingService } from './github-publishing-service'
 import { PublicationDiagnostics } from './publication-diagnostics'
+import { createPageSpaceAiInstructions } from './pagespace-ai-instructions'
 import type {
   CreatePageInput,
   PublishPageInput,
+  SavePackageContentInput,
   SavePageContentInput,
   UpdatePageDetailsInput
 } from '../shared/page-contracts'
@@ -26,7 +37,7 @@ function createWindow(hasActivePublications: () => boolean): void {
     show: false,
     autoHideMenuBar: true,
     backgroundColor: '#f6f7fb',
-    title: 'PageMaker',
+    title: 'PageSpace',
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -60,7 +71,7 @@ function createWindow(hasActivePublications: () => boolean): void {
         title: 'Publicação em andamento',
         message: 'Uma página ainda está sendo publicada.',
         detail:
-          'Fechar agora pode interromper o envio. O PageMaker manterá o estado local para permitir uma nova tentativa.',
+          'Fechar agora pode interromper o envio. O PageSpace manterá o estado local para permitir uma nova tentativa.',
         buttons: ['Continuar aguardando', 'Fechar mesmo assim'],
         defaultId: 0,
         cancelId: 0,
@@ -85,7 +96,7 @@ function createWindow(hasActivePublications: () => boolean): void {
 }
 
 async function captureCleanPagePreview(
-  pageWorkspace: PageWorkspaceService,
+  pageWorkspace: PageSpaceWorkspaceService,
   pageId: string
 ): Promise<string> {
   const generatedSite = await pageWorkspace.generatePageSite(pageId)
@@ -120,10 +131,10 @@ async function captureCleanPagePreview(
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.pagemaker.app')
+  electronApp.setAppUserModelId('com.pagespace.app')
   nativeTheme.themeSource = 'light'
 
-  const pageWorkspace = new PageWorkspaceService(getPagesRoot())
+  const pageWorkspace = new PageSpaceWorkspaceService(getPagesRoot())
   const githubAuth = new GitHubAuthService(app.getPath('userData'))
   const githubPublishing = new GitHubPublishingService(
     githubAuth,
@@ -141,10 +152,39 @@ app.whenReady().then(() => {
       return createdPage
     }
   })
+  ipcMain.handle('pages:import-package', async () => {
+    const selection = await dialog.showOpenDialog({
+      title: 'Trazer página para o PageSpace',
+      properties: ['openDirectory'],
+      buttonLabel: 'Trazer página'
+    })
+    if (selection.canceled || selection.filePaths.length !== 1) return null
+    const imported = await pageWorkspace.importPackage(selection.filePaths[0])
+    try {
+      imported.page.previewDataUrl = await captureCleanPagePreview(pageWorkspace, imported.page.id)
+    } catch {
+      // A valid imported page remains available if its replaceable preview cannot be captured.
+    }
+    return imported
+  })
   ipcMain.handle('pages:get', (_, pageId: string) => pageWorkspace.getPage(pageId))
   ipcMain.handle('pages:save-content', (_, input: SavePageContentInput) =>
     pageWorkspace.savePageContent(input)
   )
+  ipcMain.handle('pages:save-package-content', (_, input: SavePackageContentInput) =>
+    pageWorkspace.savePackageContent(input)
+  )
+  ipcMain.handle('pages:choose-image', async (_, pageId: string) => {
+    const selection = await dialog.showOpenDialog({
+      title: 'Escolher imagem',
+      properties: ['openFile'],
+      filters: [{ name: 'Imagens', extensions: ['png', 'jpg', 'jpeg', 'webp'] }]
+    })
+    if (selection.canceled || selection.filePaths.length !== 1) return null
+    const image = nativeImage.createFromPath(selection.filePaths[0])
+    if (image.isEmpty()) throw new Error('A imagem selecionada não pôde ser aberta.')
+    return pageWorkspace.savePackageImage(pageId, image.toPNG())
+  })
   ipcMain.handle('pages:capture-preview', (_, pageId: string) =>
     captureCleanPagePreview(pageWorkspace, pageId)
   )
@@ -154,6 +194,11 @@ app.whenReady().then(() => {
   ipcMain.handle('pages:open-folder', async (_, pageId: string) => {
     const folderPath = await pageWorkspace.getPageFolderPath(pageId)
     const openError = await shell.openPath(folderPath)
+    if (openError) throw new Error(openError)
+  })
+  ipcMain.handle('pages:open-local', async (_, pageId: string) => {
+    const generated = await pageWorkspace.generatePageSite(pageId)
+    const openError = await shell.openPath(generated.indexPath)
     if (openError) throw new Error(openError)
   })
   ipcMain.handle('pages:open-public', async (_, pageId: string) => {
@@ -203,6 +248,17 @@ app.whenReady().then(() => {
       github: await githubAuth.getStatus(),
       pages: refreshedPages
     }
+  })
+  ipcMain.handle('app-settings:download-ai-instructions', async () => {
+    const destination = await dialog.showSaveDialog({
+      title: 'Baixar instruções para IA',
+      defaultPath: `PageSpace-${app.getVersion()}-instrucoes-para-IA.txt`,
+      filters: [{ name: 'Arquivo de texto', extensions: ['txt'] }]
+    })
+    if (destination.canceled || !destination.filePath) return false
+    const { writeFile } = await import('node:fs/promises')
+    await writeFile(destination.filePath, createPageSpaceAiInstructions(app.getVersion()), 'utf8')
+    return true
   })
   ipcMain.handle('github:begin-link', async () => {
     const authorization = await githubAuth.beginDeviceFlow()

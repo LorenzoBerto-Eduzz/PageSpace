@@ -9,9 +9,8 @@ import type {
 } from '../shared/page-contracts'
 import { GITHUB_API_VERSION } from './github-config'
 import type { GitHubAuthService } from './github-auth-service'
-import type { PageWorkspaceService, PublishingWorkspace } from './page-workspace-service'
+import type { PageSpaceWorkspaceService, PublishingWorkspace } from './pagespace-workspace-service'
 import {
-  PUBLISHABLE_PATHS,
   canAcceptRemoteHead,
   isManagedDocsPath,
   isPublishablePath,
@@ -39,7 +38,7 @@ export class GitHubPublishingService {
 
   constructor(
     private readonly auth: GitHubAuthService,
-    private readonly pages: PageWorkspaceService,
+    private readonly pages: PageSpaceWorkspaceService,
     private readonly diagnostics?: PublicationDiagnostics
   ) {}
 
@@ -282,7 +281,7 @@ export class GitHubPublishingService {
     if (!canAcceptRemoteHead(object.sha, deployment.lastCommitOid, localHead)) {
       throw publicationError(
         'repository_changed',
-        'O repositório foi alterado fora do PageMaker. A publicação foi interrompida para não sobrescrever essas mudanças.'
+        'O repositório foi alterado fora do PageSpace. A publicação foi interrompida para não sobrescrever essas mudanças.'
       )
     }
   }
@@ -306,20 +305,21 @@ export class GitHubPublishingService {
   ): Promise<{ oid: string; changed: boolean }> {
     const matrix = await git.statusMatrix({ fs, dir: workspace.folderPath })
     for (const [filepath, head, workdir, stage] of matrix) {
-      if (!isPublishablePath(filepath) && head !== stage) {
+      if (!isPublishablePath(filepath, workspace.publishablePaths) && head !== stage) {
         await git.resetIndex({ fs, dir: workspace.folderPath, filepath })
       }
       if (head !== 0 && workdir === 0 && isManagedDocsPath(filepath)) {
         await git.remove({ fs, dir: workspace.folderPath, filepath })
       }
     }
-    for (const filepath of PUBLISHABLE_PATHS) {
+    for (const filepath of workspace.publishablePaths) {
       await git.add({ fs, dir: workspace.folderPath, filepath })
     }
 
     const staged = await git.statusMatrix({ fs, dir: workspace.folderPath })
     const unsafeStagedChange = staged.some(
-      ([filepath, head, , stage]) => !isSafeStagedChange(filepath, head, stage)
+      ([filepath, head, , stage]) =>
+        !isSafeStagedChange(filepath, head, stage, workspace.publishablePaths)
     )
     if (unsafeStagedChange) {
       throw publicationError(
@@ -330,7 +330,8 @@ export class GitHubPublishingService {
     const changed = staged.some(
       ([filepath, head, , stage]) =>
         head !== stage &&
-        (isPublishablePath(filepath) || (isManagedDocsPath(filepath) && stage === 0))
+        (isPublishablePath(filepath, workspace.publishablePaths) ||
+          (isManagedDocsPath(filepath) && stage === 0))
     )
     if (!changed) {
       return {
@@ -414,7 +415,7 @@ export class GitHubPublishingService {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
           'X-GitHub-Api-Version': GITHUB_API_VERSION,
-          'User-Agent': 'PageMaker',
+          'User-Agent': 'PageSpace',
           ...init.headers
         }
       })
