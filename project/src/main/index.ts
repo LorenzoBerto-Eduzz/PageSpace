@@ -18,6 +18,7 @@ import { PublicationDiagnostics } from './publication-diagnostics'
 import { createPageSpaceAiInstructions } from './pagespace-ai-instructions'
 import type {
   CreatePageInput,
+  DeletePublicationInput,
   PublishPageInput,
   SavePackageContentInput,
   SavePageContentInput,
@@ -255,6 +256,19 @@ app.whenReady().then(() => {
     }
     await shell.openExternal(publicUrl.toString())
   })
+  ipcMain.handle('pages:open-repository', async (_, pageId: string) => {
+    const page = (await pageWorkspace.getPage(pageId)).page
+    if (page.deployment.kind !== 'published') throw new Error('A página ainda não foi publicada.')
+    const repositoryUrl = new URL(page.deployment.repositoryUrl)
+    if (
+      repositoryUrl.protocol !== 'https:' ||
+      repositoryUrl.hostname.toLowerCase() !== 'github.com' ||
+      repositoryUrl.pathname !== `/${page.deployment.owner}/${page.deployment.repository}`
+    ) {
+      throw new Error('O endereço do repositório salvo é inválido.')
+    }
+    await shell.openExternal(repositoryUrl.toString())
+  })
   ipcMain.handle('pages:delete-local', async (_, pageId: string) => {
     const folderPath = await pageWorkspace.getPageFolderPath(pageId)
     await shell.trashItem(folderPath)
@@ -312,6 +326,9 @@ app.whenReady().then(() => {
   ipcMain.handle('github:disconnect', () => githubAuth.disconnect())
   ipcMain.handle('github:status', () => githubAuth.getStatus())
   ipcMain.handle('pages:publish', (_, input: PublishPageInput) => githubPublishing.publish(input))
+  ipcMain.handle('pages:delete-publication', (_, input: DeletePublicationInput) =>
+    githubPublishing.deletePublication(input)
+  )
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

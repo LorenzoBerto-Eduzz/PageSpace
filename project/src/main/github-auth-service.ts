@@ -2,7 +2,12 @@ import { randomUUID } from 'node:crypto'
 import { promises as fileSystem } from 'node:fs'
 import { join } from 'node:path'
 import { safeStorage } from 'electron'
-import { GITHUB_API_VERSION, GITHUB_OAUTH_CLIENT_ID, GITHUB_OAUTH_SCOPE } from './github-config'
+import {
+  GITHUB_API_VERSION,
+  GITHUB_OAUTH_CLIENT_ID,
+  GITHUB_OAUTH_SCOPE,
+  GITHUB_OAUTH_SCOPES
+} from './github-config'
 import type {
   GitHubAccount,
   GitHubConnectionStatus,
@@ -10,9 +15,10 @@ import type {
 } from '../shared/page-contracts'
 
 type StoredGitHubAuthorization = {
-  schemaVersion: 1
+  schemaVersion: 2
   encryptedToken: string
   account: GitHubAccount
+  scopes: string[]
 }
 
 type ActiveDeviceFlow = {
@@ -43,12 +49,18 @@ export class GitHubAuthService {
       : { state: 'disconnected' }
   }
 
-  async getAuthenticatedSession(): Promise<{
+  async getAuthenticatedSession(action: 'publicar' | 'excluir' = 'publicar'): Promise<{
     account: GitHubAccount
     accessToken: string
   }> {
     const storedSession = await this.readStoredAuthorization()
-    if (!storedSession) throw new Error('Vincule uma conta GitHub antes de publicar.')
+    if (!storedSession) {
+      throw new Error(
+        action === 'excluir'
+          ? 'Vincule a conta GitHub proprietária antes de excluir esta publicação.'
+          : 'Vincule uma conta GitHub antes de publicar.'
+      )
+    }
     const account = await this.fetchAccount(storedSession.accessToken)
     if (JSON.stringify(account) !== JSON.stringify(storedSession.authorization.account)) {
       await this.storeAuthorization(storedSession.accessToken, account)
@@ -135,7 +147,7 @@ export class GitHubAuthService {
       }
 
       const account = await this.fetchAccount(result.accessToken)
-      await this.storeAuthorization(result.accessToken, account)
+      await this.storeAuthorization(result.accessToken, account, result.scopes)
       this.activeFlow = null
       return { state: 'connected', account }
     }
@@ -160,7 +172,7 @@ export class GitHubAuthService {
     deviceCode: string
   ): Promise<
     | { kind: 'pending' | 'slow-down' | 'denied' | 'expired' }
-    | { kind: 'authorized'; accessToken: string }
+    | { kind: 'authorized'; accessToken: string; scopes: string[] }
   > {
     const response = await fetchWithTimeout(
       GITHUB_TOKEN_URL,
@@ -183,11 +195,14 @@ export class GitHubAuthService {
 
     const candidate = (await response.json()) as Record<string, unknown>
     if (typeof candidate.access_token === 'string') {
-      const scopes = typeof candidate.scope === 'string' ? candidate.scope.split(',') : []
-      if (!scopes.includes(GITHUB_OAUTH_SCOPE)) {
+      const scopes =
+        typeof candidate.scope === 'string'
+          ? candidate.scope.split(',').map((scope) => scope.trim())
+          : []
+      if (!GITHUB_OAUTH_SCOPES.every((scope) => scopes.includes(scope))) {
         throw new Error('A permissão para publicar repositórios públicos não foi concedida.')
       }
-      return { kind: 'authorized', accessToken: candidate.access_token }
+      return { kind: 'authorized', accessToken: candidate.access_token, scopes }
     }
 
     switch (candidate.error) {
@@ -251,16 +266,21 @@ export class GitHubAuthService {
     }
   }
 
-  private async storeAuthorization(accessToken: string, account: GitHubAccount): Promise<void> {
+  private async storeAuthorization(
+    accessToken: string,
+    account: GitHubAccount,
+    scopes: readonly string[] = GITHUB_OAUTH_SCOPES
+  ): Promise<void> {
     if (!safeStorage.isEncryptionAvailable()) {
       throw new Error('A proteção de credenciais do Windows não está disponível.')
     }
 
     const encryptedToken = safeStorage.encryptString(accessToken)
     const storedAuthorization: StoredGitHubAuthorization = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       encryptedToken: encryptedToken.toString('base64'),
-      account
+      account,
+      scopes: [...scopes]
     }
     await fileSystem.mkdir(this.storageDirectory, { recursive: true })
     await this.writeJsonAtomically(join(this.storageDirectory, AUTH_FILE), storedAuthorization)
@@ -275,9 +295,11 @@ export class GitHubAuthService {
         await fileSystem.readFile(join(this.storageDirectory, AUTH_FILE), 'utf8')
       ) as Partial<StoredGitHubAuthorization>
       if (
-        candidate.schemaVersion !== 1 ||
+        candidate.schemaVersion !== 2 ||
         typeof candidate.encryptedToken !== 'string' ||
-        !isGitHubAccount(candidate.account)
+        !isGitHubAccount(candidate.account) ||
+        !Array.isArray(candidate.scopes) ||
+        !GITHUB_OAUTH_SCOPES.every((scope) => candidate.scopes?.includes(scope))
       ) {
         return null
       }

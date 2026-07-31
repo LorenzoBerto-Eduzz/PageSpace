@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   CreatePageInput,
+  DeletePublicationInput,
   PublishPageInput,
   SavePackageContentInput,
   SavePageContentInput,
@@ -23,7 +24,7 @@ contextBridge.exposeInMainWorld(
         return await ipcRenderer.invoke('pages:import')
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        throw new Error(message.replace(/^Error invoking remote method '[^']+': Error:\s*/, ''))
+        throw new Error(cleanIpcErrorMessage(message))
       }
     },
     getPage: async (pageId: string) => {
@@ -38,7 +39,7 @@ contextBridge.exposeInMainWorld(
         return await ipcRenderer.invoke('pages:refresh-source', pageId)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        throw new Error(message.replace(/^Error invoking remote method '[^']+': Error:\s*/, ''))
+        throw new Error(cleanIpcErrorMessage(message))
       }
     },
     savePageContent: async (input: SavePageContentInput) => {
@@ -53,7 +54,7 @@ contextBridge.exposeInMainWorld(
         return await ipcRenderer.invoke('pages:save-package-content', input)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        throw new Error(message.replace(/^Error invoking remote method '[^']+': Error:\s*/, ''))
+        throw new Error(cleanIpcErrorMessage(message))
       }
     },
     choosePageImage: async (pageId: string) => {
@@ -98,6 +99,13 @@ contextBridge.exposeInMainWorld(
         throw new Error('Não foi possível abrir o endereço público.')
       }
     },
+    openPublishedRepository: async (pageId: string) => {
+      try {
+        await ipcRenderer.invoke('pages:open-repository', pageId)
+      } catch {
+        throw new Error('Não foi possível abrir o repositório no GitHub.')
+      }
+    },
     deleteLocalPage: async (pageId: string) => {
       try {
         await ipcRenderer.invoke('pages:delete-local', pageId)
@@ -131,18 +139,18 @@ contextBridge.exposeInMainWorld(
       try {
         return await ipcRenderer.invoke('github:begin-link')
       } catch (error) {
-        throw new Error(
+        const message =
           error instanceof Error ? error.message : 'Não foi possível iniciar a vinculação.'
-        )
+        throw new Error(cleanIpcErrorMessage(message))
       }
     },
     completeGitHubLink: async (flowId: string) => {
       try {
         return await ipcRenderer.invoke('github:complete-link', flowId)
       } catch (error) {
-        throw new Error(
+        const message =
           error instanceof Error ? error.message : 'Não foi possível vincular a conta GitHub.'
-        )
+        throw new Error(cleanIpcErrorMessage(message))
       }
     },
     cancelGitHubLink: async (flowId: string) => {
@@ -167,8 +175,23 @@ contextBridge.exposeInMainWorld(
         return await ipcRenderer.invoke('pages:publish', input)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        throw new Error(message.replace(/^Error invoking remote method '[^']+': Error:\s*/, ''))
+        throw new Error(cleanIpcErrorMessage(message))
+      }
+    },
+    deletePublication: async (input: DeletePublicationInput) => {
+      try {
+        return await ipcRenderer.invoke('pages:delete-publication', input)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        throw new Error(cleanIpcErrorMessage(message))
       }
     }
   })
 )
+
+function cleanIpcErrorMessage(message: string): string {
+  return message.replace(
+    /^Error invoking remote method '[^']+': (?:Error|PublicationError):\s*/,
+    ''
+  )
+}

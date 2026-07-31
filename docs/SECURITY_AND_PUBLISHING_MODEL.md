@@ -67,9 +67,13 @@ Never publish:
 
 ## Credentials
 
-- GitHub connection uses the existing OAuth App and Device Flow with `public_repo`.
+- GitHub connection uses the existing OAuth App and Device Flow with `public_repo` and
+  `delete_repo`. The latter is used only from the explicit `Excluir publicação` action for the
+  repository persistently associated with that page.
 - The public Client ID may ship; no client secret exists in the desktop app.
 - Access tokens are encrypted with Electron `safeStorage` and Windows protection.
+- Stored authorization is versioned with its granted scopes; older or insufficient authorization
+  is treated as disconnected and must be linked again rather than failing later during deletion.
 - Tokens remain in Electron main-process storage and never cross preload.
 - Page packages never receive the account, token, or privileged GitHub API access.
 
@@ -78,12 +82,17 @@ Never publish:
 - Initial publication explicitly names the page, connected account, repository, URL, and public
   exposure.
 - PageSpace creates a public repository only for the selected page.
-- Repository-name collisions are rejected.
+- PageSpace derives the initial repository name from the visible page name and resolves collisions
+  with a numeric suffix. The confirmed repository identity is then persisted permanently.
 - A retry reuses persisted deployment state and never creates a duplicate repository.
 - No-change updates create no empty commit.
 - Before update, PageSpace verifies owner, visibility, archive state, write permission, and remote
   commit continuity.
 - External remote changes stop publication instead of being overwritten.
+- Saving or refreshing an already-published page marks its local state as unpublished. Only a
+  confirmed push clears that state; failures preserve local work for an explicit retry.
+- Combined `Salvar e publicar` and `Atualizar e publicar` actions remain user-initiated and never
+  turn background source detection into an automatic network write.
 - GitHub Pages uses `main` and `/docs`.
 
 GitHub Pages is public. Authentication required by a destination link does not make the link
@@ -93,5 +102,15 @@ inventory itself private.
 
 - Use schema validation, atomic writes, one validated backup, fresh generation, hash manifests,
   bounded network timeouts, single-flight publication, redacted diagnostics, and explicit recovery.
-- Local deletion never implies remote repository deletion.
-- Remote deletion remains a separate irreversible action.
+- Local page deletion never implies remote repository deletion.
+- `Excluir publicação` is a separate one-click irreversible action. It deletes only the persisted
+  repository through GitHub, preserves the local page, removes its local `origin`, and returns its
+  deployment state to local-only only after GitHub confirms deletion or confirms the repository is
+  already absent.
+
+## User-Facing Errors
+
+- Expected user-correctable failures state what happened and the next action in plain language.
+- Internal framework, IPC, stack, filesystem, Git command, and implementation text is never shown.
+- Technical failures may append a stable short reference after `|`, such as `PUB-PUSH-01`, while
+  detailed redacted diagnostics remain private for developer or AI troubleshooting.

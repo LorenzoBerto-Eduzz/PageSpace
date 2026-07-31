@@ -2,6 +2,8 @@ import * as fs from 'node:fs'
 import git from 'isomorphic-git'
 import http from 'isomorphic-git/http/node'
 import type {
+  DeletePublicationInput,
+  DeletePublicationResult,
   PageDeployment,
   PublishPageInput,
   PublishPageResult,
@@ -20,7 +22,7 @@ import {
   validateRepositoryName
 } from './publication-policy'
 import type { PublicationDiagnostics } from './publication-diagnostics'
-import { normalizePublicationError, publicationError } from './publication-errors'
+import { normalizePublicationError, PublicationError, publicationError } from './publication-errors'
 
 type GitHubRepository = {
   name: string
@@ -35,6 +37,7 @@ const GITHUB_REQUEST_TIMEOUT_MS = 20_000
 
 export class GitHubPublishingService {
   private readonly activePublications = new Map<string, Promise<PublishPageResult>>()
+  private readonly activeDeletions = new Set<string>()
 
   constructor(
     private readonly auth: GitHubAuthService,
@@ -43,7 +46,60 @@ export class GitHubPublishingService {
   ) {}
 
   hasActivePublications(): boolean {
-    return this.activePublications.size > 0
+    return this.activePublications.size > 0 || this.activeDeletions.size > 0
+  }
+
+  async deletePublication(input: DeletePublicationInput): Promise<DeletePublicationResult> {
+    if (!input || typeof input.pageId !== 'string' || !input.pageId) {
+      throw new Error('A página selecionada é inválida. | PUB-DELETE-01')
+    }
+    if (this.activePublications.has(input.pageId) || this.activeDeletions.has(input.pageId)) {
+      throw new Error('Esta publicação já possui uma operação em andamento. Aguarde a conclusão.')
+    }
+
+    this.activeDeletions.add(input.pageId)
+    try {
+      return await this.deletePublicationOnce(input)
+    } finally {
+      this.activeDeletions.delete(input.pageId)
+    }
+  }
+
+  private async deletePublicationOnce(
+    input: DeletePublicationInput
+  ): Promise<DeletePublicationResult> {
+    const session = await this.auth.getAuthenticatedSession('excluir')
+    const editorData = await this.pages.getPage(input.pageId)
+    const deployment = editorData.page.deployment
+    if (deployment.kind !== 'published') {
+      throw new Error('Esta página não possui uma publicação para excluir.')
+    }
+    this.assertDeploymentOwner(deployment, session.account.login)
+    const response = await this.githubRequest(
+      session.accessToken,
+      `/repos/${encodeURIComponent(deployment.owner)}/${encodeURIComponent(deployment.repository)}`,
+      { method: 'DELETE' }
+    )
+    if (response.status !== 204 && response.status !== 404) {
+      if (response.status === 403) {
+        throw new Error(
+          'O GitHub não autorizou a exclusão. Desvincule a conta, vincule novamente e tente outra vez. | PUB-DELETE-02'
+        )
+      }
+      throw new Error(
+        'Não foi possível excluir o repositório no GitHub. Tente novamente. | PUB-DELETE-03'
+      )
+    }
+
+    const folderPath = await this.pages.getPageFolderPath(input.pageId)
+    if (
+      (await git.listRemotes({ fs, dir: folderPath })).some(({ remote }) => remote === 'origin')
+    ) {
+      await git.deleteRemote({ fs, dir: folderPath, remote: 'origin' })
+    }
+    return {
+      page: await this.pages.updatePageDeployment(input.pageId, { kind: 'local-only' })
+    }
   }
 
   async publish(input: PublishPageInput): Promise<PublishPageResult> {
@@ -51,7 +107,7 @@ export class GitHubPublishingService {
       throw new Error('Página inválida.')
     }
 
-    if (this.activePublications.has(input.pageId)) {
+    if (this.activePublications.has(input.pageId) || this.activeDeletions.has(input.pageId)) {
       throw publicationError(
         'already_running',
         'Esta página já está sendo publicada. Aguarde a conclusão.'
@@ -98,10 +154,9 @@ export class GitHubPublishingService {
     let deployment = workspace.deployment
 
     if (deployment.kind === 'local-only') {
-      const repositoryName = validateRepositoryName(input.repositoryName)
-      const repository = await this.createRepository(
+      const repository = await this.createAvailableRepository(
         session.accessToken,
-        repositoryName,
+        workspace.name,
         workspace.description
       )
       if (repository.owner.toLowerCase() !== session.account.login.toLowerCase()) {
@@ -167,13 +222,36 @@ export class GitHubPublishingService {
       publicUrl,
       publishedAt: firstPublishedAt,
       lastPublishedAt: now,
-      lastCommitOid: commit.oid
+      lastCommitOid: commit.oid,
+      hasUnpublishedChanges: false
     }
 
     return {
       page: await this.pages.updatePageDeployment(input.pageId, published),
       outcome: commit.changed ? 'published' : 'no-changes'
     }
+  }
+
+  private async createAvailableRepository(
+    accessToken: string,
+    pageName: string,
+    description: string
+  ): Promise<GitHubRepository> {
+    const baseName = repositoryNameFromPageName(pageName)
+    for (let attempt = 1; attempt <= 100; attempt += 1) {
+      const suffix = attempt === 1 ? '' : `-${attempt}`
+      const candidate = `${baseName.slice(0, 100 - suffix.length)}${suffix}`
+      try {
+        return await this.createRepository(accessToken, candidate, description)
+      } catch (error) {
+        if (!(error instanceof PublicationError) || error.code !== 'repository_conflict')
+          throw error
+      }
+    }
+    throw publicationError(
+      'repository_conflict',
+      'Não foi possível encontrar automaticamente um nome disponível para esta página.'
+    )
   }
 
   private async createRepository(
@@ -449,6 +527,18 @@ export class GitHubPublishingService {
       )
     }
   }
+}
+
+function repositoryNameFromPageName(pageName: string): string {
+  const normalized = pageName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-.]+|[-.]+$/g, '')
+    .slice(0, 100)
+  return validateRepositoryName(normalized || 'minha-pagina')
 }
 
 function parseRepository(value: unknown, errorMessage: string): GitHubRepository {

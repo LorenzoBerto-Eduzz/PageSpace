@@ -158,6 +158,18 @@ describe('PageSpace workspace package lifecycle', () => {
       'docs/index.html'
     ])
 
+    await workspace.updatePageDeployment(imported.page.id, {
+      kind: 'published',
+      owner: 'conta',
+      repository: 'ordinary-dashboard',
+      repositoryUrl: 'https://github.com/conta/ordinary-dashboard',
+      publicUrl: 'https://conta.github.io/ordinary-dashboard/',
+      publishedAt: '2026-07-31T00:00:00.000Z',
+      lastPublishedAt: '2026-07-31T00:00:00.000Z',
+      lastCommitOid: 'published-commit',
+      hasUnpublishedChanges: false
+    })
+
     await writeFile(
       join(websiteRoot, 'dist', 'index.html'),
       '<!doctype html><h1>Updated ordinary page</h1>'
@@ -168,6 +180,10 @@ describe('PageSpace workspace package lifecycle', () => {
     const updated = await workspace.refreshPageFromSource(imported.page.id)
     expect(updated.id).toBe(imported.page.id)
     expect(updated.sourceSync.state).toBe('synced')
+    expect(updated.deployment).toMatchObject({
+      kind: 'published',
+      hasUnpublishedChanges: true
+    })
     expect(
       await readFile((await workspace.generatePageSite(imported.page.id)).indexPath, 'utf8')
     ).toContain('Updated ordinary page')

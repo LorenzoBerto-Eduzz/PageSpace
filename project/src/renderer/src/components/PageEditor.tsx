@@ -600,7 +600,7 @@ export function PageEditor({
             <button
               className="editor-panel-action editor-save-action"
               type="button"
-              aria-label={page?.status === 'published' ? 'Salvar e postar página' : 'Salvar página'}
+              aria-label={page?.status === 'published' ? 'Salvar e publicar' : 'Salvar página'}
               disabled={!isDirty || isSaving}
               onClick={save}
             >

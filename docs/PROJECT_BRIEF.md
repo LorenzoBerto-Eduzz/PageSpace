@@ -6,8 +6,8 @@
 - Form: portable Windows desktop application
 - Source: `project/`
 - Stack: Electron + electron-vite + React + TypeScript
-- Repository: `https://github.com/LorenzoBerto-Eduzz/PageSpace`; the local root folder retains its
-  previous directory name until a clean workspace checkpoint.
+- Repository: `https://github.com/LorenzoBerto-Eduzz/PageSpace`; the local root folder intentionally
+  retains its previous directory name to preserve the active Codex task's workspace association.
 
 ## Purpose
 
@@ -51,13 +51,18 @@ and preserves compatible user values during package updates.
 2. Ordinary websites and PageSpace packages are validated and copied atomically into `Pages/`.
 3. Every page starts local-only.
 4. PageSpace checks linked source metadata on startup, focus, dashboard return, and page opening.
-5. A detected source change enables `Atualizar da origem`; applying it validates and atomically
-   refreshes the managed copy without publishing.
+5. A detected source change enables `Atualizar da origem`; on an already-published page the same
+   explicit action is `Atualizar e publicar`. A failed publication keeps the refreshed local copy.
 6. The user may open the exact baked site in a normal browser.
 7. Editable packages expose only declared fields and collections.
-8. `Salvar` persists private values, keeps a backup, bakes output, and refreshes the preview.
-9. `Publicar online` confirms the page, account, repository, public URL, and exposure.
-10. PageSpace creates or safely updates only that page's repository and GitHub Pages site.
+8. `Salvar` persists private values, keeps a backup, bakes output, and refreshes the preview. On a
+   published page, `Salvar e publicar` also attempts the explicit remote update.
+9. `Publicar online` confirms the page, account, automatically derived repository name, public URL,
+   and exposure. Repository-name collisions receive a numeric suffix without user intervention.
+10. PageSpace creates or safely updates only that page's repository and GitHub Pages site. Its
+    remote identity remains stable after the first publication.
+11. `Excluir publicação` immediately deletes the remote repository and returns the preserved local
+    page to local-only.
 
 ## Package Contract
 
@@ -98,11 +103,10 @@ Clean handoff: cd project; npm run export:localrelease
 
 1. Harden source synchronization against unavailable, invalid, ambiguous, concurrent, interrupted,
    and larger-folder scenarios.
-2. Distinguish local changes awaiting publication from a public site that is fully current.
-3. Validate static/editable package content, images, updates, and dynamic publication allowlisting
+2. Validate static/editable package content, images, updates, and dynamic publication allowlisting
    as one complete disposable lifecycle.
-4. Validate GitHub publication, update, retry, and remote-conflict behavior.
-5. Use SotoDashboard as the first colleague-facing package after the platform is stable.
+3. Validate GitHub publication, update, retry, and remote-conflict behavior.
+4. Use SotoDashboard as the first colleague-facing package after the platform is stable.
 
 ## Glossary
 

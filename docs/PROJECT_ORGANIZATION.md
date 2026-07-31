@@ -12,7 +12,9 @@ PageSpace/
   scripts/
 ```
 
-The outer folder may temporarily retain the former local name until the final repository rename.
+The outer folder intentionally retains the former local name while the active Codex task uses this
+workspace path. Its name is cosmetic. Rename only as a deliberate external handoff into a newly
+opened Codex workspace after a clean pushed checkpoint.
 
 ## Application Layers
 

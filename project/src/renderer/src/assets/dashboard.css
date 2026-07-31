@@ -247,6 +247,11 @@
   cursor: help;
 }
 
+.card-action--unpublished {
+  color: #9a6a08;
+  background: rgba(238, 199, 103, 0.22);
+}
+
 .add-page-card {
   display: inline-flex;
   width: 44px;

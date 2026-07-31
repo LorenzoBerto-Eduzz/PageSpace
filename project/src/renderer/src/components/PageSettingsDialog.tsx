@@ -26,14 +26,14 @@ export function PageSettingsDialog({
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)
+  const [isDeletingPublication, setIsDeletingPublication] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [github, setGitHub] = useState<GitHubConnectionStatus | null>(null)
-  const [isPublishConfirmationOpen, setIsPublishConfirmationOpen] = useState(false)
-  const [repositoryName, setRepositoryName] = useState(() =>
-    suggestedRepositoryName(page.folderName)
-  )
   const [isPublishing, setIsPublishing] = useState(false)
   const hasChanges = name.trim() !== page.name || description.trim() !== page.description
+  const hasPendingPublication =
+    page.deployment.kind === 'published' &&
+    (page.deployment.hasUnpublishedChanges === true || Boolean(page.deployment.pendingCommitOid))
 
   useEffect(() => {
     window.pageSpace
@@ -95,11 +95,9 @@ export function PageSettingsDialog({
     setError(null)
     try {
       const result = await window.pageSpace.publishPage({
-        pageId: page.id,
-        ...(page.deployment.kind === 'local-only' ? { repositoryName } : {})
+        pageId: page.id
       })
       onUpdated(result.page)
-      setIsPublishConfirmationOpen(false)
     } catch (publishError) {
       try {
         onUpdated((await window.pageSpace.getPage(page.id)).page)
@@ -109,14 +107,38 @@ export function PageSettingsDialog({
       setError(
         publishError instanceof Error ? publishError.message : 'Não foi possível publicar a página.'
       )
-      setIsPublishConfirmationOpen(false)
     } finally {
       setIsPublishing(false)
     }
   }
 
-  const isBusy = isSaving || isDeleting || isPublishing
+  async function deletePublication(): Promise<void> {
+    if (isDeletingPublication || page.deployment.kind !== 'published') return
+    setIsDeletingPublication(true)
+    setError(null)
+    try {
+      const result = await window.pageSpace.deletePublication({
+        pageId: page.id
+      })
+      onUpdated(result.page)
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : 'Não foi possível excluir a publicação.'
+      )
+    } finally {
+      setIsDeletingPublication(false)
+    }
+  }
+
+  const isBusy = isSaving || isDeleting || isPublishing || isDeletingPublication
+  const isGitHubStatusLoading = github === null
   const connected = github?.state === 'connected'
+  const hasPublishingAccount =
+    connected &&
+    (page.deployment.kind !== 'published' ||
+      github.account.login.toLowerCase() === page.deployment.owner.toLowerCase())
 
   return (
     <div className="dialog-backdrop page-settings-backdrop" role="presentation">
@@ -178,25 +200,36 @@ export function PageSettingsDialog({
             {page.deployment.kind === 'published' ? (
               <>
                 <p>
-                  {page.deployment.pendingCommitOid ? 'Atualização pendente em ' : 'Publicada em '}
+                  {hasPendingPublication ? 'Alterações não publicadas em ' : 'Publicada em '}
                   <strong>
                     @{page.deployment.owner}/{page.deployment.repository}
                   </strong>
                 </p>
                 <small>
-                  {page.deployment.pendingCommitOid
+                  {hasPendingPublication
                     ? 'As alterações estão salvas localmente e ainda precisam ser enviadas.'
                     : `Última publicação: ${formatPublicationDate(
                         page.deployment.lastPublishedAt
                       )}`}
                 </small>
-                <button
-                  className="page-public-link"
-                  type="button"
-                  onClick={() => window.pageSpace.openPublishedPage(page.id)}
-                >
-                  {page.deployment.publicUrl}
-                </button>
+                <div className="page-publishing-actions">
+                  <button
+                    className="page-settings-folder-button"
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => window.pageSpace.openPublishedRepository(page.id)}
+                  >
+                    Ver repositório no GitHub
+                  </button>
+                  <button
+                    className="page-settings-folder-button page-publication-delete-button"
+                    type="button"
+                    disabled={!hasPublishingAccount || isBusy}
+                    onClick={deletePublication}
+                  >
+                    {isDeletingPublication ? 'Excluindo…' : 'Excluir publicação'}
+                  </button>
+                </div>
               </>
             ) : (
               <p>
@@ -208,20 +241,42 @@ export function PageSettingsDialog({
             {hasUnsavedChanges ? (
               <small>Salve as alterações abertas no editor antes de publicar.</small>
             ) : null}
-            <button
-              className="page-settings-folder-button"
-              type="button"
-              disabled={!connected || isBusy || hasUnsavedChanges}
-              onClick={() => setIsPublishConfirmationOpen(true)}
-            >
-              {page.deployment.kind === 'published'
-                ? page.deployment.pendingCommitOid
-                  ? 'Tentar publicar novamente'
-                  : 'Publicar atualização'
-                : page.deployment.kind === 'publishing'
-                  ? 'Continuar publicação'
-                  : 'Publicar online'}
-            </button>
+            {isGitHubStatusLoading ? <small>Verificando a conta GitHub…</small> : null}
+            {!isGitHubStatusLoading && !connected ? (
+              <small>
+                {page.deployment.kind === 'published'
+                  ? `Esta página continua online. Vincule a conta @${page.deployment.owner} para atualizar ou excluir a publicação.`
+                  : 'Abra as configurações gerais e vincule uma conta GitHub para publicar.'}
+              </small>
+            ) : null}
+            {connected && !hasPublishingAccount && page.deployment.kind === 'published' ? (
+              <small>
+                Esta página continua online e pertence a @{page.deployment.owner}. Vincule essa
+                conta para atualizar ou excluir a publicação.
+              </small>
+            ) : null}
+            {page.deployment.kind !== 'published' || hasPendingPublication ? (
+              <button
+                className="page-settings-folder-button"
+                type="button"
+                disabled={!hasPublishingAccount || isBusy || hasUnsavedChanges}
+                onClick={publish}
+              >
+                {isPublishing
+                  ? 'Publicando…'
+                  : page.deployment.kind === 'published'
+                    ? page.deployment.pendingCommitOid
+                      ? 'Tentar publicar novamente'
+                      : 'Publicar atualização'
+                    : page.deployment.kind === 'publishing'
+                      ? 'Continuar publicação'
+                      : isGitHubStatusLoading
+                        ? 'Verificando conta GitHub…'
+                        : connected
+                          ? 'Publicar online'
+                          : 'Vincule o GitHub para publicar'}
+              </button>
+            ) : null}
           </section>
 
           {error ? <p className="dialog-error">{error}</p> : null}
@@ -280,71 +335,8 @@ export function PageSettingsDialog({
           </section>
         </div>
       ) : null}
-
-      {isPublishConfirmationOpen ? (
-        <div className="delete-confirmation-backdrop" role="presentation">
-          <section
-            className="delete-confirmation-dialog publish-confirmation-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="publish-page-title"
-          >
-            <header>
-              <h2 id="publish-page-title">
-                {page.deployment.kind === 'published'
-                  ? 'Publicar atualização?'
-                  : 'Publicar online?'}
-              </h2>
-              <ModalCloseButton
-                onClick={() => setIsPublishConfirmationOpen(false)}
-                disabled={isPublishing}
-              />
-            </header>
-            {page.deployment.kind === 'local-only' ? (
-              <label>
-                Nome do repositório público
-                <input
-                  autoFocus
-                  value={repositoryName}
-                  maxLength={100}
-                  disabled={isPublishing}
-                  onChange={(event) => setRepositoryName(event.target.value)}
-                />
-              </label>
-            ) : null}
-            <p>
-              O repositório será público. Somente os arquivos gerados do site serão enviados; dados
-              internos do PageSpace, backups e credenciais permanecerão locais.
-            </p>
-            <footer>
-              <button
-                className="dialog-button dialog-button--primary"
-                type="button"
-                disabled={
-                  isPublishing || (page.deployment.kind === 'local-only' && !repositoryName.trim())
-                }
-                onClick={publish}
-              >
-                {isPublishing ? 'Publicando…' : 'Confirmar publicação'}
-              </button>
-            </footer>
-          </section>
-        </div>
-      ) : null}
     </div>
   )
-}
-
-function suggestedRepositoryName(value: string): string {
-  const suggested = value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^[-.]+|[-.]+$/g, '')
-    .slice(0, 80)
-  return suggested || 'minha-pagina'
 }
 
 function formatPublicationDate(value: string): string {

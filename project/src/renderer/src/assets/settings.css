@@ -208,6 +208,17 @@
   border-color: #9eaaba;
 }
 
+.page-publishing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.page-publication-delete-button {
+  color: #a7433d;
+  border-color: rgba(181, 78, 71, 0.42);
+}
+
 .page-settings-dialog footer {
   display: flex;
   align-items: center;
@@ -271,7 +282,7 @@
 
 .page-settings-dialog button:disabled,
 .delete-confirmation-dialog button:disabled {
-  cursor: wait;
+  cursor: default;
   opacity: 0.6;
 }
 

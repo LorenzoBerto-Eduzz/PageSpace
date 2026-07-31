@@ -524,7 +524,7 @@ export class PageSpaceWorkspaceService {
     await this.backupCurrentSnapshot(folderPath, currentPage)
     await replaceInstalledStaticWebsite(candidate, this.websiteDirectory(folderPath))
     const updatedPage: StoredPage = {
-      ...currentPage,
+      ...this.markUnpublishedChanges(currentPage),
       updatedAt: new Date().toISOString(),
       sourceLink
     }
@@ -579,7 +579,7 @@ export class PageSpaceWorkspaceService {
       await fileSystem.rm(join(folderPath, CONTENT_FILE), { force: true })
     }
     const updatedPage: StoredPage = {
-      ...currentPage,
+      ...this.markUnpublishedChanges(currentPage),
       updatedAt: new Date().toISOString(),
       source: {
         kind: 'package',
@@ -688,7 +688,7 @@ export class PageSpaceWorkspaceService {
     const updatedAt = new Date().toISOString()
     await this.writeJsonAtomically(join(folderPath, CONTENT_FILE), content)
     await this.writeStoredPage(folderPath, {
-      ...page,
+      ...this.markUnpublishedChanges(page),
       updatedAt,
       lastSavedAt: updatedAt
     })
@@ -999,7 +999,10 @@ export class PageSpaceWorkspaceService {
       typeof published.publishedAt === 'string' &&
       typeof published.lastPublishedAt === 'string' &&
       typeof published.lastCommitOid === 'string' &&
-      (published.pendingCommitOid === undefined || typeof published.pendingCommitOid === 'string')
+      (published.pendingCommitOid === undefined ||
+        typeof published.pendingCommitOid === 'string') &&
+      (published.hasUnpublishedChanges === undefined ||
+        typeof published.hasUnpublishedChanges === 'boolean')
     )
   }
 
@@ -1200,6 +1203,17 @@ export class PageSpaceWorkspaceService {
 
   private staticWebsiteSourceKey(sourceDirectory: string): string {
     return createHash('sha256').update(resolve(sourceDirectory).toLowerCase(), 'utf8').digest('hex')
+  }
+
+  private markUnpublishedChanges(page: StoredPage): StoredPage {
+    if (page.deployment.kind !== 'published') return page
+    return {
+      ...page,
+      deployment: {
+        ...page.deployment,
+        hasUnpublishedChanges: true
+      }
+    }
   }
 
   private async getSourceSync(page: StoredPage): Promise<PageSourceSync> {

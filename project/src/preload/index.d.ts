@@ -1,6 +1,8 @@
 import type {
   AppSettingsSnapshot,
   CreatePageInput,
+  DeletePublicationInput,
+  DeletePublicationResult,
   ImportPageResult,
   PageEditorData,
   PageSummary,
@@ -29,6 +31,7 @@ declare global {
       openPageFolder: (pageId: string) => Promise<void>
       openLocalPage: (pageId: string) => Promise<void>
       openPublishedPage: (pageId: string) => Promise<void>
+      openPublishedRepository: (pageId: string) => Promise<void>
       deleteLocalPage: (pageId: string) => Promise<void>
       recoverPage: (pageId: string) => Promise<PageSummary>
       getAppSettings: () => Promise<AppSettingsSnapshot>
@@ -42,6 +45,7 @@ declare global {
       disconnectGitHub: () => Promise<void>
       getGitHubStatus: () => Promise<GitHubConnectionStatus>
       publishPage: (input: PublishPageInput) => Promise<PublishPageResult>
+      deletePublication: (input: DeletePublicationInput) => Promise<DeletePublicationResult>
     }>
   }
 }

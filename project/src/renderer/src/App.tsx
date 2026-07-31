@@ -33,7 +33,10 @@ function toDashboardPage(page: PageSummary): DashboardPage {
     previewDataUrl: page.previewDataUrl,
     health: page.health,
     source: page.source,
-    sourceSync: page.sourceSync
+    sourceSync: page.sourceSync,
+    hasUnpublishedChanges:
+      page.deployment.kind === 'published' &&
+      (page.deployment.hasUnpublishedChanges === true || Boolean(page.deployment.pendingCommitOid))
   }
 }
 
@@ -157,8 +160,18 @@ function App(): React.JSX.Element {
     if (refreshingSourceId) return
     setRefreshingSourceId(pageId)
     try {
-      updatePage(await window.pageSpace.refreshPageFromSource(pageId))
+      const existing = pages.find((page) => page.id === pageId)
+      let updated = await window.pageSpace.refreshPageFromSource(pageId)
+      if (existing?.deployment.kind === 'published') {
+        updated = (await window.pageSpace.publishPage({ pageId })).page
+      }
+      updatePage(updated)
     } catch (refreshError) {
+      try {
+        updatePage((await window.pageSpace.getPage(pageId)).page)
+      } catch {
+        // Keep the last known card state if publication-state recovery also fails.
+      }
       window.alert(
         refreshError instanceof Error
           ? refreshError.message

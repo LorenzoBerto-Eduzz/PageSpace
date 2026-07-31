@@ -84,17 +84,24 @@ export function AppSettingsDialog({
     setError(null)
     const attemptId = linkAttemptId.current + 1
     linkAttemptId.current = attemptId
-    setCodeWasCopied(true)
+    setAuthorization(null)
+    setCodeWasCopied(false)
     setIsLinkingGitHub(true)
     try {
       const nextAuthorization = await window.pageSpace.beginGitHubLink()
+      if (linkAttemptId.current !== attemptId) {
+        await window.pageSpace.cancelGitHubLink(nextAuthorization.flowId)
+        return
+      }
       setAuthorization(nextAuthorization)
+      setCodeWasCopied(true)
       const status = await window.pageSpace.completeGitHubLink(nextAuthorization.flowId)
+      if (linkAttemptId.current !== attemptId) return
       setSnapshot((current) => ({ ...current, github: status }))
       setAuthorization(null)
     } catch (linkError) {
-      setAuthorization(null)
       if (linkAttemptId.current === attemptId) {
+        setAuthorization(null)
         setError(
           linkError instanceof Error
             ? linkError.message
@@ -114,7 +121,15 @@ export function AppSettingsDialog({
     setCodeWasCopied(false)
     setError(null)
     setIsLinkingGitHub(false)
-    await window.pageSpace.cancelGitHubLink(activeAuthorization.flowId)
+    try {
+      await window.pageSpace.cancelGitHubLink(activeAuthorization.flowId)
+    } catch (cancelError) {
+      setError(
+        cancelError instanceof Error
+          ? cancelError.message
+          : 'Não foi possível cancelar a vinculação da conta GitHub.'
+      )
+    }
   }
 
   async function copyGitHubCode(): Promise<void> {

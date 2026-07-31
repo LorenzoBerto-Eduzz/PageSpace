@@ -34,6 +34,7 @@ type ServiceInternals = {
     repository: string,
     fallbackUrl: string
   ) => Promise<string>
+  githubRequest: (accessToken: string, path: string, init?: RequestInit) => Promise<Response>
 }
 
 const temporaryDirectories: string[] = []
@@ -58,6 +59,7 @@ describe('complete publication workflow', () => {
 
     expect(result.outcome).toBe('published')
     expect(result.page.deployment.kind).toBe('published')
+    expect(result.page.deployment).toMatchObject({ hasUnpublishedChanges: false })
     expect(harness.createRepository).toHaveBeenCalledTimes(1)
     expect(harness.push).toHaveBeenCalledTimes(1)
     expect(harness.enablePages).toHaveBeenCalledTimes(1)
@@ -71,6 +73,30 @@ describe('complete publication workflow', () => {
       'docs/index.html',
       'docs/styles.css'
     ])
+  })
+
+  it('chooses an automatic numbered repository name when the page name is occupied', async () => {
+    const harness = await createHarness()
+    harness.createRepository
+      .mockRejectedValueOnce(
+        publicationError('repository_conflict', 'Já existe um repositório com esse nome.')
+      )
+      .mockResolvedValueOnce({
+        name: 'minha-pagina-2',
+        htmlUrl: 'https://github.com/conta/minha-pagina-2',
+        owner: 'conta',
+        isPrivate: false,
+        isArchived: false,
+        canPush: true
+      })
+
+    const result = await harness.service.publish({ pageId: harness.pageId })
+
+    expect(harness.createRepository.mock.calls.map((call) => call[1])).toEqual([
+      'minha-pagina',
+      'minha-pagina-2'
+    ])
+    expect(result.page.deployment).toMatchObject({ repository: 'minha-pagina-2' })
   })
 
   it('retries a failed push without creating a duplicate repository', async () => {
@@ -159,7 +185,65 @@ describe('complete publication workflow', () => {
     expect(harness.push).not.toHaveBeenCalled()
     expect(harness.deployment()).toBe(publishedDeployment)
   })
+
+  it('deletes the remote publication and returns the page to local-only', async () => {
+    const harness = await createHarness({
+      kind: 'published',
+      owner: 'conta',
+      repository: 'minha-pagina',
+      repositoryUrl: 'https://github.com/conta/minha-pagina',
+      publicUrl: 'https://conta.github.io/minha-pagina/',
+      publishedAt: '2026-07-27T00:00:00.000Z',
+      lastPublishedAt: '2026-07-27T00:00:00.000Z',
+      lastCommitOid: 'confirmed'
+    })
+    await git.addRemote({
+      fs,
+      dir: harness.folderPath,
+      remote: 'origin',
+      url: 'https://github.com/conta/minha-pagina.git'
+    })
+
+    const result = await harness.service.deletePublication({
+      pageId: harness.pageId
+    })
+
+    expect(harness.githubRequest).toHaveBeenCalledWith(
+      'protected-token',
+      '/repos/conta/minha-pagina',
+      { method: 'DELETE' }
+    )
+    expect(result.page.deployment).toEqual({ kind: 'local-only' })
+    expect(await git.listRemotes({ fs, dir: harness.folderPath })).toEqual([])
+  })
+
+  it('preserves the published state when GitHub rejects deletion', async () => {
+    const deployment = publishedDeployment()
+    const harness = await createHarness(deployment)
+    harness.githubRequest.mockResolvedValueOnce(new Response(null, { status: 403 }))
+
+    await expect(
+      harness.service.deletePublication({
+        pageId: harness.pageId
+      })
+    ).rejects.toThrow('PUB-DELETE-02')
+
+    expect(harness.deployment()).toBe(deployment)
+  })
 })
+
+function publishedDeployment(): PageDeployment {
+  return {
+    kind: 'published',
+    owner: 'conta',
+    repository: 'minha-pagina',
+    repositoryUrl: 'https://github.com/conta/minha-pagina',
+    publicUrl: 'https://conta.github.io/minha-pagina/',
+    publishedAt: '2026-07-27T00:00:00.000Z',
+    lastPublishedAt: '2026-07-27T00:00:00.000Z',
+    lastCommitOid: 'confirmed'
+  }
+}
 
 // The inferred return preserves the Vitest mock signatures used by each scenario.
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -210,6 +294,8 @@ async function createHarness(initialDeployment: PageDeployment = { kind: 'local-
     })
   }
   const pages = {
+    getPage: vi.fn().mockImplementation(async () => ({ kind: 'simple', page: summary() })),
+    getPageFolderPath: vi.fn().mockResolvedValue(folderPath),
     preparePageForPublishing: vi.fn().mockImplementation(async () => ({
       folderPath,
       name: 'Minha página',
@@ -225,6 +311,9 @@ async function createHarness(initialDeployment: PageDeployment = { kind: 'local-
   }
   const service = new GitHubPublishingService(auth as never, pages as never)
   const internals = service as unknown as ServiceInternals
+  const githubRequest = vi
+    .spyOn(internals, 'githubRequest')
+    .mockResolvedValue(new Response(null, { status: 204 }))
   const createRepository = vi.spyOn(internals, 'createRepository').mockResolvedValue({
     name: 'minha-pagina',
     htmlUrl: 'https://github.com/conta/minha-pagina',
@@ -247,6 +336,7 @@ async function createHarness(initialDeployment: PageDeployment = { kind: 'local-
     transitions,
     deployment: () => currentDeployment,
     createRepository,
+    githubRequest,
     verifyPublishedBranch,
     push,
     enablePages

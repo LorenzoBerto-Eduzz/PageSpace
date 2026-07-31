@@ -111,10 +111,25 @@ export function PackagePageEditor({
       } catch {
         // Saving remains successful when only the replaceable dashboard image fails.
       }
-      setData(saved)
+      let completedSave: Extract<PageEditorData, { kind: 'package' }> = saved
+      if (saved.page.deployment.kind === 'published') {
+        try {
+          const published = await window.pageSpace.publishPage({ pageId })
+          completedSave = { ...saved, page: published.page }
+        } catch (publishError) {
+          const current = await window.pageSpace.getPage(pageId)
+          if (current.kind === 'package') completedSave = current
+          setError(
+            publishError instanceof Error
+              ? publishError.message
+              : 'A página foi salva localmente, mas não foi publicada.'
+          )
+        }
+      }
+      setData(completedSave)
       setContent(cloneContent(saved.content))
       setSavedContent(cloneContent(saved.content))
-      onSaved(saved)
+      onSaved(completedSave)
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Não foi possível salvar.')
     } finally {
@@ -129,6 +144,9 @@ export function PackagePageEditor({
     setError(null)
     try {
       await window.pageSpace.refreshPageFromSource(pageId)
+      if (data.page.deployment.kind === 'published') {
+        await window.pageSpace.publishPage({ pageId })
+      }
       const refreshed = await window.pageSpace.getPage(pageId)
       if (refreshed.kind === 'simple') throw new Error('A página importada é inválida.')
       setData(refreshed)
@@ -183,7 +201,11 @@ export function PackagePageEditor({
           {data.page.sourceSync.state === 'update-available' ? (
             <button type="button" onClick={refreshSource} disabled={isRefreshingSource || isSaving}>
               <RefreshIcon size={18} />
-              {isRefreshingSource ? 'Atualizando…' : 'Atualizar da origem'}
+              {isRefreshingSource
+                ? 'Atualizando…'
+                : data.page.deployment.kind === 'published'
+                  ? 'Atualizar e publicar'
+                  : 'Atualizar da origem'}
             </button>
           ) : null}
           {data.page.sourceSync.state === 'unavailable' ? (
@@ -205,7 +227,11 @@ export function PackagePageEditor({
               disabled={!isDirty || isSaving}
             >
               <SaveIcon size={18} />
-              {isSaving ? 'Salvando…' : 'Salvar e preparar'}
+              {isSaving
+                ? 'Salvando…'
+                : data.page.deployment.kind === 'published'
+                  ? 'Salvar e publicar'
+                  : 'Salvar e preparar'}
             </button>
           ) : null}
         </div>

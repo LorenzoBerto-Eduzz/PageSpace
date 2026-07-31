@@ -13,6 +13,7 @@ export type DashboardPage = {
   health?: 'healthy' | 'damaged'
   source: PageSource
   sourceSync: PageSourceSync
+  hasUnpublishedChanges?: boolean
 }
 
 type SiteCardProps = {
@@ -93,8 +94,14 @@ export function SiteCard({
             <button
               className="card-action card-action--refresh"
               type="button"
-              aria-label="Atualizar página da origem"
-              title="Atualização disponível"
+              aria-label={
+                page.status === 'published'
+                  ? 'Atualizar página da origem e publicar'
+                  : 'Atualizar página da origem'
+              }
+              title={
+                page.status === 'published' ? 'Atualizar e publicar' : 'Atualização disponível'
+              }
               disabled={isRefreshingSource}
               onClick={() => onRefreshSource?.(page.id)}
             >
@@ -130,11 +137,18 @@ export function SiteCard({
             </button>
           ) : null}
           <button
-            className="card-action"
+            className={`card-action${page.hasUnpublishedChanges ? ' card-action--unpublished' : ''}`}
             type="button"
-            aria-label={page.status === 'published' ? 'Página publicada' : 'Página somente local'}
+            aria-label={
+              page.hasUnpublishedChanges
+                ? 'Alterações ainda não publicadas'
+                : page.status === 'published'
+                  ? 'Página publicada e atualizada'
+                  : 'Página somente local'
+            }
             onClick={() => {
               if (page.health === 'damaged') onProblem?.(page.id)
+              else if (page.hasUnpublishedChanges) onOpenSettings?.(page.id)
             }}
           >
             {page.status === 'published' ? <GlobeIcon size={18} /> : <LockIcon size={18} />}

@@ -59,8 +59,11 @@ PageSpace/
   README.md
 ```
 
-The local root folder may temporarily retain the previous `PageMaker` directory name until this
-clean Git checkpoint is completed and Codex can reopen the workspace from its new path.
+The local root folder intentionally retains the previous `PageMaker` directory name while the
+current Codex task remains associated with this workspace path. The name is cosmetic and does not
+affect PageSpace identity, builds, Git, OAuth, or delivery. Rename it only during a deliberate
+handoff: finish and push a clean checkpoint, close Codex and PageSpace, rename externally, reopen
+the renamed folder as a new Codex workspace/task, and recover context from this repository.
 
 ## Product Boundaries
 

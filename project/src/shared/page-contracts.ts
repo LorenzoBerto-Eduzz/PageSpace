@@ -37,6 +37,7 @@ export type PublishedPageDeployment = {
   lastPublishedAt: string
   lastCommitOid: string
   pendingCommitOid?: string
+  hasUnpublishedChanges?: boolean
 }
 
 export type PageDeployment =
@@ -160,4 +161,12 @@ export type PublishPageInput = {
 export type PublishPageResult = {
   page: PageSummary
   outcome: 'published' | 'no-changes'
+}
+
+export type DeletePublicationInput = {
+  pageId: string
+}
+
+export type DeletePublicationResult = {
+  page: PageSummary
 }

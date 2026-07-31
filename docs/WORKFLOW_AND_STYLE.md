@@ -10,6 +10,8 @@ This project should remain understandable, maintainable, and safe to evolve with
 - Preserve user changes: read the current file and work with it rather than overwriting it.
 - Keep changes focused and easy to review. Prefer one coherent feature or system step per commit.
 - If uncertain, missing essential tools, or unable to understand the repository state, stop before editing and say why.
+- Keep user-facing errors direct and actionable. Do not expose framework or implementation text.
+  Add a stable short reference after `|` only when developer or AI troubleshooting may be needed.
 - Do not commit, push, update durable docs, create release/export/package artifacts, publish, or deploy unless the owner explicitly asks or the requested task specifically includes it.
 
 ## Code And Structure

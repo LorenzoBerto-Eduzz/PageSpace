@@ -68,5 +68,7 @@ only the selected page's verified generated output.
 - The previous local test data and old app-data directory were intentionally cleared.
 - The source GitHub repository is now `LorenzoBerto-Eduzz/PageSpace`, and `origin` uses that URL.
 - The existing GitHub OAuth App display identity was renamed without replacing its Client ID.
-- The remaining local rename is only the outer active workspace folder from `PageMaker` to
-  `PageSpace`; perform it after a clean Git checkpoint and reopen Codex from the new path.
+- The outer active workspace folder may remain `PageMaker` indefinitely; this is cosmetic and does
+  not affect delivered PageSpace artifacts. If renamed, first push a clean checkpoint, close Codex
+  and PageSpace, rename externally, then reopen the new path as a new Codex workspace and recover
+  project context from the repository documentation.
