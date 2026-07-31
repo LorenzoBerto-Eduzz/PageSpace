@@ -21,6 +21,14 @@
 - `pagespace-package-service.ts` validates safe manifests, static files, editable schemas, content,
   file types, limits, symlinks, and paths.
 - Package modes are `static` and `editable`.
+- `Trazer página` also accepts ordinary browser-ready websites without a manifest. It detects a
+  root/common-output entry, a unique nested `index.html`, or a unique differently named HTML entry.
+- Ordinary imports are non-editable, copy only validated displayable files, and re-importing the
+  same private source-location hash updates the existing card.
+- New imports privately retain their source path and lightweight accepted signature. Automatic
+  checks expose `Atualizar da origem` on cards and imported-page screens when the source changes;
+  applying the refresh remains explicit and never publishes automatically. Older imported cards
+  must be re-imported once to establish this private link.
 - Editable fields support text, textarea, URL, color, image, boolean, select, and repeatable
   collections.
 - Editable websites read generated values through `window.PAGESPACE_CONTENT`.
@@ -38,31 +46,33 @@
   document from the currently installed PageSpace version and supported package contract.
 - Existing GitHub Device Flow, protected storage, repository creation, retry, conflict detection,
   and Pages activation remain integrated.
+- Preview capture uses an exact 1280x720 browser content viewport, stores 960x540 images, centers
+  them in cards and page screens, and automatically repairs missing or legacy-sized previews.
+- Application branding uses one dark-background PageSpace PNG for packaging and window surfaces.
 
 ## Validated Checkpoint
 
 - Lint passes.
 - Node and renderer TypeScript checks pass.
-- Six test files and 45 tests pass.
+- Six test files and 51 tests pass.
 - Production and unpacked portable builds pass.
 - The review executable is `project/dist/PageSpace/PageSpace.exe`.
-- The review build currently has an empty persistent `Pages/` folder.
+- Review builds preserve the existing persistent `Pages/` folder.
 - Tests cover package validation, executable rejection, editable content, user assets, baking,
-  import, saving, compatible updates, simple creation, and dynamic publication paths.
+  ordinary entry discovery, source-change detection and refresh, saving, compatible updates,
+  simple creation, and dynamic publication paths.
 
 ## Next Product Milestone
 
-Build and manually verify one complete disposable package lifecycle before using real colleague
-data:
+Harden synchronization and publication correctness before using real colleague data:
 
-1. Import a minimal static package.
-2. Import a minimal editable package.
-3. Edit declared values and an image.
-4. Bake and open the exact local output.
-5. Replace the editable package with a compatible newer version and confirm user values survive.
-6. Publish a disposable page, update it, and verify conflict handling.
-7. Refine the two Add Page workflows from what this vertical slice reveals.
-8. Use SotoDashboard as the first real colleague-facing package only after the disposable lifecycle
+1. Verify unavailable, invalid, deleted-file, renamed-file, ambiguous-entry, concurrent-refresh,
+   interrupted-refresh, and larger-folder source scenarios.
+2. Represent local changes awaiting publication without implying the public site is current.
+3. Import and manually verify minimal static and editable packages, including declared image edits.
+4. Publish a disposable page, update it, and verify retry and remote-conflict handling.
+5. Refine the two Add Page workflows from what this vertical slice reveals.
+6. Use SotoDashboard as the first real colleague-facing package only after the disposable lifecycle
    is reliable.
 
 ## Durable Safety Decisions

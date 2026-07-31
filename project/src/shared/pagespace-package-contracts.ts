@@ -90,4 +90,9 @@ export type SimplePageSource = {
   kind: 'simple'
 }
 
-export type PageSource = SimplePageSource | PageSpacePackageSource
+export type ImportedWebsiteSource = {
+  kind: 'website'
+  sourceKey: string
+}
+
+export type PageSource = SimplePageSource | PageSpacePackageSource | ImportedWebsiteSource

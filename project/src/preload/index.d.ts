@@ -1,7 +1,7 @@
 import type {
   AppSettingsSnapshot,
   CreatePageInput,
-  ImportPagePackageResult,
+  ImportPageResult,
   PageEditorData,
   PageSummary,
   SavePackageContentInput,
@@ -18,8 +18,9 @@ declare global {
     pageSpace: Readonly<{
       listPages: () => Promise<PageSummary[]>
       createPage: (input: CreatePageInput) => Promise<PageSummary>
-      importPagePackage: () => Promise<ImportPagePackageResult | null>
+      importPage: () => Promise<ImportPageResult | null>
       getPage: (pageId: string) => Promise<PageEditorData>
+      refreshPageFromSource: (pageId: string) => Promise<PageSummary>
       savePageContent: (input: SavePageContentInput) => Promise<PageEditorData>
       savePackageContent: (input: SavePackageContentInput) => Promise<PageEditorData>
       choosePageImage: (pageId: string) => Promise<string | null>

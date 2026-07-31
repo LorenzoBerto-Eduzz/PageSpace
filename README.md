@@ -6,8 +6,8 @@ editing, baking, and explicitly publishing static websites.
 It supports two complementary creation paths:
 
 - Create a simple page with the built-in editor.
-- Bring an AI-authored PageSpace package whose visual design is unrestricted and whose editable
-  fields are declared by its author.
+- Bring any browser-ready static website for organization, local viewing, and publishing.
+- Bring an AI-authored PageSpace package whose optional editable fields are declared by its author.
 
 Every website begins local-only. Connecting GitHub is global to the local application; publishing
 is an explicit per-page operation that creates or updates only that page's public repository and

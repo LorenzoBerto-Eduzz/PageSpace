@@ -9,6 +9,12 @@ publish through the user's connected GitHub account.
 The package contract controls integration only. It does not prescribe a visual system, framework,
 layout, subject, or style.
 
+The contract is optional for ordinary browser-ready websites. A folder with a clear HTML entry can
+still be imported, organized, viewed, refreshed from the same source folder, and published.
+PageSpace recognizes root/common-output entries, one unique nested `index.html`, or one unique
+differently named HTML entry. The contract is what adds declared editing and stable
+package-version semantics.
+
 ## Version 1 Folder Shape
 
 ```text

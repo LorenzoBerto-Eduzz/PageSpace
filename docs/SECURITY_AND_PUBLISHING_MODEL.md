@@ -9,8 +9,10 @@ does not create a repository or network publication.
 
 PageSpace is trusted local software. Imported page packages are untrusted.
 
-Imported packages may contain browser-ready HTML, CSS, JavaScript, fonts, images, and supported
-static assets. They may not contain or trigger:
+Imported ordinary websites and packages may contribute browser-ready HTML, CSS, JavaScript, fonts,
+images, media, and supported static assets. PageSpace copies only the validated displayable subset
+and ignores ordinary project controls such as hidden Git data, `node_modules`, and unsupported
+source files. Imports may not contain or trigger:
 
 - executables;
 - package-provided PowerShell, Python, shell, or npm build commands;
@@ -23,8 +25,14 @@ static assets. They may not contain or trigger:
 Package browser code is previewed with context isolation, Node disabled, sandboxing, and no preload
 bridge.
 
+Imported source locations and lightweight file metadata signatures remain private to the main
+process. PageSpace may check them automatically, but it never replaces a managed copy merely from a
+detected change. `Atualizar da origem` revalidates into staging before atomic replacement, and a
+failed or unavailable source leaves the last managed copy intact.
+
 ## Static And Editable Packages
 
+- Ordinary imported website: browser-ready static files without a PageSpace edit contract.
 - Static package: validated site output only; no generated editor.
 - Editable package: validated site plus declarative schema/default content.
 - PageSpace generates forms from the schema and validates every saved value.

@@ -4,23 +4,31 @@ import { promises as fileSystem } from 'node:fs'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import git from 'isomorphic-git'
 import {
+  generateImportedWebsiteSite,
   generatePackageSite,
+  getPageSpacePackageSourceSignature,
+  getStaticWebsiteSourceSignature,
   installValidatedPackage,
+  installValidatedStaticWebsite,
   readInstalledPackage,
   reconcileEditableContent,
   replaceInstalledPackage,
+  replaceInstalledStaticWebsite,
   validateEditableContent,
   validatePageSpacePackage,
+  validateStaticWebsite,
   type PackageGeneratedSite,
-  type ValidatedPageSpacePackage
+  type ValidatedPageSpacePackage,
+  type ValidatedStaticWebsite
 } from './pagespace-package-service'
 import { generatePublicSite, type GeneratedSite } from './public-site-generator'
 import type {
   CreatePageInput,
-  ImportPagePackageResult,
+  ImportPageResult,
   PageContent,
   PageDeployment,
   PageEditorData,
+  PageSourceSync,
   PageSummary,
   SavePackageContentInput,
   SavePageContentInput,
@@ -34,12 +42,16 @@ import type {
 
 type StoredPage = Omit<
   PageSummary,
-  'previewDataUrl' | 'health' | 'canRecover' | 'healthMessage' | 'deployment'
+  'previewDataUrl' | 'health' | 'canRecover' | 'healthMessage' | 'deployment' | 'sourceSync'
 > & {
   schemaVersion: 2
   folderName: string
   deployment: PageDeployment
   source: PageSource
+  sourceLink?: {
+    directory: string
+    signature: string
+  }
 }
 
 type StoredContent = PageContent | PageSpaceEditableContent | null
@@ -63,6 +75,7 @@ const METADATA_FILE = 'page.json'
 const PREVIEW_FILE = 'preview.png'
 const CONTENT_FILE = 'content.json'
 const PACKAGE_FOLDER = 'package'
+const WEBSITE_FOLDER = 'website'
 const USER_ASSETS_FOLDER = 'user-assets'
 const BACKUP_FOLDER = 'backup'
 const BACKUP_FILE = 'snapshot.json'
@@ -102,28 +115,94 @@ export class PageSpaceWorkspaceService {
     return this.runCreationExclusively(() => this.createSimplePageSafely(validatedInput))
   }
 
-  async importPackage(sourceDirectory: string): Promise<ImportPagePackageResult> {
+  async importPage(sourceDirectory: string): Promise<ImportPageResult> {
     if (typeof sourceDirectory !== 'string' || !sourceDirectory) {
-      throw new Error('Selecione uma pasta de pacote PageSpace.')
+      throw new Error('Selecione uma pasta de página.')
+    }
+    const isPageSpacePackage = await this.pathExists(join(sourceDirectory, 'pagespace.json'))
+    if (!isPageSpacePackage) {
+      const website = await validateStaticWebsite(sourceDirectory)
+      const sourceKey = this.staticWebsiteSourceKey(website.sourceDirectory)
+      const sourceLink = {
+        directory: website.sourceDirectory,
+        signature: await getStaticWebsiteSourceSignature(website)
+      }
+      return this.runCreationExclusively(async () => {
+        const existing = await this.findWebsiteBySourceKey(sourceKey)
+        return existing
+          ? this.updateWebsitePage(existing.folderPath, existing.page, website, sourceLink)
+          : this.createWebsitePageSafely(website, sourceKey, sourceLink)
+      })
     }
     const candidate = await validatePageSpacePackage(sourceDirectory)
+    const sourceLink = {
+      directory: candidate.sourceDirectory,
+      signature: await getPageSpacePackageSourceSignature(candidate)
+    }
     return this.runCreationExclusively(async () => {
       const existing = await this.findPackageById(candidate.manifest.packageId)
       return existing
-        ? this.updatePackagePage(existing.folderPath, existing.page, candidate)
-        : this.createPackagePageSafely(candidate)
+        ? this.updatePackagePage(existing.folderPath, existing.page, candidate, sourceLink)
+        : this.createPackagePageSafely(candidate, sourceLink)
     })
+  }
+
+  async refreshPageFromSource(pageId: string): Promise<PageSummary> {
+    const located = await this.findPage(pageId)
+    const sourceLink = located.page.sourceLink
+    if (located.page.source.kind === 'simple') {
+      throw new Error('Esta página foi criada no PageSpace e não possui pasta de origem.')
+    }
+    if (!sourceLink) {
+      throw new Error('Importe esta página novamente uma vez para vincular sua pasta de origem.')
+    }
+
+    if (located.page.source.kind === 'website') {
+      const candidate = await validateStaticWebsite(sourceLink.directory)
+      const nextLink = {
+        directory: candidate.sourceDirectory,
+        signature: await getStaticWebsiteSourceSignature(candidate)
+      }
+      const result = await this.runCreationExclusively(() =>
+        this.updateWebsitePage(located.folderPath, located.page, candidate, nextLink)
+      )
+      return result.page
+    }
+
+    const candidate = await validatePageSpacePackage(sourceLink.directory)
+    if (candidate.manifest.packageId !== located.page.source.packageId) {
+      throw new Error('A pasta de origem agora contém outro pacote PageSpace.')
+    }
+    const nextLink = {
+      directory: candidate.sourceDirectory,
+      signature: await getPageSpacePackageSourceSignature(candidate)
+    }
+    const result = await this.runCreationExclusively(() =>
+      this.updatePackagePage(located.folderPath, located.page, candidate, nextLink)
+    )
+    return result.page
   }
 
   async getPage(pageId: string): Promise<PageEditorData> {
     const located = await this.findPage(pageId)
-    const page = this.toSummary(located.page, await this.readPreview(located.folderPath))
+    const page = this.toSummary(
+      located.page,
+      await this.readPreview(located.folderPath),
+      'healthy',
+      true,
+      undefined,
+      await this.getSourceSync(located.page)
+    )
     if (located.page.source.kind === 'simple') {
       return {
         kind: 'simple',
         page,
         content: await this.readSimpleContent(located.folderPath, located.page)
       }
+    }
+
+    if (located.page.source.kind === 'website') {
+      return { kind: 'website', page }
     }
 
     const installed = await readInstalledPackage(this.packageDirectory(located.folderPath))
@@ -198,6 +277,13 @@ export class PageSpaceWorkspaceService {
     if (located.page.source.kind === 'simple') {
       const content = await this.readSimpleContent(located.folderPath, located.page)
       return generatePublicSite(this.metadataDirectory(located.folderPath), content)
+    }
+
+    if (located.page.source.kind === 'website') {
+      return generateImportedWebsiteSite(
+        this.metadataDirectory(located.folderPath),
+        this.websiteDirectory(located.folderPath)
+      )
     }
 
     const installed = await readInstalledPackage(this.packageDirectory(located.folderPath))
@@ -319,8 +405,9 @@ export class PageSpaceWorkspaceService {
   }
 
   private async createPackagePageSafely(
-    candidate: ValidatedPageSpacePackage
-  ): Promise<ImportPagePackageResult> {
+    candidate: ValidatedPageSpacePackage,
+    sourceLink: NonNullable<StoredPage['sourceLink']>
+  ): Promise<ImportPageResult> {
     await this.ensurePagesRoot()
     const folderName = await this.getAvailableFolderName(candidate.manifest.name)
     const destination = join(this.pagesRoot, folderName)
@@ -342,7 +429,8 @@ export class PageSpaceWorkspaceService {
         packageId: candidate.manifest.packageId,
         packageVersion: candidate.manifest.packageVersion,
         mode: candidate.manifest.mode
-      }
+      },
+      sourceLink
     }
     try {
       await fileSystem.mkdir(this.metadataDirectory(staging), { recursive: true })
@@ -365,18 +453,105 @@ export class PageSpaceWorkspaceService {
       )
       await git.init({ fs, dir: staging, defaultBranch: 'main' })
       await fileSystem.rename(staging, destination)
-      return { page: this.toSummary(page), outcome: 'imported' }
+      return {
+        page: this.toSummary(page, undefined, 'healthy', true, undefined, { state: 'synced' }),
+        outcome: 'imported'
+      }
     } catch (error) {
       await fileSystem.rm(staging, { recursive: true, force: true })
       throw error
     }
   }
 
+  private async createWebsitePageSafely(
+    candidate: ValidatedStaticWebsite,
+    sourceKey: string,
+    sourceLink: NonNullable<StoredPage['sourceLink']>
+  ): Promise<ImportPageResult> {
+    await this.ensurePagesRoot()
+    const pageName = candidate.name || 'Página importada'
+    const folderName = await this.getAvailableFolderName(pageName)
+    const destination = join(this.pagesRoot, folderName)
+    const staging = await fileSystem.mkdtemp(join(this.pagesRoot, '.importing-'))
+    const timestamp = new Date().toISOString()
+    const page: StoredPage = {
+      id: randomUUID(),
+      name: pageName,
+      description: '',
+      status: 'local',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      lastSavedAt: null,
+      schemaVersion: 2,
+      folderName,
+      deployment: { kind: 'local-only' },
+      source: { kind: 'website', sourceKey },
+      sourceLink
+    }
+    try {
+      await fileSystem.mkdir(this.metadataDirectory(staging), { recursive: true })
+      await installValidatedStaticWebsite(candidate, this.websiteDirectory(staging))
+      await this.writeStoredPage(staging, page)
+      await generateImportedWebsiteSite(
+        this.metadataDirectory(staging),
+        this.websiteDirectory(staging)
+      )
+      await this.writeBackupSnapshot(staging, page, null)
+      await fileSystem.writeFile(
+        join(staging, '.gitignore'),
+        `${METADATA_FOLDER}/\n${CONTENT_FILE}\n`,
+        'utf8'
+      )
+      await git.init({ fs, dir: staging, defaultBranch: 'main' })
+      await fileSystem.rename(staging, destination)
+      return {
+        page: this.toSummary(page, undefined, 'healthy', true, undefined, { state: 'synced' }),
+        outcome: 'imported'
+      }
+    } catch (error) {
+      await fileSystem.rm(staging, { recursive: true, force: true })
+      throw error
+    }
+  }
+
+  private async updateWebsitePage(
+    folderPath: string,
+    currentPage: StoredPage,
+    candidate: ValidatedStaticWebsite,
+    sourceLink: NonNullable<StoredPage['sourceLink']>
+  ): Promise<ImportPageResult> {
+    if (currentPage.source.kind !== 'website') throw new Error('Página incompatível.')
+    await this.backupCurrentSnapshot(folderPath, currentPage)
+    await replaceInstalledStaticWebsite(candidate, this.websiteDirectory(folderPath))
+    const updatedPage: StoredPage = {
+      ...currentPage,
+      updatedAt: new Date().toISOString(),
+      sourceLink
+    }
+    await this.writeStoredPage(folderPath, updatedPage)
+    await generateImportedWebsiteSite(
+      this.metadataDirectory(folderPath),
+      this.websiteDirectory(folderPath)
+    )
+    return {
+      page: this.toSummary(
+        updatedPage,
+        await this.readPreview(folderPath),
+        'healthy',
+        true,
+        undefined,
+        { state: 'synced' }
+      ),
+      outcome: 'updated'
+    }
+  }
+
   private async updatePackagePage(
     folderPath: string,
     currentPage: StoredPage,
-    candidate: ValidatedPageSpacePackage
-  ): Promise<ImportPagePackageResult> {
+    candidate: ValidatedPageSpacePackage,
+    sourceLink: NonNullable<StoredPage['sourceLink']>
+  ): Promise<ImportPageResult> {
     if (currentPage.source.kind !== 'package') throw new Error('Página incompatível.')
     await this.backupCurrentSnapshot(folderPath, currentPage)
     const previousInstalled = await readInstalledPackage(this.packageDirectory(folderPath))
@@ -411,7 +586,8 @@ export class PageSpaceWorkspaceService {
         packageId: candidate.manifest.packageId,
         packageVersion: candidate.manifest.packageVersion,
         mode: candidate.manifest.mode
-      }
+      },
+      sourceLink
     }
     await this.writeStoredPage(folderPath, updatedPage)
     await generatePackageSite(
@@ -421,7 +597,14 @@ export class PageSpaceWorkspaceService {
       this.userAssetsDirectory(folderPath)
     )
     return {
-      page: this.toSummary(updatedPage, await this.readPreview(folderPath)),
+      page: this.toSummary(
+        updatedPage,
+        await this.readPreview(folderPath),
+        'healthy',
+        true,
+        undefined,
+        { state: 'synced' }
+      ),
       outcome: 'updated'
     }
   }
@@ -433,6 +616,8 @@ export class PageSpaceWorkspaceService {
       try {
         if (page.source.kind === 'simple') {
           await this.readValidatedSimpleContent(folderPath)
+        } else if (page.source.kind === 'website') {
+          await validateStaticWebsite(this.websiteDirectory(folderPath))
         } else {
           const candidate = await validatePageSpacePackage(this.packageDirectory(folderPath))
           if (
@@ -446,14 +631,21 @@ export class PageSpaceWorkspaceService {
         if (!backup) {
           await this.backupCurrentSnapshot(folderPath, page)
         }
-        return this.toSummary(page, await this.readPreview(folderPath), 'healthy', true)
+        return this.toSummary(
+          page,
+          await this.readPreview(folderPath),
+          'healthy',
+          true,
+          undefined,
+          await this.getSourceSync(page)
+        )
       } catch {
         return this.toSummary(
           page,
           await this.readPreview(folderPath),
           'damaged',
           Boolean(backup),
-          'O pacote ou conteúdo editável desta página está ausente ou danificado.'
+          'Os arquivos ou dados internos desta página estão ausentes ou danificados.'
         )
       }
     }
@@ -482,6 +674,7 @@ export class PageSpaceWorkspaceService {
       canRecover: false,
       deployment: { kind: 'local-only' },
       source: { kind: 'simple' },
+      sourceSync: { state: 'not-applicable' },
       healthMessage: 'Não foi possível encontrar dados válidos nem um backup desta página.'
     }
   }
@@ -501,13 +694,15 @@ export class PageSpaceWorkspaceService {
     })
     if (page.source.kind === 'simple') {
       await generatePublicSite(this.metadataDirectory(folderPath), content as PageContent)
-    } else {
+    } else if (page.source.kind === 'package') {
       await generatePackageSite(
         this.metadataDirectory(folderPath),
         this.packageDirectory(folderPath),
         content as PageSpaceEditableContent,
         this.userAssetsDirectory(folderPath)
       )
+    } else {
+      throw new Error('Esta página importada não possui conteúdo editável.')
     }
   }
 
@@ -540,6 +735,7 @@ export class PageSpaceWorkspaceService {
 
   private async readCurrentContent(folderPath: string, page: StoredPage): Promise<StoredContent> {
     if (page.source.kind === 'simple') return this.readValidatedSimpleContent(folderPath)
+    if (page.source.kind === 'website') return null
     if (page.source.mode === 'static') return null
     const installed = await readInstalledPackage(this.packageDirectory(folderPath))
     if (!installed.schema) throw new Error('Definição de edição ausente.')
@@ -582,7 +778,7 @@ export class PageSpaceWorkspaceService {
       if (page.source.kind === 'simple') {
         content = this.parsePageContent(value.content)
         if (!content) return null
-      } else if (page.source.mode === 'editable') {
+      } else if (page.source.kind === 'package' && page.source.mode === 'editable') {
         const installed = await readInstalledPackage(this.packageDirectory(folderPath))
         if (!installed.schema) return null
         content = validateEditableContent(value.content, installed.schema)
@@ -685,6 +881,21 @@ export class PageSpaceWorkspaceService {
     return null
   }
 
+  private async findWebsiteBySourceKey(
+    sourceKey: string
+  ): Promise<{ folderPath: string; page: StoredPage } | null> {
+    await this.ensurePagesRoot()
+    for (const entry of await fileSystem.readdir(this.pagesRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory() || entry.name.startsWith('.')) continue
+      const folderPath = join(this.pagesRoot, entry.name)
+      const page = await this.readStoredPage(folderPath)
+      if (page?.source.kind === 'website' && page.source.sourceKey === sourceKey) {
+        return { folderPath, page }
+      }
+    }
+    return null
+  }
+
   private async findPageWorkspace(
     pageId: string
   ): Promise<{ folderPath: string; folderName: string }> {
@@ -732,6 +943,7 @@ export class PageSpaceWorkspaceService {
       typeof candidate.folderName !== 'string' ||
       !this.isPageDeployment(candidate.deployment) ||
       !this.isPageSource(candidate.source) ||
+      !this.isSourceLink(candidate.sourceLink) ||
       (candidate.status === 'published' && candidate.deployment.kind !== 'published')
     ) {
       return null
@@ -743,11 +955,26 @@ export class PageSpaceWorkspaceService {
     if (!value || typeof value !== 'object') return false
     const source = value as Partial<PageSource>
     if (source.kind === 'simple') return true
+    if (source.kind === 'website') {
+      return typeof source.sourceKey === 'string' && /^[a-f0-9]{64}$/.test(source.sourceKey)
+    }
     return (
       source.kind === 'package' &&
       typeof source.packageId === 'string' &&
       typeof source.packageVersion === 'string' &&
       (source.mode === 'static' || source.mode === 'editable')
+    )
+  }
+
+  private isSourceLink(value: unknown): value is StoredPage['sourceLink'] {
+    if (value === undefined) return true
+    if (!value || typeof value !== 'object') return false
+    const sourceLink = value as Partial<NonNullable<StoredPage['sourceLink']>>
+    return (
+      typeof sourceLink.directory === 'string' &&
+      sourceLink.directory.length > 0 &&
+      typeof sourceLink.signature === 'string' &&
+      /^[a-f0-9]{64}$/.test(sourceLink.signature)
     )
   }
 
@@ -913,7 +1140,10 @@ export class PageSpaceWorkspaceService {
     previewDataUrl?: string,
     health: PageSummary['health'] = 'healthy',
     canRecover = true,
-    healthMessage?: string
+    healthMessage?: string,
+    sourceSync: PageSourceSync = page.source.kind === 'simple'
+      ? { state: 'not-applicable' }
+      : { state: 'unlinked' }
   ): PageSummary {
     return {
       id: page.id,
@@ -928,6 +1158,7 @@ export class PageSpaceWorkspaceService {
       canRecover,
       deployment: page.deployment,
       source: page.source,
+      sourceSync,
       ...(healthMessage ? { healthMessage } : {}),
       ...(previewDataUrl ? { previewDataUrl } : {})
     }
@@ -955,12 +1186,40 @@ export class PageSpaceWorkspaceService {
     return join(this.metadataDirectory(folderPath), PACKAGE_FOLDER)
   }
 
+  private websiteDirectory(folderPath: string): string {
+    return join(this.metadataDirectory(folderPath), WEBSITE_FOLDER)
+  }
+
   private userAssetsDirectory(folderPath: string): string {
     return join(this.metadataDirectory(folderPath), USER_ASSETS_FOLDER)
   }
 
   private damagedWorkspaceId(folderName: string): string {
     return `damaged-${createHash('sha256').update(folderName, 'utf8').digest('hex')}`
+  }
+
+  private staticWebsiteSourceKey(sourceDirectory: string): string {
+    return createHash('sha256').update(resolve(sourceDirectory).toLowerCase(), 'utf8').digest('hex')
+  }
+
+  private async getSourceSync(page: StoredPage): Promise<PageSourceSync> {
+    if (page.source.kind === 'simple') return { state: 'not-applicable' }
+    if (!page.sourceLink) return { state: 'unlinked' }
+    try {
+      const signature =
+        page.source.kind === 'website'
+          ? await getStaticWebsiteSourceSignature(
+              await validateStaticWebsite(page.sourceLink.directory)
+            )
+          : await getPageSpacePackageSourceSignature(
+              await validatePageSpacePackage(page.sourceLink.directory)
+            )
+      return signature === page.sourceLink.signature
+        ? { state: 'synced' }
+        : { state: 'update-available' }
+    } catch {
+      return { state: 'unavailable' }
+    }
   }
 
   private async writeStoredPage(folderPath: string, page: StoredPage): Promise<void> {

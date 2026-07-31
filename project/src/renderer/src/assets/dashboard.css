@@ -146,7 +146,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: top left;
+  object-position: center;
 }
 
 .site-card-content {
@@ -225,6 +225,26 @@
 .card-action--warning:active {
   border-color: rgba(181, 78, 71, 0.72);
   color: #a33f39;
+}
+
+.card-action--refresh {
+  margin-right: auto;
+  color: #8a650f;
+  background: rgba(238, 199, 103, 0.2);
+}
+
+.card-action--refresh:hover,
+.card-action--refresh:focus,
+.card-action--refresh:active {
+  border-color: rgba(166, 126, 32, 0.55);
+  color: #715109;
+  background: rgba(238, 199, 103, 0.32);
+}
+
+.card-action--source-warning {
+  margin-right: auto;
+  color: #a45b42;
+  cursor: help;
 }
 
 .add-page-card {

@@ -46,6 +46,7 @@ project/src/
 - Main process: dialogs, validated filesystem operations, images, packages, generation, Git,
   GitHub, credentials, preview windows, and external URLs.
 - Page package: untrusted static website and declarative editable contract.
+- Ordinary website import: untrusted browser-ready static files without an edit contract.
 - Generated site: viewer-only public output.
 
 ## Workspace Shape
@@ -59,7 +60,7 @@ PageSpace/
       content.json                 private editable instance values
       docs/                        current publishable tree
       .pagespace/
-        page.json                  private instance metadata
+        page.json                  private instance metadata and source link/signature
         preview.png
         package/                   imported fixed package
         user-assets/               sanitized replacement images
@@ -70,6 +71,10 @@ PageSpace/
 
 Simple pages also use `content.json`, `.pagespace/`, generated output, and the same publication
 boundary.
+
+Imported source paths and last accepted lightweight signatures remain private in `page.json`.
+Only synchronization state crosses preload. Detection is automatic; replacing the managed copy and
+publishing remain separate explicit actions.
 
 ## Modularity Rules
 

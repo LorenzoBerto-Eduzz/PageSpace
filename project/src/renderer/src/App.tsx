@@ -19,7 +19,8 @@ const placeholderPage: DashboardPage = {
   status: 'local',
   preview: 'empty',
   isPlaceholder: true,
-  source: { kind: 'simple' }
+  source: { kind: 'simple' },
+  sourceSync: { state: 'not-applicable' }
 }
 
 function toDashboardPage(page: PageSummary): DashboardPage {
@@ -31,7 +32,8 @@ function toDashboardPage(page: PageSummary): DashboardPage {
     preview: page.previewDataUrl ? 'captured' : 'empty',
     previewDataUrl: page.previewDataUrl,
     health: page.health,
-    source: page.source
+    source: page.source,
+    sourceSync: page.sourceSync
   }
 }
 
@@ -50,6 +52,7 @@ function App(): React.JSX.Element {
   const [isRecovering, setIsRecovering] = useState(false)
   const [recoveryError, setRecoveryError] = useState<string | null>(null)
   const [isAppSettingsOpen, setIsAppSettingsOpen] = useState(false)
+  const [refreshingSourceId, setRefreshingSourceId] = useState<string | null>(null)
 
   useEffect(() => {
     let isCurrent = true
@@ -68,6 +71,23 @@ function App(): React.JSX.Element {
 
     return () => {
       isCurrent = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    const refreshStatuses = (): void => {
+      window.pageSpace
+        .listPages()
+        .then((nextPages) => {
+          if (active) setPages(nextPages)
+        })
+        .catch(() => undefined)
+    }
+    window.addEventListener('focus', refreshStatuses)
+    return () => {
+      active = false
+      window.removeEventListener('focus', refreshStatuses)
     }
   }, [])
 
@@ -94,12 +114,12 @@ function App(): React.JSX.Element {
     }
   }
 
-  async function importPagePackage(): Promise<void> {
+  async function importPage(): Promise<void> {
     if (isImporting) return
     setIsImporting(true)
     setError(null)
     try {
-      const result = await window.pageSpace.importPagePackage()
+      const result = await window.pageSpace.importPage()
       if (!result) return
       setPages((currentPages) => [
         result.page,
@@ -133,6 +153,30 @@ function App(): React.JSX.Element {
     if (settingsPageId === pageId) setSettingsPageId(null)
   }
 
+  async function refreshPageSource(pageId: string): Promise<void> {
+    if (refreshingSourceId) return
+    setRefreshingSourceId(pageId)
+    try {
+      updatePage(await window.pageSpace.refreshPageFromSource(pageId))
+    } catch (refreshError) {
+      window.alert(
+        refreshError instanceof Error
+          ? refreshError.message
+          : 'Não foi possível atualizar a página da origem.'
+      )
+    } finally {
+      setRefreshingSourceId(null)
+    }
+  }
+
+  function closeEditor(): void {
+    setOpenPageId(null)
+    window.pageSpace
+      .listPages()
+      .then(setPages)
+      .catch(() => undefined)
+  }
+
   async function recoverPage(): Promise<void> {
     if (!problemPage || isRecovering) return
     setIsRecovering(true)
@@ -160,10 +204,10 @@ function App(): React.JSX.Element {
   if (openPageId) {
     const openPage = pages.find((page) => page.id === openPageId)
     const editor =
-      openPage?.source.kind === 'package' ? (
+      openPage?.source.kind !== 'simple' ? (
         <PackagePageEditor
           pageId={openPageId}
-          onBack={() => setOpenPageId(null)}
+          onBack={closeEditor}
           onOpenSettings={(pageId, hasUnsavedChanges) => {
             setSettingsHasUnsavedChanges(hasUnsavedChanges)
             setSettingsPageId(pageId)
@@ -178,7 +222,7 @@ function App(): React.JSX.Element {
       ) : (
         <PageEditor
           pageId={openPageId}
-          onBack={() => setOpenPageId(null)}
+          onBack={closeEditor}
           onOpenSettings={(pageId, hasUnsavedChanges) => {
             setSettingsHasUnsavedChanges(hasUnsavedChanges)
             setSettingsPageId(pageId)
@@ -223,12 +267,13 @@ function App(): React.JSX.Element {
 
       <div className="dashboard-scroll-area">
         <section className="dashboard" aria-labelledby="pages-heading">
-          {error && !isCreateDialogOpen ? <p className="dashboard-error">{error}</p> : null}
           <div className="pages-grid">
             {displayedPages.map((page) => (
               <SiteCard
                 key={page.id}
                 page={page}
+                onRefreshSource={refreshPageSource}
+                isRefreshingSource={refreshingSourceId === page.id}
                 onOpen={setOpenPageId}
                 onOpenSettings={
                   page.isPlaceholder
@@ -268,7 +313,7 @@ function App(): React.JSX.Element {
             setIsAddDialogOpen(false)
             setIsCreateDialogOpen(true)
           }}
-          onImport={importPagePackage}
+          onImport={importPage}
         />
       ) : null}
       {isCreateDialogOpen ? (

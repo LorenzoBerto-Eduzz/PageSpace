@@ -1,5 +1,6 @@
-import { EyeIcon, GlobeIcon, LockIcon, SettingsIcon, WarningIcon } from './icons'
+import { EyeIcon, GlobeIcon, LockIcon, RefreshIcon, SettingsIcon, WarningIcon } from './icons'
 import type { PageSource } from '../../../shared/pagespace-package-contracts'
+import type { PageSourceSync } from '../../../shared/page-contracts'
 
 export type DashboardPage = {
   id: string
@@ -11,6 +12,7 @@ export type DashboardPage = {
   isPlaceholder?: boolean
   health?: 'healthy' | 'damaged'
   source: PageSource
+  sourceSync: PageSourceSync
 }
 
 type SiteCardProps = {
@@ -19,6 +21,8 @@ type SiteCardProps = {
   onOpenSettings?: (pageId: string) => void
   onOpenLocal?: (pageId: string) => void
   onProblem?: (pageId: string) => void
+  onRefreshSource?: (pageId: string) => void
+  isRefreshingSource?: boolean
 }
 
 function PreviewCanvas({ page }: SiteCardProps): React.JSX.Element {
@@ -38,7 +42,9 @@ export function SiteCard({
   onOpen,
   onOpenSettings,
   onOpenLocal,
-  onProblem
+  onProblem,
+  onRefreshSource,
+  isRefreshingSource
 }: SiteCardProps): React.JSX.Element {
   const className = [
     'site-card',
@@ -83,6 +89,26 @@ export function SiteCard({
         <p className="site-description">{page.description}</p>
 
         <footer className="site-card-actions">
+          {page.sourceSync.state === 'update-available' ? (
+            <button
+              className="card-action card-action--refresh"
+              type="button"
+              aria-label="Atualizar página da origem"
+              title="Atualização disponível"
+              disabled={isRefreshingSource}
+              onClick={() => onRefreshSource?.(page.id)}
+            >
+              <RefreshIcon size={19} />
+            </button>
+          ) : null}
+          {page.sourceSync.state === 'unavailable' ? (
+            <span
+              className="card-action card-action--source-warning"
+              title="Pasta de origem indisponível"
+            >
+              <WarningIcon size={18} />
+            </span>
+          ) : null}
           {page.health === 'damaged' ? (
             <button
               className="card-action card-action--warning"

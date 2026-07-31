@@ -7,6 +7,13 @@ import type {
 
 export type PageStatus = 'local' | 'published'
 
+export type PageSourceSync =
+  | { state: 'not-applicable' }
+  | { state: 'unlinked' }
+  | { state: 'synced' }
+  | { state: 'update-available' }
+  | { state: 'unavailable' }
+
 export type LocalPageDeployment = {
   kind: 'local-only'
 }
@@ -49,6 +56,7 @@ export type PageSummary = {
   healthMessage?: string
   deployment: PageDeployment
   source: PageSource
+  sourceSync: PageSourceSync
   previewDataUrl?: string
 }
 
@@ -91,7 +99,13 @@ export type PackagePageEditorData = {
   content: PageSpaceEditableContent | null
 }
 
-export type PageEditorData = SimplePageEditorData | PackagePageEditorData
+export type ImportedWebsiteEditorData = {
+  kind: 'website'
+  page: PageSummary
+}
+
+export type PageEditorData =
+  SimplePageEditorData | PackagePageEditorData | ImportedWebsiteEditorData
 
 export type SavePageContentInput = {
   pageId: string
@@ -103,7 +117,7 @@ export type SavePackageContentInput = {
   content: PageSpaceEditableContent
 }
 
-export type ImportPagePackageResult = {
+export type ImportPageResult = {
   page: PageSummary
   outcome: 'imported' | 'updated'
 }

@@ -38,7 +38,7 @@ function createWindow(hasActivePublications: () => boolean): void {
     autoHideMenuBar: true,
     backgroundColor: '#f6f7fb',
     title: 'PageSpace',
-    ...(process.platform === 'linux' ? { icon } : {}),
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -104,6 +104,7 @@ async function captureCleanPagePreview(
     show: false,
     width: 1280,
     height: 720,
+    useContentSize: true,
     backgroundColor: '#ffffff',
     webPreferences: {
       contextIsolation: true,
@@ -127,6 +128,36 @@ async function captureCleanPagePreview(
   }
 }
 
+async function ensureCurrentPagePreviews(
+  pageWorkspace: PageSpaceWorkspaceService,
+  pages: Awaited<ReturnType<PageSpaceWorkspaceService['listPages']>>
+): Promise<typeof pages> {
+  const refreshedPages: typeof pages = []
+  for (const page of pages) {
+    if (page.health === 'damaged') {
+      refreshedPages.push(page)
+      continue
+    }
+    const currentPreview = page.previewDataUrl
+      ? nativeImage.createFromDataURL(page.previewDataUrl)
+      : null
+    const dimensions = currentPreview && !currentPreview.isEmpty() ? currentPreview.getSize() : null
+    if (dimensions?.width === 960 && dimensions.height === 540) {
+      refreshedPages.push(page)
+      continue
+    }
+    try {
+      refreshedPages.push({
+        ...page,
+        previewDataUrl: await captureCleanPagePreview(pageWorkspace, page.id)
+      })
+    } catch {
+      refreshedPages.push(page)
+    }
+  }
+  return refreshedPages
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -141,7 +172,9 @@ app.whenReady().then(() => {
     pageWorkspace,
     new PublicationDiagnostics(app.getPath('userData'))
   )
-  ipcMain.handle('pages:list', () => pageWorkspace.listPages())
+  ipcMain.handle('pages:list', async () =>
+    ensureCurrentPagePreviews(pageWorkspace, await pageWorkspace.listPages())
+  )
   ipcMain.handle('pages:create', async (_, input: CreatePageInput) => {
     const createdPage = await pageWorkspace.createPage(input)
     try {
@@ -152,14 +185,14 @@ app.whenReady().then(() => {
       return createdPage
     }
   })
-  ipcMain.handle('pages:import-package', async () => {
+  ipcMain.handle('pages:import', async () => {
     const selection = await dialog.showOpenDialog({
       title: 'Trazer página para o PageSpace',
       properties: ['openDirectory'],
       buttonLabel: 'Trazer página'
     })
     if (selection.canceled || selection.filePaths.length !== 1) return null
-    const imported = await pageWorkspace.importPackage(selection.filePaths[0])
+    const imported = await pageWorkspace.importPage(selection.filePaths[0])
     try {
       imported.page.previewDataUrl = await captureCleanPagePreview(pageWorkspace, imported.page.id)
     } catch {
@@ -168,6 +201,15 @@ app.whenReady().then(() => {
     return imported
   })
   ipcMain.handle('pages:get', (_, pageId: string) => pageWorkspace.getPage(pageId))
+  ipcMain.handle('pages:refresh-source', async (_, pageId: string) => {
+    const page = await pageWorkspace.refreshPageFromSource(pageId)
+    try {
+      page.previewDataUrl = await captureCleanPagePreview(pageWorkspace, pageId)
+    } catch {
+      // A successful source refresh remains valid if its replaceable preview cannot be captured.
+    }
+    return page
+  })
   ipcMain.handle('pages:save-content', (_, input: SavePageContentInput) =>
     pageWorkspace.savePageContent(input)
   )
@@ -225,23 +267,9 @@ app.whenReady().then(() => {
     if (openError) throw new Error(openError)
   })
   ipcMain.handle('app-settings:refresh', async () => {
-    const pages = await pageWorkspace.listPages()
-    const refreshedPages = await Promise.all(
-      pages.map(async (page) => {
-        if (page.health === 'damaged') return page
-        try {
-          await pageWorkspace.generatePageSite(page.id)
-          if (!page.previewDataUrl) {
-            return {
-              ...page,
-              previewDataUrl: await captureCleanPagePreview(pageWorkspace, page.id)
-            }
-          }
-        } catch {
-          // Replaceable output failures do not turn valid editable content into corruption.
-        }
-        return page
-      })
+    const refreshedPages = await ensureCurrentPagePreviews(
+      pageWorkspace,
+      await pageWorkspace.listPages()
     )
     return {
       version: app.getVersion(),

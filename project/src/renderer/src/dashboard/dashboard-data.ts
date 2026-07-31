@@ -9,6 +9,7 @@ export const dashboardPages: DashboardPage[] = [
     status: 'local',
     preview: 'empty',
     isPlaceholder: true,
-    source: { kind: 'simple' }
+    source: { kind: 'simple' },
+    sourceSync: { state: 'not-applicable' }
   }
 ]

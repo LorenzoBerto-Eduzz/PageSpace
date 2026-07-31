@@ -7,7 +7,7 @@ import type {
   PageSpaceEditableContent,
   PageSpaceEditableField
 } from '../../../shared/pagespace-package-contracts'
-import { ArrowLeftIcon, EyeIcon, SaveIcon, SettingsIcon, TrashIcon } from './icons'
+import { ArrowLeftIcon, EyeIcon, RefreshIcon, SaveIcon, SettingsIcon, TrashIcon } from './icons'
 
 type PackagePageEditorProps = {
   pageId: string
@@ -46,10 +46,11 @@ export function PackagePageEditor({
   onSaved,
   onOpenSettings
 }: PackagePageEditorProps): React.JSX.Element {
-  const [data, setData] = useState<Extract<PageEditorData, { kind: 'package' }> | null>(null)
+  const [data, setData] = useState<Exclude<PageEditorData, { kind: 'simple' }> | null>(null)
   const [content, setContent] = useState<PageSpaceEditableContent | null>(null)
   const [savedContent, setSavedContent] = useState<PageSpaceEditableContent | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isRefreshingSource, setIsRefreshingSource] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const isDirty = useMemo(
@@ -63,10 +64,11 @@ export function PackagePageEditor({
       .getPage(pageId)
       .then((loaded) => {
         if (!current) return
-        if (loaded.kind !== 'package') throw new Error('O pacote da página é inválido.')
+        if (loaded.kind === 'simple') throw new Error('A página importada é inválida.')
         setData(loaded)
-        setContent(loaded.content ? cloneContent(loaded.content) : null)
-        setSavedContent(loaded.content ? cloneContent(loaded.content) : null)
+        const loadedContent = loaded.kind === 'package' ? loaded.content : null
+        setContent(loadedContent ? cloneContent(loadedContent) : null)
+        setSavedContent(loadedContent ? cloneContent(loadedContent) : null)
       })
       .catch((loadError) => {
         if (current) {
@@ -101,7 +103,7 @@ export function PackagePageEditor({
     setError(null)
     try {
       const saved = await window.pageSpace.savePackageContent({ pageId, content })
-      if (saved.kind !== 'package' || !saved.content) {
+      if (!data || data.kind !== 'package' || saved.kind !== 'package' || !saved.content) {
         throw new Error('O PageSpace não retornou o conteúdo salvo.')
       }
       try {
@@ -117,6 +119,31 @@ export function PackagePageEditor({
       setError(saveError instanceof Error ? saveError.message : 'Não foi possível salvar.')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  async function refreshSource(): Promise<void> {
+    if (!data || isRefreshingSource) return
+    if (isDirty && !window.confirm('Descartar as alterações locais e atualizar da origem?')) return
+    setIsRefreshingSource(true)
+    setError(null)
+    try {
+      await window.pageSpace.refreshPageFromSource(pageId)
+      const refreshed = await window.pageSpace.getPage(pageId)
+      if (refreshed.kind === 'simple') throw new Error('A página importada é inválida.')
+      setData(refreshed)
+      const refreshedContent = refreshed.kind === 'package' ? refreshed.content : null
+      setContent(refreshedContent ? cloneContent(refreshedContent) : null)
+      setSavedContent(refreshedContent ? cloneContent(refreshedContent) : null)
+      onSaved(refreshed)
+    } catch (refreshError) {
+      setError(
+        refreshError instanceof Error
+          ? refreshError.message
+          : 'Não foi possível atualizar a página da origem.'
+      )
+    } finally {
+      setIsRefreshingSource(false)
     }
   }
 
@@ -145,15 +172,23 @@ export function PackagePageEditor({
           Voltar
         </button>
         <div>
-          <p className="package-editor-kicker">
-            {data.manifest.mode === 'editable' ? 'Pacote editável' : 'Pacote estático'}
-          </p>
           <h1>{data.page.name}</h1>
-          <p>
-            {data.manifest.packageId} · versão {data.manifest.packageVersion}
-          </p>
+          {data.kind === 'package' ? (
+            <p>
+              {data.manifest.packageId} · versão {data.manifest.packageVersion}
+            </p>
+          ) : null}
         </div>
         <div className="package-editor-header-actions">
+          {data.page.sourceSync.state === 'update-available' ? (
+            <button type="button" onClick={refreshSource} disabled={isRefreshingSource || isSaving}>
+              <RefreshIcon size={18} />
+              {isRefreshingSource ? 'Atualizando…' : 'Atualizar da origem'}
+            </button>
+          ) : null}
+          {data.page.sourceSync.state === 'unavailable' ? (
+            <span className="package-source-unavailable">Origem indisponível</span>
+          ) : null}
           <button type="button" onClick={() => window.pageSpace.openLocalPage(pageId)}>
             <EyeIcon size={18} />
             Ver localmente
@@ -191,7 +226,7 @@ export function PackagePageEditor({
         </section>
 
         <aside className="package-fields-panel">
-          {data.schema && content ? (
+          {data.kind === 'package' && data.schema && content ? (
             <>
               <div className="package-fields-heading">
                 <h2>Conteúdo editável</h2>
@@ -213,8 +248,8 @@ export function PackagePageEditor({
             <div className="package-static-message">
               <h2>Página pronta</h2>
               <p>
-                Este pacote não declarou campos editáveis. Ele pode ser visualizado localmente,
-                organizado no PageSpace e publicado no GitHub.
+                Esta página não declarou campos editáveis. Ela pode ser visualizada localmente,
+                organizada no PageSpace e publicada no GitHub.
               </p>
             </div>
           )}

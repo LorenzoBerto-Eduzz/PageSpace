@@ -18,6 +18,7 @@ const GENERATED_SITE_FOLDER = 'generated-site'
 const GENERATED_SITE_MANIFEST = 'generated-site-manifest.json'
 const RESERVED_CONTENT_SCRIPT = 'pagespace-content.js'
 const USER_ASSETS_FOLDER = 'user-assets'
+const COMMON_OUTPUT_FOLDERS = ['dist', 'build', 'public', 'docs'] as const
 const MAX_FILES = 500
 const MAX_FILE_BYTES = 20_000_000
 const MAX_TOTAL_BYTES = 80_000_000
@@ -42,6 +43,16 @@ const ALLOWED_SITE_EXTENSIONS = new Set([
   '.gif',
   '.ico',
   '.svg',
+  '.avif',
+  '.bmp',
+  '.csv',
+  '.pdf',
+  '.wasm',
+  '.mp3',
+  '.wav',
+  '.ogg',
+  '.mp4',
+  '.webm',
   '.woff',
   '.woff2',
   '.ttf',
@@ -53,6 +64,14 @@ export type ValidatedPageSpacePackage = {
   manifest: PageSpacePackageManifest
   schema: PageSpaceEditableSchema | null
   content: PageSpaceEditableContent | null
+  siteFiles: string[]
+}
+
+export type ValidatedStaticWebsite = {
+  sourceDirectory: string
+  siteDirectory: string
+  entryFile: string
+  name: string
   siteFiles: string[]
 }
 
@@ -68,6 +87,23 @@ export type PackageGeneratedSite = {
       bytes: number
     }>
   }
+}
+
+export async function getStaticWebsiteSourceSignature(
+  candidate: ValidatedStaticWebsite
+): Promise<string> {
+  return createSourceSignature(candidate.siteDirectory, candidate.siteFiles, candidate.entryFile)
+}
+
+export async function getPageSpacePackageSourceSignature(
+  candidate: ValidatedPageSpacePackage
+): Promise<string> {
+  const files = [
+    MANIFEST_FILE,
+    ...candidate.siteFiles.map((filePath) => `${SITE_FOLDER}/${filePath}`),
+    ...(candidate.manifest.mode === 'editable' ? [EDITABLES_FILE, CONTENT_FILE] : [])
+  ].sort((first, second) => first.localeCompare(second))
+  return createSourceSignature(candidate.sourceDirectory, files, candidate.manifest.entryPoint)
 }
 
 export async function validatePageSpacePackage(
@@ -121,6 +157,116 @@ export async function validatePageSpacePackage(
     schema,
     content,
     siteFiles
+  }
+}
+
+export async function validateStaticWebsite(
+  sourceDirectory: string
+): Promise<ValidatedStaticWebsite> {
+  const sourceRoot = resolve(sourceDirectory)
+  const sourceStats = await fileSystem.stat(sourceRoot)
+  if (!sourceStats.isDirectory()) throw new Error('Selecione uma pasta de site.')
+
+  const directEntry = join(sourceRoot, 'index.html')
+  const candidates: string[] = []
+  for (const folder of COMMON_OUTPUT_FOLDERS) {
+    const candidate = join(sourceRoot, folder)
+    if (await pathExists(join(candidate, 'index.html'))) candidates.push(candidate)
+  }
+  const looksLikeSourceProject = await pathExists(join(sourceRoot, 'package.json'))
+  let siteDirectory = sourceRoot
+  let entryFile = 'index.html'
+  if (!(await pathExists(directEntry)) || (looksLikeSourceProject && candidates.length > 0)) {
+    if (candidates.length === 0) {
+      const discoveredEntries = await findBrowserEntryFiles(sourceRoot)
+      const nestedIndexes = discoveredEntries.filter(
+        (filePath) => basename(filePath).toLowerCase() === 'index.html'
+      )
+      const usableEntries = nestedIndexes.length > 0 ? nestedIndexes : discoveredEntries
+      if (usableEntries.length === 0) {
+        throw new Error(
+          'Nenhuma página HTML pronta foi encontrada. Se este projeto ainda precisa de build, gere a saída estática e selecione a pasta resultante.'
+        )
+      }
+      if (usableEntries.length > 1) {
+        throw new Error(
+          'Mais de uma página inicial possível foi encontrada. Selecione diretamente a pasta que contém a página desejada.'
+        )
+      }
+      const discoveredEntry = usableEntries[0]
+      siteDirectory = dirname(join(sourceRoot, ...discoveredEntry.split('/')))
+      entryFile = basename(discoveredEntry)
+    } else {
+      if (candidates.length > 1) {
+        throw new Error(
+          'Mais de uma saída pronta foi encontrada. Selecione diretamente a pasta dist, build, public ou docs desejada.'
+        )
+      }
+      siteDirectory = candidates[0]
+    }
+  }
+
+  const siteFiles = await collectSafeSiteFiles(siteDirectory, {
+    allowReservedContentScript: true,
+    allowUserAssetsFolder: true,
+    ignoreHiddenEntries: true,
+    ignoreUnsupportedFiles: true,
+    ignoredDirectoryNames: new Set(['node_modules']),
+    ignoredFileNames: new Set(['package.json', 'package-lock.json'])
+  })
+  if (!siteFiles.includes(entryFile)) {
+    throw new Error('A página HTML inicial não pôde ser validada.')
+  }
+  return {
+    sourceDirectory: sourceRoot,
+    siteDirectory,
+    entryFile,
+    name: basename(sourceRoot),
+    siteFiles
+  }
+}
+
+export async function installValidatedStaticWebsite(
+  candidate: ValidatedStaticWebsite,
+  destination: string
+): Promise<void> {
+  const staging = `${destination}.${randomUUID()}.tmp`
+  await fileSystem.mkdir(staging, { recursive: true })
+  try {
+    await copyRelativeFiles(candidate.siteDirectory, staging, candidate.siteFiles)
+    await ensureStaticWebsiteIndex(candidate, staging)
+    await fileSystem.rename(staging, destination)
+  } catch (error) {
+    await fileSystem.rm(staging, { recursive: true, force: true })
+    throw error
+  }
+}
+
+export async function replaceInstalledStaticWebsite(
+  candidate: ValidatedStaticWebsite,
+  destination: string
+): Promise<void> {
+  const staging = `${destination}.${randomUUID()}.tmp`
+  const backup = `${destination}.${randomUUID()}.backup`
+  await fileSystem.mkdir(staging, { recursive: true })
+  try {
+    await copyRelativeFiles(candidate.siteDirectory, staging, candidate.siteFiles)
+    await ensureStaticWebsiteIndex(candidate, staging)
+    const hadDestination = await pathExists(destination)
+    if (hadDestination) await fileSystem.rename(destination, backup)
+    try {
+      await fileSystem.rename(staging, destination)
+      if (hadDestination) await fileSystem.rm(backup, { recursive: true, force: true })
+    } catch (error) {
+      if (hadDestination && !(await pathExists(destination))) {
+        await fileSystem.rename(backup, destination)
+      }
+      throw error
+    }
+  } catch (error) {
+    await fileSystem.rm(staging, { recursive: true, force: true })
+    await fileSystem.rm(backup, { recursive: true, force: true })
+    throw error
   }
 }
 
@@ -307,6 +453,78 @@ export async function generatePackageSite(
     return {
       directoryPath: outputDirectory,
       indexPath: join(outputDirectory, installed.manifest.entryPoint),
+      manifest
+    }
+  } catch (error) {
+    await fileSystem.rm(temporaryDirectory, { recursive: true, force: true })
+    await fileSystem.rm(backupDirectory, { recursive: true, force: true })
+    throw error
+  }
+}
+
+export async function generateImportedWebsiteSite(
+  metadataDirectory: string,
+  websiteDirectory: string
+): Promise<PackageGeneratedSite> {
+  const siteFiles = await collectSafeSiteFiles(websiteDirectory, {
+    allowReservedContentScript: true,
+    allowUserAssetsFolder: true
+  })
+  if (!siteFiles.includes('index.html')) {
+    throw new Error('O site importado não contém index.html.')
+  }
+
+  const outputDirectory = join(metadataDirectory, GENERATED_SITE_FOLDER)
+  const temporaryDirectory = join(
+    metadataDirectory,
+    `.${GENERATED_SITE_FOLDER}-${randomUUID()}.tmp`
+  )
+  const backupDirectory = join(
+    metadataDirectory,
+    `.${GENERATED_SITE_FOLDER}-${randomUUID()}.backup`
+  )
+  await fileSystem.mkdir(temporaryDirectory, { recursive: false })
+
+  try {
+    await copyRelativeFiles(websiteDirectory, temporaryDirectory, siteFiles)
+    const outputFiles = await collectSafeSiteFiles(temporaryDirectory, {
+      allowReservedContentScript: true,
+      allowUserAssetsFolder: true
+    })
+    const manifest = {
+      schemaVersion: 1 as const,
+      generatedAt: new Date().toISOString(),
+      files: await Promise.all(
+        outputFiles.map(async (filePath) => {
+          const file = await fileSystem.readFile(join(temporaryDirectory, filePath))
+          return {
+            path: filePath,
+            sha256: createHash('sha256').update(file).digest('hex'),
+            bytes: file.byteLength
+          }
+        })
+      )
+    }
+    await verifyGeneratedFiles(temporaryDirectory, manifest.files)
+
+    const hadExistingOutput = await pathExists(outputDirectory)
+    if (hadExistingOutput) await fileSystem.rename(outputDirectory, backupDirectory)
+    try {
+      await fileSystem.rename(temporaryDirectory, outputDirectory)
+      await writeJsonAtomically(join(metadataDirectory, GENERATED_SITE_MANIFEST), manifest)
+      if (hadExistingOutput) {
+        await fileSystem.rm(backupDirectory, { recursive: true, force: true })
+      }
+    } catch (error) {
+      if (hadExistingOutput && !(await pathExists(outputDirectory))) {
+        await fileSystem.rename(backupDirectory, outputDirectory)
+      }
+      throw error
+    }
+
+    return {
+      directoryPath: outputDirectory,
+      indexPath: join(outputDirectory, 'index.html'),
       manifest
     }
   } catch (error) {
@@ -610,9 +828,72 @@ async function copyRelativeFiles(
   }
 }
 
+async function createSourceSignature(
+  sourceRoot: string,
+  files: string[],
+  entryFile: string
+): Promise<string> {
+  const signature = createHash('sha256')
+  signature.update(`entry:${entryFile}\n`, 'utf8')
+  for (const filePath of files) {
+    const stats = await fileSystem.stat(join(sourceRoot, ...filePath.split('/')))
+    signature.update(`${filePath}\0${stats.size}\0${stats.mtimeMs}\n`, 'utf8')
+  }
+  return signature.digest('hex')
+}
+
+async function ensureStaticWebsiteIndex(
+  candidate: ValidatedStaticWebsite,
+  destinationRoot: string
+): Promise<void> {
+  if (candidate.entryFile.toLowerCase() === 'index.html') return
+  await fileSystem.copyFile(
+    join(destinationRoot, candidate.entryFile),
+    join(destinationRoot, 'index.html')
+  )
+}
+
+async function findBrowserEntryFiles(sourceRoot: string): Promise<string[]> {
+  const entries: string[] = []
+  let visitedDirectories = 0
+
+  async function visit(directory: string): Promise<void> {
+    visitedDirectories += 1
+    if (visitedDirectories > MAX_FILES) {
+      throw new Error('A pasta selecionada é grande demais para localizar uma página inicial.')
+    }
+    for (const entry of await fileSystem.readdir(directory, { withFileTypes: true })) {
+      if (entry.name.startsWith('.') || entry.name === 'node_modules') continue
+      const absolutePath = join(directory, entry.name)
+      if (entry.isSymbolicLink()) continue
+      if (entry.isDirectory()) {
+        await visit(absolutePath)
+        continue
+      }
+      if (!entry.isFile()) continue
+      const extension = extname(entry.name).toLowerCase()
+      if (extension !== '.html' && extension !== '.htm') continue
+      entries.push(relative(sourceRoot, absolutePath).split(sep).join('/'))
+      if (entries.length > MAX_FILES) {
+        throw new Error('A pasta selecionada contém páginas HTML demais.')
+      }
+    }
+  }
+
+  await visit(sourceRoot)
+  return entries.sort((first, second) => first.localeCompare(second))
+}
+
 async function collectSafeSiteFiles(
   root: string,
-  options: { allowReservedContentScript?: boolean; allowUserAssetsFolder?: boolean } = {}
+  options: {
+    allowReservedContentScript?: boolean
+    allowUserAssetsFolder?: boolean
+    ignoreHiddenEntries?: boolean
+    ignoreUnsupportedFiles?: boolean
+    ignoredDirectoryNames?: ReadonlySet<string>
+    ignoredFileNames?: ReadonlySet<string>
+  } = {}
 ): Promise<string[]> {
   const resolvedRoot = resolve(root)
   const rootStats = await fileSystem.stat(resolvedRoot)
@@ -623,12 +904,15 @@ async function collectSafeSiteFiles(
   async function visit(directory: string): Promise<void> {
     const entries = await fileSystem.readdir(directory, { withFileTypes: true })
     for (const entry of entries) {
+      if (options.ignoredFileNames?.has(entry.name)) continue
+      if (entry.name.startsWith('.') && options.ignoreHiddenEntries) continue
       if (entry.name.startsWith('.'))
         throw new Error('O pacote contém arquivo oculto não permitido.')
       const absolutePath = join(directory, entry.name)
       if (!isPathInside(resolvedRoot, absolutePath)) throw new Error('Caminho de pacote inválido.')
       if (entry.isSymbolicLink()) throw new Error('Links simbólicos não são permitidos no pacote.')
       if (entry.isDirectory()) {
+        if (options.ignoredDirectoryNames?.has(entry.name)) continue
         if (
           entry.name === USER_ASSETS_FOLDER &&
           directory === resolvedRoot &&
@@ -642,6 +926,7 @@ async function collectSafeSiteFiles(
       if (!entry.isFile()) throw new Error('O pacote contém uma entrada não suportada.')
 
       const extension = extname(entry.name).toLowerCase()
+      if (!ALLOWED_SITE_EXTENSIONS.has(extension) && options.ignoreUnsupportedFiles) continue
       if (!ALLOWED_SITE_EXTENSIONS.has(extension)) {
         throw new Error(`O tipo de arquivo ${extension || '(sem extensão)'} não é permitido.`)
       }

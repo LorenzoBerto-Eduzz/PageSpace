@@ -87,6 +87,19 @@
   gap: 8px;
 }
 
+.package-source-unavailable {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid rgba(175, 93, 66, 0.35);
+  border-radius: 10px;
+  color: #934f38;
+  background: rgba(255, 245, 239, 0.8);
+  font-size: 12px;
+  font-weight: 650;
+}
+
 .package-editor-header-actions .package-save {
   border-color: #536579;
   color: #fff;
@@ -125,7 +138,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  object-position: top center;
+  object-position: center;
   background: #fff;
 }
 

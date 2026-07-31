@@ -18,9 +18,9 @@ contextBridge.exposeInMainWorld(
         throw new Error('Não foi possível criar a página local. Tente novamente.')
       }
     },
-    importPagePackage: async () => {
+    importPage: async () => {
       try {
-        return await ipcRenderer.invoke('pages:import-package')
+        return await ipcRenderer.invoke('pages:import')
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         throw new Error(message.replace(/^Error invoking remote method '[^']+': Error:\s*/, ''))
@@ -31,6 +31,14 @@ contextBridge.exposeInMainWorld(
         return await ipcRenderer.invoke('pages:get', pageId)
       } catch {
         throw new Error('Não foi possível abrir a página local.')
+      }
+    },
+    refreshPageFromSource: async (pageId: string) => {
+      try {
+        return await ipcRenderer.invoke('pages:refresh-source', pageId)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        throw new Error(message.replace(/^Error invoking remote method '[^']+': Error:\s*/, ''))
       }
     },
     savePageContent: async (input: SavePageContentInput) => {

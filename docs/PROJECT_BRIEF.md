@@ -26,6 +26,14 @@ editing, storage, preview, baking, Git, GitHub, and publication lifecycle.
 Created inside PageSpace with the built-in editor. The current simple model supports ordered title
 elements and layout spacing.
 
+### Ordinary imported website
+
+Any browser-ready static website with a clear HTML entry page. PageSpace detects root and common
+output folders, a unique nested `index.html`, or a unique differently named HTML entry. It safely
+copies only displayable static files, organizes the page, opens it locally, and publishes it. The
+private source link is checked automatically; source changes expose an explicit refresh action on
+the card and page screen. No automatic edit form is invented.
+
 ### Static PageSpace package
 
 An already-baked AI-authored website. It can be imported, organized, viewed locally, replaced by a
@@ -40,13 +48,16 @@ and preserves compatible user values during package updates.
 ## Main Workflow
 
 1. The user selects the left `Trazer página` tile or the right `Criar página` tile.
-2. Imported packages are validated and copied atomically into `Pages/`.
+2. Ordinary websites and PageSpace packages are validated and copied atomically into `Pages/`.
 3. Every page starts local-only.
-4. The user may open the exact baked site in a normal browser.
-5. Editable packages expose only declared fields and collections.
-6. `Salvar` persists private values, keeps a backup, bakes output, and refreshes the preview.
-7. `Publicar online` confirms the page, account, repository, public URL, and exposure.
-8. PageSpace creates or safely updates only that page's repository and GitHub Pages site.
+4. PageSpace checks linked source metadata on startup, focus, dashboard return, and page opening.
+5. A detected source change enables `Atualizar da origem`; applying it validates and atomically
+   refreshes the managed copy without publishing.
+6. The user may open the exact baked site in a normal browser.
+7. Editable packages expose only declared fields and collections.
+8. `Salvar` persists private values, keeps a backup, bakes output, and refreshes the preview.
+9. `Publicar online` confirms the page, account, repository, public URL, and exposure.
+10. PageSpace creates or safely updates only that page's repository and GitHub Pages site.
 
 ## Package Contract
 
@@ -85,11 +96,12 @@ Clean handoff: cd project; npm run export:localrelease
 
 ## Current Priorities
 
-1. Validate static and editable package import with disposable sample packages.
-2. Validate local preview, editable content, images, package updates, and dynamic publication
-   allowlisting as one complete vertical slice.
-3. Validate disposable GitHub publication, update, retry, and conflict behavior.
-4. Refine the `Trazer página` and `Criar página` workflows from those findings.
+1. Harden source synchronization against unavailable, invalid, ambiguous, concurrent, interrupted,
+   and larger-folder scenarios.
+2. Distinguish local changes awaiting publication from a public site that is fully current.
+3. Validate static/editable package content, images, updates, and dynamic publication allowlisting
+   as one complete disposable lifecycle.
+4. Validate GitHub publication, update, retry, and remote-conflict behavior.
 5. Use SotoDashboard as the first colleague-facing package after the platform is stable.
 
 ## Glossary

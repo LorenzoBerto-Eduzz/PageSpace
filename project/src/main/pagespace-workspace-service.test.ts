@@ -73,7 +73,7 @@ describe('PageSpace workspace package lifecycle', () => {
     await createPackage(packageV2, '2.0.0', 'New default', true)
     const workspace = new PageSpaceWorkspaceService(pagesRoot)
 
-    const imported = await workspace.importPackage(packageV1)
+    const imported = await workspace.importPage(packageV1)
     expect(imported.outcome).toBe('imported')
     expect(imported.page.source).toEqual({
       kind: 'package',
@@ -92,7 +92,7 @@ describe('PageSpace workspace package lifecycle', () => {
     })
     expect(saved.page.lastSavedAt).not.toBeNull()
 
-    const updated = await workspace.importPackage(packageV2)
+    const updated = await workspace.importPage(packageV2)
     expect(updated.outcome).toBe('updated')
     expect(updated.page.id).toBe(imported.page.id)
     expect(updated.page.source.kind === 'package' && updated.page.source.packageVersion).toBe(
@@ -128,5 +128,48 @@ describe('PageSpace workspace package lifecycle', () => {
     const opened = await workspace.getPage(page.id)
     expect(opened.kind).toBe('simple')
     expect((await workspace.generatePageSite(page.id)).indexPath).toContain('index.html')
+  })
+
+  it('imports an ordinary browser-ready website from a conventional output folder', async () => {
+    const pagesRoot = await temporaryDirectory('pagespace-pages-')
+    const websiteRoot = await temporaryDirectory('ordinary-dashboard-')
+    await mkdir(join(websiteRoot, 'dist', 'assets'), { recursive: true })
+    await writeFile(
+      join(websiteRoot, 'dist', 'index.html'),
+      '<!doctype html><link rel="stylesheet" href="./assets/site.css"><h1>Ordinary page</h1>'
+    )
+    await writeFile(join(websiteRoot, 'dist', 'assets', 'site.css'), 'h1 { color: navy; }')
+    const workspace = new PageSpaceWorkspaceService(pagesRoot)
+
+    const imported = await workspace.importPage(websiteRoot)
+    expect(imported.outcome).toBe('imported')
+    expect(imported.page.source.kind).toBe('website')
+    expect(imported.page.sourceSync.state).toBe('synced')
+
+    const opened = await workspace.getPage(imported.page.id)
+    expect(opened.kind).toBe('website')
+    const generated = await workspace.generatePageSite(imported.page.id)
+    expect(await readFile(generated.indexPath, 'utf8')).toContain('Ordinary page')
+
+    const publication = await workspace.preparePageForPublishing(imported.page.id)
+    expect(publication.publishablePaths).toEqual([
+      '.gitignore',
+      'docs/assets/site.css',
+      'docs/index.html'
+    ])
+
+    await writeFile(
+      join(websiteRoot, 'dist', 'index.html'),
+      '<!doctype html><h1>Updated ordinary page</h1>'
+    )
+    const changedPage = (await workspace.listPages()).find((page) => page.id === imported.page.id)
+    expect(changedPage?.sourceSync.state).toBe('update-available')
+
+    const updated = await workspace.refreshPageFromSource(imported.page.id)
+    expect(updated.id).toBe(imported.page.id)
+    expect(updated.sourceSync.state).toBe('synced')
+    expect(
+      await readFile((await workspace.generatePageSite(imported.page.id)).indexPath, 'utf8')
+    ).toContain('Updated ordinary page')
   })
 })

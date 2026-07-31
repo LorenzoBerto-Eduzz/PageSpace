@@ -66,7 +66,9 @@ clean Git checkpoint is completed and Codex can reopen the workspace from its ne
 
 - Every card starts local-only.
 - `Criar página` uses the built-in basic editor.
-- `Trazer página` imports a PageSpace package.
+- `Trazer página` imports either an ordinary browser-ready website or a PageSpace package.
+- Ordinary websites support organization, local viewing, source-folder refresh, and publishing
+  without an automatic edit form.
 - Static packages support organization, local viewing, replacement, and publishing.
 - Editable packages additionally declare a generated edit form and safe content-baking contract.
 - An ordinary folder without the PageSpace contract cannot receive structural editing

@@ -5,9 +5,11 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   generatePackageSite,
   installValidatedPackage,
+  installValidatedStaticWebsite,
   reconcileEditableContent,
   validateEditableContent,
-  validatePageSpacePackage
+  validatePageSpacePackage,
+  validateStaticWebsite
 } from './pagespace-package-service'
 import type {
   PageSpaceEditableContent,
@@ -204,5 +206,71 @@ describe('PageSpace package validation and baking', () => {
         schema
       )
     ).toThrow('inválido')
+  })
+
+  it('detects direct static sites and common browser-ready output folders', async () => {
+    const direct = await temporaryDirectory()
+    await writeFile(join(direct, 'index.html'), '<!doctype html><title>Direct</title>')
+    await writeFile(join(direct, 'package.json'), '{"private":true}')
+    await writeFile(join(direct, 'README.md'), '# Private project notes')
+    await mkdir(join(direct, '.git'))
+    await writeFile(join(direct, '.git', 'config'), 'private git controls')
+    await mkdir(join(direct, 'node_modules', 'dependency'), { recursive: true })
+    await writeFile(join(direct, 'node_modules', 'dependency', 'index.js'), 'not public')
+    const directCandidate = await validateStaticWebsite(direct)
+    expect(directCandidate.siteDirectory).toBe(direct)
+    expect(directCandidate.siteFiles).toEqual(['index.html'])
+
+    const project = await temporaryDirectory()
+    await mkdir(join(project, 'dist'))
+    await writeFile(join(project, 'dist', 'index.html'), '<!doctype html><title>Built</title>')
+    expect((await validateStaticWebsite(project)).siteDirectory).toBe(join(project, 'dist'))
+  })
+
+  it('explains when a selected project has no browser-ready output', async () => {
+    const sourceOnly = await temporaryDirectory()
+    await writeFile(join(sourceOnly, 'package.json'), '{}')
+
+    await expect(validateStaticWebsite(sourceOnly)).rejects.toThrow('Nenhuma página HTML pronta')
+  })
+
+  it('detects a unique nested index outside conventional output folders', async () => {
+    const project = await temporaryDirectory()
+    await mkdir(join(project, 'website', 'release'), { recursive: true })
+    await writeFile(
+      join(project, 'website', 'release', 'index.html'),
+      '<!doctype html><title>Nested</title>'
+    )
+
+    const candidate = await validateStaticWebsite(project)
+    expect(candidate.siteDirectory).toBe(join(project, 'website', 'release'))
+    expect(candidate.entryFile).toBe('index.html')
+  })
+
+  it('accepts a unique HTML entry with a non-index filename', async () => {
+    const project = await temporaryDirectory()
+    await writeFile(join(project, 'start.html'), '<!doctype html><title>Start</title>')
+
+    const candidate = await validateStaticWebsite(project)
+    expect(candidate.siteDirectory).toBe(project)
+    expect(candidate.entryFile).toBe('start.html')
+
+    const installed = join(await temporaryDirectory(), 'website')
+    await installValidatedStaticWebsite(candidate, installed)
+    await expect(readFile(join(installed, 'index.html'), 'utf8')).resolves.toContain(
+      '<title>Start</title>'
+    )
+  })
+
+  it('rejects ambiguous recursive website entry points', async () => {
+    const project = await temporaryDirectory()
+    await mkdir(join(project, 'first'))
+    await mkdir(join(project, 'second'))
+    await writeFile(join(project, 'first', 'index.html'), '<title>First</title>')
+    await writeFile(join(project, 'second', 'index.html'), '<title>Second</title>')
+
+    await expect(validateStaticWebsite(project)).rejects.toThrow(
+      'Mais de uma página inicial possível'
+    )
   })
 })

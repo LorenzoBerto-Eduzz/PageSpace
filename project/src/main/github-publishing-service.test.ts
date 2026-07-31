@@ -194,7 +194,8 @@ async function createHarness(initialDeployment: PageDeployment = { kind: 'local-
     health: 'healthy',
     canRecover: true,
     deployment: currentDeployment,
-    source: { kind: 'simple' }
+    source: { kind: 'simple' },
+    sourceSync: { state: 'not-applicable' }
   })
   const auth = {
     getAuthenticatedSession: vi.fn().mockResolvedValue({

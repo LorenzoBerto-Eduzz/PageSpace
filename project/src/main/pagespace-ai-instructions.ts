@@ -10,7 +10,11 @@ Create a browser-ready static website folder. Visual design, layout, typography,
 content, and behavior are unrestricted. The compatibility requirements below concern only how
 PageSpace imports, previews, optionally edits, bakes, and publishes the page.
 
-REQUIRED FOLDER
+PageSpace can organize ordinary browser-ready website folders without this contract. Follow the
+contract below when the page should receive declared editing, stable package updates, and full
+version-specific PageSpace integration.
+
+PAGESPACE-COMPATIBLE FOLDER
 
 PageName/
   pagespace.json

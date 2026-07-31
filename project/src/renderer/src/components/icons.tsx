@@ -157,6 +157,17 @@ export function ImportIcon(props: IconProps): React.JSX.Element {
   )
 }
 
+export function RefreshIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M21 12a9 9 0 0 0-15-6.7L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M3 12a9 9 0 0 0 15 6.7l3-2.7" />
+      <path d="M21 21v-5h-5" />
+    </Icon>
+  )
+}
+
 export function PlusTabIcon(props: IconProps): React.JSX.Element {
   return (
     <Icon {...props}>
