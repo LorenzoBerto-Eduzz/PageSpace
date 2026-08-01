@@ -5,9 +5,9 @@ This is the first file an AI coding session should read in PageSpace.
 ## PageSpace Context
 
 PageSpace is a portable Windows Electron application with source in `project/`. It is a local
-workspace for creating simple pages and importing AI-authored website packages, viewing them
-locally, editing only package-declared content, baking verified public output, and explicitly
-publishing individual pages through the user's connected GitHub account.
+workspace for importing websites, viewing them locally, editing only package-declared content,
+baking verified public output, and explicitly publishing individual pages through the user's
+connected GitHub account. PageSpace does not create or structurally edit websites by itself.
 
 The repository, not prior chat memory, is the continuity source.
 
@@ -68,12 +68,13 @@ the renamed folder as a new Codex workspace/task, and recover context from this 
 ## Product Boundaries
 
 - Every card starts local-only.
-- `Criar página` uses the built-in basic editor.
-- `Trazer página` imports either an ordinary browser-ready website or a PageSpace package.
+- `Trazer página` is the only page-entry workflow and imports either an ordinary browser-ready
+  website or a PageSpace package into a managed copy.
 - Ordinary websites support organization, local viewing, source-folder refresh, and publishing
   without an automatic edit form.
 - Static packages support organization, local viewing, replacement, and publishing.
-- Editable packages additionally declare a generated edit form and safe content-baking contract.
+- Editable packages additionally declare the fields PageSpace presents in its right-side edit
+  panel and a safe content-baking contract.
 - An ordinary folder without the PageSpace contract cannot receive structural editing
   automatically.
 - The renderer has no filesystem, Git, shell, token, or privileged package access.
@@ -91,3 +92,6 @@ the renamed folder as a new Codex workspace/task, and recover context from this 
   `Pages/`, unless the owner says not to.
 - `localrelease`: create `project/dist/localrelease/PageSpace/` with an empty `Pages/` folder and no
   local data. Follow `docs/DELIVERY_PROCESS.md`.
+- Once the owner is using an existing local release as a persistent test instance, use
+  `npm run refresh:localrelease` to update its binaries while preserving its `Pages/`. Do not run
+  the clean `export:localrelease` workflow unless the owner explicitly requests another reset.

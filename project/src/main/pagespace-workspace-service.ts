@@ -299,6 +299,21 @@ export class PageSpaceWorkspaceService {
     )
   }
 
+  async resolveGeneratedSiteFile(pageId: string, requestedPath: string): Promise<string> {
+    const located = await this.findPage(pageId)
+    const relativePath = requestedPath.replace(/^\/+/, '') || 'index.html'
+    if (relativePath.includes('\0')) throw new Error('Caminho de página inválido.')
+    const root = resolve(this.metadataDirectory(located.folderPath), 'generated-site')
+    const target = resolve(root, ...relativePath.split('/'))
+    const relativeTarget = relative(root, target)
+    if (relativeTarget.startsWith(`..${sep}`) || relativeTarget === '..') {
+      throw new Error('Caminho de página inválido.')
+    }
+    const stats = await fileSystem.stat(target)
+    if (!stats.isFile()) throw new Error('Arquivo da página não encontrado.')
+    return target
+  }
+
   async updatePageDetails(input: UpdatePageDetailsInput): Promise<PageSummary> {
     const validatedInput = this.validateUpdateDetailsInput(input)
     const located = await this.findPage(validatedInput.pageId)

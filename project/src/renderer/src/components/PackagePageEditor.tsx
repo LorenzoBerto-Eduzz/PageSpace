@@ -46,12 +46,13 @@ export function PackagePageEditor({
   onSaved,
   onOpenSettings
 }: PackagePageEditorProps): React.JSX.Element {
-  const [data, setData] = useState<Exclude<PageEditorData, { kind: 'simple' }> | null>(null)
+  const [data, setData] = useState<PageEditorData | null>(null)
   const [content, setContent] = useState<PageSpaceEditableContent | null>(null)
   const [savedContent, setSavedContent] = useState<PageSpaceEditableContent | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isRefreshingSource, setIsRefreshingSource] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   const isDirty = useMemo(
     () => JSON.stringify(content) !== JSON.stringify(savedContent),
@@ -64,11 +65,13 @@ export function PackagePageEditor({
       .getPage(pageId)
       .then((loaded) => {
         if (!current) return
-        if (loaded.kind === 'simple') throw new Error('A página importada é inválida.')
         setData(loaded)
         const loadedContent = loaded.kind === 'package' ? loaded.content : null
         setContent(loadedContent ? cloneContent(loadedContent) : null)
         setSavedContent(loadedContent ? cloneContent(loadedContent) : null)
+        void window.pageSpace.getPagePreviewUrl(pageId).then((url) => {
+          if (current) setPreviewUrl(url)
+        })
       })
       .catch((loadError) => {
         if (current) {
@@ -129,6 +132,7 @@ export function PackagePageEditor({
       setData(completedSave)
       setContent(cloneContent(saved.content))
       setSavedContent(cloneContent(saved.content))
+      setPreviewUrl(`${await window.pageSpace.getPagePreviewUrl(pageId)}?version=${Date.now()}`)
       onSaved(completedSave)
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Não foi possível salvar.')
@@ -148,11 +152,11 @@ export function PackagePageEditor({
         await window.pageSpace.publishPage({ pageId })
       }
       const refreshed = await window.pageSpace.getPage(pageId)
-      if (refreshed.kind === 'simple') throw new Error('A página importada é inválida.')
       setData(refreshed)
       const refreshedContent = refreshed.kind === 'package' ? refreshed.content : null
       setContent(refreshedContent ? cloneContent(refreshedContent) : null)
       setSavedContent(refreshedContent ? cloneContent(refreshedContent) : null)
+      setPreviewUrl(`${await window.pageSpace.getPagePreviewUrl(pageId)}?version=${Date.now()}`)
       onSaved(refreshed)
     } catch (refreshError) {
       setError(
@@ -181,6 +185,9 @@ export function PackagePageEditor({
       </main>
     )
   }
+
+  const editableData =
+    data.kind === 'package' && data.schema && content ? { schema: data.schema, content } : null
 
   return (
     <main className="package-editor">
@@ -237,13 +244,24 @@ export function PackagePageEditor({
         </div>
       </header>
 
-      <div className="package-editor-layout">
+      <div
+        className={
+          editableData
+            ? 'package-editor-layout package-editor-layout--with-fields'
+            : 'package-editor-layout'
+        }
+      >
         <section className="package-preview-panel" aria-label="Prévia da página">
-          {data.page.previewDataUrl ? (
-            <img src={data.page.previewDataUrl} alt={`Prévia de ${data.page.name}`} />
+          {previewUrl ? (
+            <iframe
+              className="package-live-preview"
+              src={previewUrl}
+              title={`Visualização de ${data.page.name}`}
+              sandbox="allow-scripts"
+            />
           ) : (
             <div className="package-preview-empty">
-              <p>A prévia será criada ao abrir ou salvar a página.</p>
+              <p>Carregando a página…</p>
               <button type="button" onClick={() => window.pageSpace.openLocalPage(pageId)}>
                 Abrir página local
               </button>
@@ -251,36 +269,26 @@ export function PackagePageEditor({
           )}
         </section>
 
-        <aside className="package-fields-panel">
-          {data.kind === 'package' && data.schema && content ? (
-            <>
-              <div className="package-fields-heading">
-                <h2>Conteúdo editável</h2>
-                <p>Somente os campos definidos pelo autor do pacote aparecem aqui.</p>
-              </div>
-              <div className="package-fields">
-                {data.schema.fields.map((field) => (
-                  <EditableFieldControl
-                    key={field.key}
-                    pageId={pageId}
-                    field={field}
-                    value={content.values[field.key]}
-                    onChange={(value) => updateValue(field.key, value)}
-                  />
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="package-static-message">
-              <h2>Página pronta</h2>
-              <p>
-                Esta página não declarou campos editáveis. Ela pode ser visualizada localmente,
-                organizada no PageSpace e publicada no GitHub.
-              </p>
+        {editableData ? (
+          <aside className="package-fields-panel">
+            <div className="package-fields-heading">
+              <h2>Conteúdo editável</h2>
+              <p>Somente os campos definidos pelo autor do pacote aparecem aqui.</p>
             </div>
-          )}
-          {error ? <p className="package-editor-error">{error}</p> : null}
-        </aside>
+            <div className="package-fields">
+              {editableData.schema.fields.map((field) => (
+                <EditableFieldControl
+                  key={field.key}
+                  pageId={pageId}
+                  field={field}
+                  value={editableData.content.values[field.key]}
+                  onChange={(value) => updateValue(field.key, value)}
+                />
+              ))}
+            </div>
+            {error ? <p className="package-editor-error">{error}</p> : null}
+          </aside>
+        ) : null}
       </div>
     </main>
   )

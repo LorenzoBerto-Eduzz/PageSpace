@@ -40,6 +40,18 @@ cd project
 npm run export:localrelease
 ```
 
+After the owner starts using that local release as a persistent real-world test instance, refresh
+its application binaries without deleting its `Pages/` workspace with:
+
+```text
+cd project
+npm run refresh:localrelease
+```
+
+`export:localrelease` always creates a fresh empty first-run copy. `refresh:localrelease` requires
+an existing local release and preserves only its `Pages/` directory while replacing application
+files from the newly built review copy. Close that local-release executable before refreshing it.
+
 Required procedure:
 
 1. Inspect the worktree and intended change.

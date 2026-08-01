@@ -17,6 +17,7 @@
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "powershell -NoProfile -ExecutionPolicy Bypass -File ../scripts/Build-PortableReview.ps1",
     "export:localrelease": "powershell -NoProfile -ExecutionPolicy Bypass -File ../scripts/Export-LocalRelease.ps1",
+    "refresh:localrelease": "powershell -NoProfile -ExecutionPolicy Bypass -File ../scripts/Refresh-LocalRelease.ps1",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux"

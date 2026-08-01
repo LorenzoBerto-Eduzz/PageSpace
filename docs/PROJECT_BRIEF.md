@@ -11,20 +11,15 @@
 
 ## Purpose
 
-PageSpace is a personal space for websites. It lets non-technical users create basic pages or
-import visually unrestricted websites created by AI, keep them organized as cards, open exact
-local versions, edit only author-declared content, bake safe static output, and explicitly publish
-individual pages through their own GitHub account.
+PageSpace is a personal space for externally authored websites. It lets non-technical users import
+them into managed local copies, keep them organized as cards, open exact local versions, edit only
+author-declared content, bake safe static output, and explicitly publish individual pages through
+their own GitHub account. It does not create or structurally edit websites itself.
 
 AI is the primary flexible page-authoring surface. PageSpace provides the trusted package,
 editing, storage, preview, baking, Git, GitHub, and publication lifecycle.
 
 ## Page Types
-
-### Simple page
-
-Created inside PageSpace with the built-in editor. The current simple model supports ordered title
-elements and layout spacing.
 
 ### Ordinary imported website
 
@@ -47,14 +42,15 @@ and preserves compatible user values during package updates.
 
 ## Main Workflow
 
-1. The user selects the left `Trazer página` tile or the right `Criar página` tile.
+1. The user selects `Trazer página` and chooses an externally authored website folder.
 2. Ordinary websites and PageSpace packages are validated and copied atomically into `Pages/`.
 3. Every page starts local-only.
 4. PageSpace checks linked source metadata on startup, focus, dashboard return, and page opening.
 5. A detected source change enables `Atualizar da origem`; on an already-published page the same
    explicit action is `Atualizar e publicar`. A failed publication keeps the refreshed local copy.
 6. The user may open the exact baked site in a normal browser.
-7. Editable packages expose only declared fields and collections.
+7. Editable packages expose only their declared fields and collections in PageSpace's right-side
+   panel; ordinary and static pages show no editing controls.
 8. `Salvar` persists private values, keeps a backup, bakes output, and refreshes the preview. On a
    published page, `Salvar e publicar` also attempts the explicit remote update.
 9. `Publicar online` confirms the page, account, automatically derived repository name, public URL,
@@ -97,16 +93,17 @@ Type check: cd project; npm run typecheck
 Build: cd project; npm run build
 Review build: cd project; npm run build:unpack
 Clean handoff: cd project; npm run export:localrelease
+Persistent test update: cd project; npm run refresh:localrelease
 ```
 
 ## Current Priorities
 
-1. Harden source synchronization against unavailable, invalid, ambiguous, concurrent, interrupted,
-   and larger-folder scenarios.
-2. Validate static/editable package content, images, updates, and dynamic publication allowlisting
-   as one complete disposable lifecycle.
-3. Validate GitHub publication, update, retry, and remote-conflict behavior.
-4. Use SotoDashboard as the first colleague-facing package after the platform is stable.
+1. Validate an external visual source change through detection, refresh, local viewing, and update
+   of its existing publication.
+2. Add stable package-declared title, section, and card variables only after the page design is
+   settled, preserving private instance values across compatible template versions.
+3. Validate editable package content, images, baking, updates, and publication as one lifecycle.
+4. Continue source synchronization and remote-conflict hardening before colleague delivery.
 
 ## Glossary
 
@@ -115,7 +112,6 @@ Clean handoff: cd project; npm run export:localrelease
 | PageSpace | Trusted local desktop application. |
 | Page package | Portable AI-authored folder following the PageSpace contract. |
 | Page instance | User's managed imported copy inside `Pages/`. |
-| Simple page | Page created with PageSpace's built-in editor. |
 | Static package | Ready website without a declared edit form. |
 | Editable package | Website with declared fields and safe content baking. |
 | Bake | Produce a fresh verified static website from current local content. |

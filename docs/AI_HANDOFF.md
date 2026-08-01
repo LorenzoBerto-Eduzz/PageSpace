@@ -44,8 +44,11 @@
 - Baking copies validated static files, generates `pagespace-content.js`, includes approved user
   assets, hashes every output file, and atomically replaces prior output.
 - Publication accepts the exact dynamic allowlist produced by the current verified generation.
-- The Add Page modal currently presents two large starter tiles: left `Trazer página` and right
-  `Criar página`. Their deeper workflows remain the next product-development focus.
+- `Trazer página` is the only page-entry action. It immediately opens folder selection; PageSpace
+  has no built-in page creation or structural editor.
+- Opening a page uses the consistent fixed header and a live sandboxed browser viewport.
+  Ordinary/static pages use the full width; editable packages additionally expose only fields
+  declared by their author in a fixed right-side panel.
 - Page cards intentionally omit source-type labels to keep the dashboard visually quiet.
 - App settings exposes one `Baixar instruções para IA (.txt)` action. It generates a handoff
   document from the currently installed PageSpace version and supported package contract.
@@ -62,9 +65,19 @@
   permanent after creation even if the card is later renamed.
 - User-facing failures use direct actionable language. Only technical failures append a short
   stable reference after `|`; implementation details remain in private diagnostics.
-- Preview capture uses an exact 1280x720 browser content viewport, stores 960x540 images, centers
-  them in cards and page screens, and automatically repairs missing or legacy-sized previews.
+- Dashboard preview capture uses an exact 1280x720 browser content viewport and stores 960x540
+  card images. Opening a page uses its actual generated website in a sandboxed browser viewport
+  that fills the available workspace and responds to that real viewport size. The 64 px app header
+  remains fixed during resizing. A 280 px right-side panel appears only when the imported package
+  actually declares editable fields; ordinary/static pages use the full width.
 - Application branding uses one dark-background PageSpace PNG for packaging and window surfaces.
+- The opened-page header is fixed at 64 px and uses the shared
+  `--pagespace-window-surface` color matching the current Windows title-bar surface. Ordinary and
+  static pages use the full remaining live browser viewport; the package field panel appears only
+  when editing capabilities are declared.
+- `project/dist/localrelease/PageSpace/` is now the owner's persistent real-use test instance.
+  `npm run refresh:localrelease` refreshes its binaries while preserving `Pages/`; use
+  `export:localrelease` only when a deliberately empty first-run copy is requested.
 
 ## Validated Checkpoint
 
@@ -76,19 +89,20 @@
 - Review builds preserve the existing persistent `Pages/` folder.
 - Tests cover package validation, executable rejection, editable content, user assets, baking,
   ordinary entry discovery, source-change detection and refresh, saving, compatible updates,
-  simple creation, and dynamic publication paths.
+  legacy simple-page compatibility and dynamic publication paths.
 
 ## Next Product Milestone
 
-Harden synchronization and publication correctness before using real colleague data:
+Complete the first real ordinary-site update lifecycle, then add declared package editing:
 
-1. Verify unavailable, invalid, deleted-file, renamed-file, ambiguous-entry, concurrent-refresh,
-   interrupted-refresh, and larger-folder source scenarios.
-2. Import and manually verify minimal static and editable packages, including declared image edits.
-3. Publish a disposable page, update it, and verify retry and remote-conflict handling.
-4. Refine the two Add Page workflows from what this vertical slice reveals.
-5. Use SotoDashboard as the first real colleague-facing package only after the disposable lifecycle
-   is reliable.
+1. Change the external ordinary-site source and confirm detection, explicit refresh, managed-copy
+   replacement, local live-view update, and update of the existing remote publication.
+2. Convert the site into an editable package only after its visual template is settled.
+3. Define stable title, section, and card fields/collections; keep instance values separate from
+   template versions so compatible source updates preserve user-created content.
+4. Verify save, bake, preview refresh, commit, push, source update, and value reconciliation as one
+   complete lifecycle.
+5. Continue synchronization edge-case hardening before colleague delivery.
 
 ## Durable Safety Decisions
 

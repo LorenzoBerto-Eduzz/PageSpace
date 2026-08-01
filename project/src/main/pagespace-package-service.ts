@@ -436,16 +436,16 @@ export async function generatePackageSite(
     await verifyGeneratedFiles(temporaryDirectory, manifest.files)
 
     const hadExistingOutput = await pathExists(outputDirectory)
-    if (hadExistingOutput) await fileSystem.rename(outputDirectory, backupDirectory)
+    if (hadExistingOutput) await renameWithWindowsRetry(outputDirectory, backupDirectory)
     try {
-      await fileSystem.rename(temporaryDirectory, outputDirectory)
+      await renameWithWindowsRetry(temporaryDirectory, outputDirectory)
       await writeJsonAtomically(join(metadataDirectory, GENERATED_SITE_MANIFEST), manifest)
       if (hadExistingOutput) {
-        await fileSystem.rm(backupDirectory, { recursive: true, force: true })
+        await removeWithWindowsRetry(backupDirectory)
       }
     } catch (error) {
       if (hadExistingOutput && !(await pathExists(outputDirectory))) {
-        await fileSystem.rename(backupDirectory, outputDirectory)
+        await renameWithWindowsRetry(backupDirectory, outputDirectory)
       }
       throw error
     }
@@ -508,16 +508,16 @@ export async function generateImportedWebsiteSite(
     await verifyGeneratedFiles(temporaryDirectory, manifest.files)
 
     const hadExistingOutput = await pathExists(outputDirectory)
-    if (hadExistingOutput) await fileSystem.rename(outputDirectory, backupDirectory)
+    if (hadExistingOutput) await renameWithWindowsRetry(outputDirectory, backupDirectory)
     try {
-      await fileSystem.rename(temporaryDirectory, outputDirectory)
+      await renameWithWindowsRetry(temporaryDirectory, outputDirectory)
       await writeJsonAtomically(join(metadataDirectory, GENERATED_SITE_MANIFEST), manifest)
       if (hadExistingOutput) {
-        await fileSystem.rm(backupDirectory, { recursive: true, force: true })
+        await removeWithWindowsRetry(backupDirectory)
       }
     } catch (error) {
       if (hadExistingOutput && !(await pathExists(outputDirectory))) {
-        await fileSystem.rename(backupDirectory, outputDirectory)
+        await renameWithWindowsRetry(backupDirectory, outputDirectory)
       }
       throw error
     }
@@ -995,6 +995,39 @@ async function pathExists(path: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+function isTransientWindowsFileError(error: unknown): boolean {
+  if (!error || typeof error !== 'object' || !('code' in error)) return false
+  return ['EPERM', 'EBUSY', 'EACCES', 'ENOTEMPTY'].includes(String(error.code))
+}
+
+async function withWindowsFileRetry(operation: () => Promise<void>): Promise<void> {
+  const delays = [40, 80, 160, 320, 500]
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await operation()
+      return
+    } catch (error) {
+      if (!isTransientWindowsFileError(error) || attempt >= delays.length) {
+        if (isTransientWindowsFileError(error)) {
+          throw new Error(
+            'A página ainda está sendo usada pelo visualizador. Aguarde um instante e tente atualizar novamente.'
+          )
+        }
+        throw error
+      }
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, delays[attempt]))
+    }
+  }
+}
+
+async function renameWithWindowsRetry(source: string, destination: string): Promise<void> {
+  await withWindowsFileRetry(() => fileSystem.rename(source, destination))
+}
+
+async function removeWithWindowsRetry(path: string): Promise<void> {
+  await withWindowsFileRetry(() => fileSystem.rm(path, { recursive: true, force: true }))
 }
 
 async function writeJsonAtomically(path: string, value: unknown): Promise<void> {

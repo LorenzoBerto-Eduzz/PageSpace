@@ -3,11 +3,10 @@
 PageSpace is a portable Windows desktop application for organizing, locally viewing, selectively
 editing, baking, and explicitly publishing static websites.
 
-It supports two complementary creation paths:
-
-- Create a simple page with the built-in editor.
-- Bring any browser-ready static website for organization, local viewing, and publishing.
-- Bring an AI-authored PageSpace package whose optional editable fields are declared by its author.
+It imports any browser-ready static website for organization, local viewing, source refresh, and
+publishing. An AI-authored PageSpace package may additionally declare its own editable fields;
+PageSpace presents those fields in a right-side panel, validates them, and bakes the result. The
+application does not create websites or invent editing capabilities itself.
 
 Every website begins local-only. Connecting GitHub is global to the local application; publishing
 is an explicit per-page operation that creates or updates only that page's public repository and

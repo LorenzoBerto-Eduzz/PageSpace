@@ -1,13 +1,11 @@
 import type {
   AppSettingsSnapshot,
-  CreatePageInput,
   DeletePublicationInput,
   DeletePublicationResult,
   ImportPageResult,
   PageEditorData,
   PageSummary,
   SavePackageContentInput,
-  SavePageContentInput,
   UpdatePageDetailsInput,
   GitHubConnectionStatus,
   GitHubDeviceAuthorization,
@@ -19,11 +17,10 @@ declare global {
   interface Window {
     pageSpace: Readonly<{
       listPages: () => Promise<PageSummary[]>
-      createPage: (input: CreatePageInput) => Promise<PageSummary>
       importPage: () => Promise<ImportPageResult | null>
       getPage: (pageId: string) => Promise<PageEditorData>
+      getPagePreviewUrl: (pageId: string) => Promise<string>
       refreshPageFromSource: (pageId: string) => Promise<PageSummary>
-      savePageContent: (input: SavePageContentInput) => Promise<PageEditorData>
       savePackageContent: (input: SavePackageContentInput) => Promise<PageEditorData>
       choosePageImage: (pageId: string) => Promise<string | null>
       capturePagePreview: (pageId: string) => Promise<string>

@@ -6,9 +6,12 @@ import {
   ipcMain,
   nativeImage,
   nativeTheme,
+  net,
+  protocol,
   shell
 } from 'electron'
 import { dirname, join } from 'path'
+import { pathToFileURL } from 'node:url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { PageSpaceWorkspaceService } from './pagespace-workspace-service'
@@ -17,13 +20,18 @@ import { GitHubPublishingService } from './github-publishing-service'
 import { PublicationDiagnostics } from './publication-diagnostics'
 import { createPageSpaceAiInstructions } from './pagespace-ai-instructions'
 import type {
-  CreatePageInput,
   DeletePublicationInput,
   PublishPageInput,
   SavePackageContentInput,
-  SavePageContentInput,
   UpdatePageDetailsInput
 } from '../shared/page-contracts'
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'pagespace-preview',
+    privileges: { standard: true, secure: true, supportFetchAPI: true }
+  }
+])
 
 function getPagesRoot(): string {
   return app.isPackaged ? join(dirname(process.execPath), 'Pages') : join(app.getAppPath(), 'Pages')
@@ -167,6 +175,24 @@ app.whenReady().then(() => {
   nativeTheme.themeSource = 'light'
 
   const pageWorkspace = new PageSpaceWorkspaceService(getPagesRoot())
+  protocol.handle('pagespace-preview', async (request) => {
+    try {
+      const url = new URL(request.url)
+      if (url.hostname !== 'page') return new Response('Not found', { status: 404 })
+      const segments = url.pathname.split('/').filter(Boolean).map(decodeURIComponent)
+      const pageId = segments.shift()
+      if (!pageId || !/^[A-Za-z0-9-]{1,80}$/.test(pageId)) {
+        return new Response('Not found', { status: 404 })
+      }
+      const filePath = await pageWorkspace.resolveGeneratedSiteFile(
+        pageId,
+        segments.join('/') || 'index.html'
+      )
+      return net.fetch(pathToFileURL(filePath).toString())
+    } catch {
+      return new Response('Not found', { status: 404 })
+    }
+  })
   const githubAuth = new GitHubAuthService(app.getPath('userData'))
   const githubPublishing = new GitHubPublishingService(
     githubAuth,
@@ -176,16 +202,6 @@ app.whenReady().then(() => {
   ipcMain.handle('pages:list', async () =>
     ensureCurrentPagePreviews(pageWorkspace, await pageWorkspace.listPages())
   )
-  ipcMain.handle('pages:create', async (_, input: CreatePageInput) => {
-    const createdPage = await pageWorkspace.createPage(input)
-    try {
-      const previewDataUrl = await captureCleanPagePreview(pageWorkspace, createdPage.id)
-      return { ...createdPage, previewDataUrl }
-    } catch {
-      // Page creation remains successful even if its replaceable dashboard preview fails.
-      return createdPage
-    }
-  })
   ipcMain.handle('pages:import', async () => {
     const selection = await dialog.showOpenDialog({
       title: 'Trazer página para o PageSpace',
@@ -202,6 +218,10 @@ app.whenReady().then(() => {
     return imported
   })
   ipcMain.handle('pages:get', (_, pageId: string) => pageWorkspace.getPage(pageId))
+  ipcMain.handle('pages:preview-url', async (_, pageId: string) => {
+    await pageWorkspace.generatePageSite(pageId)
+    return `pagespace-preview://page/${encodeURIComponent(pageId)}/index.html`
+  })
   ipcMain.handle('pages:refresh-source', async (_, pageId: string) => {
     const page = await pageWorkspace.refreshPageFromSource(pageId)
     try {
@@ -211,9 +231,6 @@ app.whenReady().then(() => {
     }
     return page
   })
-  ipcMain.handle('pages:save-content', (_, input: SavePageContentInput) =>
-    pageWorkspace.savePageContent(input)
-  )
   ipcMain.handle('pages:save-package-content', (_, input: SavePackageContentInput) =>
     pageWorkspace.savePackageContent(input)
   )

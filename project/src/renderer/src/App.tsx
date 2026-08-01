@@ -1,16 +1,13 @@
 import { useEffect, useState } from 'react'
 import { AddPageCard } from './components/AddPageCard'
-import { AddPageDialog } from './components/AddPageDialog'
 import { AppSettingsDialog } from './components/AppSettingsDialog'
-import { CreatePageDialog } from './components/CreatePageDialog'
 import { PackagePageEditor } from './components/PackagePageEditor'
-import { PageEditor } from './components/PageEditor'
 import { PageRecoveryDialog } from './components/PageRecoveryDialog'
 import { PageSettingsDialog } from './components/PageSettingsDialog'
 import { SettingsIcon } from './components/icons'
 import { SiteCard } from './components/SiteCard'
 import type { DashboardPage } from './components/SiteCard'
-import type { CreatePageInput, PageSummary } from '../../shared/page-contracts'
+import type { PageSummary } from '../../shared/page-contracts'
 
 const placeholderPage: DashboardPage = {
   id: 'template-page',
@@ -19,8 +16,8 @@ const placeholderPage: DashboardPage = {
   status: 'local',
   preview: 'empty',
   isPlaceholder: true,
-  source: { kind: 'simple' },
-  sourceSync: { state: 'not-applicable' }
+  source: { kind: 'website', sourceKey: 'placeholder' },
+  sourceSync: { state: 'unlinked' }
 }
 
 function toDashboardPage(page: PageSummary): DashboardPage {
@@ -43,11 +40,7 @@ function toDashboardPage(page: PageSummary): DashboardPage {
 function App(): React.JSX.Element {
   const [pages, setPages] = useState<PageSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [openPageId, setOpenPageId] = useState<string | null>(null)
   const [settingsPageId, setSettingsPageId] = useState<string | null>(null)
   const [settingsHasUnsavedChanges, setSettingsHasUnsavedChanges] = useState(false)
@@ -66,7 +59,7 @@ function App(): React.JSX.Element {
         if (isCurrent) setPages(loadedPages)
       })
       .catch(() => {
-        if (isCurrent) setError('Não foi possível carregar as páginas locais.')
+        if (isCurrent) window.alert('Não foi possível carregar as páginas locais.')
       })
       .finally(() => {
         if (isCurrent) setIsLoading(false)
@@ -94,33 +87,9 @@ function App(): React.JSX.Element {
     }
   }, [])
 
-  async function createPage(input: CreatePageInput): Promise<void> {
-    if (!input.name.trim()) {
-      setError('Informe o nome da página.')
-      return
-    }
-
-    setIsCreating(true)
-    setError(null)
-
-    try {
-      const createdPage = await window.pageSpace.createPage(input)
-      setPages((currentPages) => [...currentPages, createdPage])
-      setIsCreateDialogOpen(false)
-      setIsAddDialogOpen(false)
-    } catch (createError) {
-      setError(
-        createError instanceof Error ? createError.message : 'Não foi possível criar a página.'
-      )
-    } finally {
-      setIsCreating(false)
-    }
-  }
-
   async function importPage(): Promise<void> {
     if (isImporting) return
     setIsImporting(true)
-    setError(null)
     try {
       const result = await window.pageSpace.importPage()
       if (!result) return
@@ -128,13 +97,12 @@ function App(): React.JSX.Element {
         result.page,
         ...currentPages.filter((page) => page.id !== result.page.id)
       ])
-      setIsAddDialogOpen(false)
     } catch (importError) {
-      setError(
+      const message =
         importError instanceof Error
           ? importError.message
           : 'Não foi possível trazer a página para o PageSpace.'
-      )
+      window.alert(message)
     } finally {
       setIsImporting(false)
     }
@@ -215,39 +183,22 @@ function App(): React.JSX.Element {
   }
 
   if (openPageId) {
-    const openPage = pages.find((page) => page.id === openPageId)
-    const editor =
-      openPage?.source.kind !== 'simple' ? (
-        <PackagePageEditor
-          pageId={openPageId}
-          onBack={closeEditor}
-          onOpenSettings={(pageId, hasUnsavedChanges) => {
-            setSettingsHasUnsavedChanges(hasUnsavedChanges)
-            setSettingsPageId(pageId)
-          }}
-          onSaved={(savedPage) => {
-            setPages((currentPages) => [
-              savedPage.page,
-              ...currentPages.filter((page) => page.id !== savedPage.page.id)
-            ])
-          }}
-        />
-      ) : (
-        <PageEditor
-          pageId={openPageId}
-          onBack={closeEditor}
-          onOpenSettings={(pageId, hasUnsavedChanges) => {
-            setSettingsHasUnsavedChanges(hasUnsavedChanges)
-            setSettingsPageId(pageId)
-          }}
-          onSaved={(savedPage) => {
-            setPages((currentPages) => [
-              savedPage.page,
-              ...currentPages.filter((page) => page.id !== savedPage.page.id)
-            ])
-          }}
-        />
-      )
+    const editor = (
+      <PackagePageEditor
+        pageId={openPageId}
+        onBack={closeEditor}
+        onOpenSettings={(pageId, hasUnsavedChanges) => {
+          setSettingsHasUnsavedChanges(hasUnsavedChanges)
+          setSettingsPageId(pageId)
+        }}
+        onSaved={(savedPage) => {
+          setPages((currentPages) => [
+            savedPage.page,
+            ...currentPages.filter((page) => page.id !== savedPage.page.id)
+          ])
+        }}
+      />
+    )
     return (
       <>
         {editor}
@@ -298,7 +249,7 @@ function App(): React.JSX.Element {
                 }
                 onOpenLocal={(pageId) => {
                   void window.pageSpace.openLocalPage(pageId).catch((openError) => {
-                    setError(
+                    window.alert(
                       openError instanceof Error
                         ? openError.message
                         : 'Não foi possível abrir a página local.'
@@ -308,38 +259,15 @@ function App(): React.JSX.Element {
                 onProblem={setProblemPageId}
               />
             ))}
-            <AddPageCard onClick={() => setIsAddDialogOpen(true)} disabled={isLoading} />
+            <AddPageCard
+              onClick={() => void importPage()}
+              disabled={isLoading || isImporting}
+              isImporting={isImporting}
+            />
           </div>
         </section>
       </div>
 
-      {isAddDialogOpen ? (
-        <AddPageDialog
-          isImporting={isImporting}
-          error={error}
-          onClose={() => {
-            setError(null)
-            setIsAddDialogOpen(false)
-          }}
-          onCreateSimple={() => {
-            setError(null)
-            setIsAddDialogOpen(false)
-            setIsCreateDialogOpen(true)
-          }}
-          onImport={importPage}
-        />
-      ) : null}
-      {isCreateDialogOpen ? (
-        <CreatePageDialog
-          isSaving={isCreating}
-          error={error}
-          onClose={() => {
-            setError(null)
-            setIsCreateDialogOpen(false)
-          }}
-          onCreate={createPage}
-        />
-      ) : null}
       {settingsPage ? (
         <PageSettingsDialog
           page={settingsPage}

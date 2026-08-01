@@ -1,6 +1,5 @@
 import './assets/main.css'
 import './assets/dashboard.css'
-import './assets/editor.css'
 import './assets/package-editor.css'
 import './assets/settings.css'
 

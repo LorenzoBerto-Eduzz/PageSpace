@@ -1,10 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
-  CreatePageInput,
   DeletePublicationInput,
   PublishPageInput,
   SavePackageContentInput,
-  SavePageContentInput,
   UpdatePageDetailsInput
 } from '../shared/page-contracts'
 
@@ -12,13 +10,6 @@ contextBridge.exposeInMainWorld(
   'pageSpace',
   Object.freeze({
     listPages: () => ipcRenderer.invoke('pages:list'),
-    createPage: async (input: CreatePageInput) => {
-      try {
-        return await ipcRenderer.invoke('pages:create', input)
-      } catch {
-        throw new Error('Não foi possível criar a página local. Tente novamente.')
-      }
-    },
     importPage: async () => {
       try {
         return await ipcRenderer.invoke('pages:import')
@@ -34,19 +25,19 @@ contextBridge.exposeInMainWorld(
         throw new Error('Não foi possível abrir a página local.')
       }
     },
+    getPagePreviewUrl: async (pageId: string) => {
+      try {
+        return await ipcRenderer.invoke('pages:preview-url', pageId)
+      } catch {
+        throw new Error('Não foi possível carregar a visualização desta página.')
+      }
+    },
     refreshPageFromSource: async (pageId: string) => {
       try {
         return await ipcRenderer.invoke('pages:refresh-source', pageId)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         throw new Error(cleanIpcErrorMessage(message))
-      }
-    },
-    savePageContent: async (input: SavePageContentInput) => {
-      try {
-        return await ipcRenderer.invoke('pages:save-content', input)
-      } catch {
-        throw new Error('Não foi possível salvar as alterações da página.')
       }
     },
     savePackageContent: async (input: SavePackageContentInput) => {
