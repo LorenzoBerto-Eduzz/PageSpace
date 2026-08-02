@@ -59,11 +59,8 @@ PageSpace/
   README.md
 ```
 
-The local root folder intentionally retains the previous `PageMaker` directory name while the
-current Codex task remains associated with this workspace path. The name is cosmetic and does not
-affect PageSpace identity, builds, Git, OAuth, or delivery. Rename it only during a deliberate
-handoff: finish and push a clean checkpoint, close Codex and PageSpace, rename externally, reopen
-the renamed folder as a new Codex workspace/task, and recover context from this repository.
+The canonical local repository path is `C:\C.Nvme\Projects\PageSpace`. The former `PageMaker`
+workspace was removed after migration; do not recreate or resume work from that obsolete path.
 
 ## Product Boundaries
 
@@ -90,8 +87,8 @@ the renamed folder as a new Codex workspace/task, and recover context from this 
   commit with an objective title and bullet details, and push unless the owner says not to.
 - After a completed user-visible milestone, refresh `project/dist/PageSpace/` while preserving
   `Pages/`, unless the owner says not to.
-- `localrelease`: create `project/dist/localrelease/PageSpace/` with an empty `Pages/` folder and no
-  local data. Follow `docs/DELIVERY_PROCESS.md`.
+- `localrelease`: create `localrelease/PageSpace/` and `localrelease/PageSpace.zip` with an empty
+  `Pages/` folder and no local data. Follow `docs/DELIVERY_PROCESS.md`.
 - Once the owner is using an existing local release as a persistent test instance, use
   `npm run refresh:localrelease` to update its binaries while preserving its `Pages/`. Do not run
   the clean `export:localrelease` workflow unless the owner explicitly requests another reset.

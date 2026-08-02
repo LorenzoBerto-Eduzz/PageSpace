@@ -1,5 +1,29 @@
 # AI Handoff: PageSpace
 
+## Canonical Migration Checkpoint
+
+- The verified canonical repository is now `C:\C.Nvme\Projects\PageSpace` with the original Git
+  history, `main` branch, local identity guard, and
+  `https://github.com/LorenzoBerto-Eduzz/PageSpace.git` origin intact.
+- The former `C:\C.Nvme\Projects\PageMaker` workspace and former standalone SotoDashboard folder
+  were removed after the canonical projects were verified. Do not recreate or resume work from
+  those obsolete paths.
+- Generated dependencies were reinstalled in the canonical project. `npm install` reported one
+  upstream high-severity audit item; no unreviewed automatic dependency rewrite was applied.
+- The migration-path, ignore-rule, release-automation, and durable-documentation changes belong to
+  the final canonical migration checkpoint. Owner scratch content under `notes/` remains untracked
+  and must not be committed unless explicitly requested.
+- PageSpace validation at migration passed 57 tests, lint, Node/web type checks, production build,
+  Windows portable packaging, and clean-release validation.
+- Clean artifacts are `C:\C.Nvme\Projects\PageSpace\localrelease\PageSpace\` and
+  `PageSpace.zip`. Their `Pages/` folder is empty and no private metadata is included.
+- The Windows PageSpace profile, prior linked-GitHub authorization, authorization backup, test
+  page instances, and test caches were explicitly removed for a genuine first-user test. Do not
+  launch PageSpace before the owner is ready to begin that test, because launch recreates the
+  Windows profile.
+- SotoDashboard moved to `C:\C.Nvme\Projects\Pages\SotoDashboard`; its own `AGENTS.md` and
+  `docs/AI_HANDOFF.md` are authoritative for that separate page project.
+
 ## Current State
 
 - The product has pivoted from PageMaker to `PageSpace`.
@@ -10,10 +34,8 @@
 - The existing OAuth Client ID and Device Flow implementation were intentionally preserved.
 - The previous local test pages, legacy application data, and both disposable GitHub test
   repositories were removed.
-- Source remains in `project/`. The outer local directory intentionally retains the former name
-  while the active Codex task is associated with that path. This is cosmetic and must not be
-  treated as pending product work. Rename only through a deliberate new-workspace handoff after a
-  clean pushed checkpoint; reopen the renamed folder and recover from `AGENTS.md` and this file.
+- Source remains in `project/`. The canonical local repository path is
+  `C:\C.Nvme\Projects\PageSpace`.
 - Private per-page metadata uses `.pagespace/`.
 - The current starter application version is `0.1.0`.
 
@@ -97,16 +119,17 @@
   `--pagespace-window-surface` color matching the current Windows title-bar surface. Ordinary and
   static pages use the full remaining live browser viewport; the package field panel appears only
   when editing capabilities are declared.
-- `project/dist/localrelease/PageSpace/` is now the owner's persistent real-use test instance.
+- `localrelease/PageSpace/` is the owner's persistent real-use test instance.
   `npm run refresh:localrelease` refreshes its binaries while preserving `Pages/`; use
   `export:localrelease` only when a deliberately empty first-run copy is requested.
 - PageSpace and compatible page projects are separate deliverables maintained from this AI task.
-  The clean PageSpace handoff uses stable names `PageSpace/` and `PageSpace.zip`; version numbers
+  The clean PageSpace handoff uses `localrelease/PageSpace/` and `localrelease/PageSpace.zip`;
+  version numbers
   belong in internal metadata and GitHub Release metadata, not the replaceable artifact name.
 - SotoDashboard is the first real compatible page project at
-  `C:\C.Nvme\Projects\SotoDashboard`. It remains independently browser-ready, while its optional
+  `C:\C.Nvme\Projects\Pages\SotoDashboard`. It remains independently browser-ready, while its optional
   PageSpace extension owns title, section, card, link, and image editing. Its private handoff uses
-  `dist/localrelease/SotoDashboard/` and `SotoDashboard.zip`, with clean seed content and no user
+  `localrelease/SotoDashboard/` and `localrelease/SotoDashboard.zip`, with clean seed content and no user
   instance data. It currently has no Git repository and is shared directly with the colleague.
 - Saving editable content and automatic source refresh update/bake the managed local page but do
   not create Git commits. If the page is published they mark it as having unpublished changes.

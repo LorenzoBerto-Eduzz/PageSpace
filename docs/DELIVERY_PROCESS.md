@@ -28,7 +28,7 @@ local Git repositories, and publication metadata.
 The owner command `localrelease` means:
 
 ```text
-project/dist/localrelease/PageSpace/
+localrelease/PageSpace/
   PageSpace.exe
   Pages/                 empty
 ```
@@ -43,8 +43,8 @@ npm run export:localrelease
 The replaceable handoff artifacts use stable names:
 
 ```text
-project/dist/localrelease/PageSpace/
-project/dist/localrelease/PageSpace.zip
+localrelease/PageSpace/
+localrelease/PageSpace.zip
 ```
 
 Do not append the application version to these local filenames. Record versions in application
@@ -80,9 +80,10 @@ Required procedure:
 No GitHub Release, uploaded ZIP, installer, updater, or public PageSpace deployment is authorized
 unless the owner explicitly requests it.
 
-Compatible page projects are packaged independently. SotoDashboard currently uses the private
-handoff paths `C:\C.Nvme\Projects\SotoDashboard\dist\localrelease\SotoDashboard\` and
-`SotoDashboard.zip`. That clean package contains the browser-ready website and PageSpace contract,
+Compatible page projects are packaged independently. SotoDashboard uses the canonical project
+path `C:\C.Nvme\Projects\Pages\SotoDashboard` and private handoff paths
+`localrelease\SotoDashboard\` and `localrelease\SotoDashboard.zip`. That clean package contains
+the browser-ready website and PageSpace contract,
 but no PageSpace instance metadata, Git repository, credentials, user sections/cards, or private
 assets. The colleague imports the whole `SotoDashboard` folder into PageSpace. Future template
 updates replace the source handoff while PageSpace reconciles compatible private instance values.
@@ -98,7 +99,5 @@ only the selected page's verified generated output.
 - The previous local test data and old app-data directory were intentionally cleared.
 - The source GitHub repository is now `LorenzoBerto-Eduzz/PageSpace`, and `origin` uses that URL.
 - The existing GitHub OAuth App display identity was renamed without replacing its Client ID.
-- The outer active workspace folder may remain `PageMaker` indefinitely; this is cosmetic and does
-  not affect delivered PageSpace artifacts. If renamed, first push a clean checkpoint, close Codex
-  and PageSpace, rename externally, then reopen the new path as a new Codex workspace and recover
-  project context from the repository documentation.
+- The canonical repository path is `C:\C.Nvme\Projects\PageSpace`. The previous `PageMaker`
+  workspace was removed after the canonical copy was verified.

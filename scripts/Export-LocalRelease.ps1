@@ -1,9 +1,11 @@
 $ErrorActionPreference = 'Stop'
 
-$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\project')).Path
+$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$projectRoot = Join-Path $repositoryRoot 'project'
 $reviewRoot = Join-Path $projectRoot 'dist\PageSpace'
-$localReleaseParent = Join-Path $projectRoot 'dist\localrelease'
+$localReleaseParent = Join-Path $repositoryRoot 'localrelease'
 $localReleaseRoot = Join-Path $localReleaseParent 'PageSpace'
+$localReleaseZip = Join-Path $localReleaseParent 'PageSpace.zip'
 
 Push-Location $projectRoot
 try {
@@ -21,9 +23,9 @@ if (-not (Test-Path -LiteralPath (Join-Path $reviewRoot 'PageSpace.exe'))) {
 }
 
 if (Test-Path -LiteralPath $localReleaseParent) {
-  $resolvedDist = (Resolve-Path (Join-Path $projectRoot 'dist')).Path
+  $resolvedRepository = $repositoryRoot
   $resolvedTarget = (Resolve-Path $localReleaseParent).Path
-  if (-not $resolvedTarget.StartsWith($resolvedDist, [System.StringComparison]::OrdinalIgnoreCase)) {
+  if (-not $resolvedTarget.StartsWith($resolvedRepository, [System.StringComparison]::OrdinalIgnoreCase)) {
     throw "Destino de localrelease inválido: $resolvedTarget"
   }
 
@@ -54,4 +56,7 @@ if ($pageEntries) {
   throw 'A pasta Pages da localrelease não está vazia.'
 }
 
+Compress-Archive -LiteralPath $localReleaseRoot -DestinationPath $localReleaseZip -CompressionLevel Optimal
+
 Write-Output "localrelease limpa criada em: $localReleaseRoot"
+Write-Output "arquivo ZIP limpo criado em: $localReleaseZip"

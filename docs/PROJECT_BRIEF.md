@@ -5,9 +5,9 @@
 - Product: `PageSpace`
 - Form: portable Windows desktop application
 - Source: `project/`
+- Canonical repository path: `C:\C.Nvme\Projects\PageSpace`
 - Stack: Electron + electron-vite + React + TypeScript
-- Repository: `https://github.com/LorenzoBerto-Eduzz/PageSpace`; the local root folder intentionally
-  retains its previous directory name to preserve the active Codex task's workspace association.
+- Repository: `https://github.com/LorenzoBerto-Eduzz/PageSpace`.
 
 ## Purpose
 

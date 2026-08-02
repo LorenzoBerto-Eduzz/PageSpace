@@ -37,4 +37,4 @@ credentials in protected operating-system storage, and publishes only freshly ge
 verified against a private manifest.
 
 The owner's development copy is `project/dist/PageSpace/`. A clean colleague handoff must use
-`project/dist/localrelease/PageSpace/`, whose `Pages/` directory is empty.
+`localrelease/PageSpace/` and `localrelease/PageSpace.zip`, whose `Pages/` directory is empty.
