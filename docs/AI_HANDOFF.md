@@ -37,7 +37,7 @@
 - Source remains in `project/`. The canonical local repository path is
   `C:\C.Nvme\Projects\PageSpace`.
 - Private per-page metadata uses `.pagespace/`.
-- The current starter application version is `0.1.0`.
+- The current application version is `0.1.1`.
 
 ## Implemented PageSpace Foundation
 
@@ -135,6 +135,14 @@
   not create Git commits. If the page is published they mark it as having unpublished changes.
   Explicit initial publication or `Publicar atualização` stages only verified public output,
   creates a Git commit when output changed, and pushes it.
+- Settings now checks the official PageSpace GitHub latest-release endpoint. A newer stable release
+  with the exact `PageSpace.zip` asset and GitHub SHA-256 digest exposes `Baixar e atualizar`.
+  PageSpace stages and validates the archive, then uses a detached Windows helper to replace the
+  portable folder, retain `Pages/`, restart, clean staging, and roll back a failed swap. The release
+  embeds `pagespace-release.json` so the extracted application version must match the release tag.
+- `remoterelease` is the owner command for the complete public application-release workflow:
+  memory/Git checkpoint, semantic version bump, clean build, stable-name ZIP, version tag, GitHub
+  Release publication, and verification of the public asset digest/latest-release response.
 
 ## Validated Checkpoint
 

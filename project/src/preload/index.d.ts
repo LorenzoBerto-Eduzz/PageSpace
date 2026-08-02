@@ -1,5 +1,7 @@
 import type {
   AppSettingsSnapshot,
+  AppUpdateInstallResult,
+  AppUpdateStatus,
   DeletePublicationInput,
   DeletePublicationResult,
   ImportPageResult,
@@ -38,6 +40,8 @@ declare global {
       getAppSettings: () => Promise<AppSettingsSnapshot>
       openPagesFolder: () => Promise<void>
       downloadAiInstructions: () => Promise<boolean>
+      checkForAppUpdate: (force?: boolean) => Promise<AppUpdateStatus>
+      installAppUpdate: () => Promise<AppUpdateInstallResult>
       beginGitHubLink: () => Promise<GitHubDeviceAuthorization>
       completeGitHubLink: (flowId: string) => Promise<GitHubConnectionStatus>
       cancelGitHubLink: (flowId: string) => Promise<void>

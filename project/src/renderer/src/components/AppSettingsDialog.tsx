@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   AppSettingsSnapshot,
+  AppUpdateStatus,
   GitHubDeviceAuthorization,
   PageSummary
 } from '../../../shared/page-contracts'
@@ -31,6 +32,10 @@ export function AppSettingsDialog({
   const [isLinkingGitHub, setIsLinkingGitHub] = useState(false)
   const [isDisconnectingGitHub, setIsDisconnectingGitHub] = useState(false)
   const [instructionMessage, setInstructionMessage] = useState<string | null>(null)
+  const [updateStatus, setUpdateStatus] = useState<AppUpdateStatus | null>(null)
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
+  const [isInstallingUpdate, setIsInstallingUpdate] = useState(false)
+  const [updateError, setUpdateError] = useState<string | null>(null)
   const linkAttemptId = useRef(0)
   const [codeWasCopied, setCodeWasCopied] = useState(false)
   const damagedPages = useMemo(
@@ -45,9 +50,58 @@ export function AppSettingsDialog({
 
   useEffect(() => {
     void refresh()
+    void checkForUpdate(true)
     // The initial scan belongs to this modal opening only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  async function checkForUpdate(force = false): Promise<void> {
+    if (isCheckingUpdate || isInstallingUpdate) return
+    setIsCheckingUpdate(true)
+    setUpdateError(null)
+    try {
+      setUpdateStatus(await window.pageSpace.checkForAppUpdate(force))
+    } catch (checkError) {
+      setUpdateError(
+        checkError instanceof Error
+          ? checkError.message
+          : 'Não foi possível verificar as atualizações.'
+      )
+    } finally {
+      setIsCheckingUpdate(false)
+    }
+  }
+
+  async function installUpdate(): Promise<void> {
+    if (isInstallingUpdate || updateStatus?.state !== 'available') return
+    setIsInstallingUpdate(true)
+    setUpdateError(null)
+    try {
+      await window.pageSpace.installAppUpdate()
+    } catch (installError) {
+      setUpdateError(
+        installError instanceof Error
+          ? installError.message
+          : 'Não foi possível instalar a atualização.'
+      )
+      setIsInstallingUpdate(false)
+    }
+  }
+
+  function latestReleaseVersion(): string {
+    if (updateStatus?.state === 'available' || updateStatus?.state === 'up-to-date') {
+      return `v${updateStatus.latestVersion}`
+    }
+    return isCheckingUpdate ? 'Verificando…' : '—'
+  }
+
+  function updateButtonText(): string {
+    if (isInstallingUpdate) return 'Baixando e preparando…'
+    if (isCheckingUpdate) return 'Verificando…'
+    if (updateStatus?.state === 'available') return 'Baixar e atualizar'
+    if (updateStatus?.state === 'up-to-date') return 'Usando última versão'
+    return 'Verificar atualizações'
+  }
 
   async function refresh(): Promise<void> {
     if (isChecking) return
@@ -174,7 +228,10 @@ export function AppSettingsDialog({
       >
         <header>
           <h2 id="app-settings-title">Configurações do PageSpace</h2>
-          <ModalCloseButton onClick={closeDialog} disabled={isChecking || isDisconnectingGitHub} />
+          <ModalCloseButton
+            onClick={closeDialog}
+            disabled={isChecking || isDisconnectingGitHub || isInstallingUpdate}
+          />
         </header>
 
         <div className="app-settings-section">
@@ -205,6 +262,35 @@ export function AppSettingsDialog({
               {isChecking ? 'Verificando…' : 'Verificar páginas novamente'}
             </button>
           </div>
+
+          <div className="app-settings-update">
+            <button
+              type="button"
+              disabled={
+                isCheckingUpdate || isInstallingUpdate || updateStatus?.state === 'up-to-date'
+              }
+              onClick={() =>
+                updateStatus?.state === 'available'
+                  ? void installUpdate()
+                  : void checkForUpdate(true)
+              }
+            >
+              {updateButtonText()}
+            </button>
+            <dl className="app-settings-update-versions">
+              <div>
+                <dt>Última versão no GitHub</dt>
+                <dd>{latestReleaseVersion()}</dd>
+              </div>
+              <div>
+                <dt>Versão em uso</dt>
+                <dd>v{snapshot.version}</dd>
+              </div>
+            </dl>
+          </div>
+          {updateError ? (
+            <p className="dialog-error app-settings-update-error">{updateError}</p>
+          ) : null}
         </div>
 
         {damagedPages.length ? (

@@ -140,6 +140,22 @@ export type AppSettingsSnapshot = {
   pages: PageSummary[]
 }
 
+export type AppUpdateStatus =
+  | { state: 'unsupported'; currentVersion: string }
+  | { state: 'unavailable'; currentVersion: string }
+  | { state: 'up-to-date'; currentVersion: string; latestVersion: string }
+  | {
+      state: 'available'
+      currentVersion: string
+      latestVersion: string
+      releaseName: string
+      publishedAt: string
+    }
+
+export type AppUpdateInstallResult = {
+  state: 'restarting'
+}
+
 export type GitHubAccount = {
   id: number
   login: string

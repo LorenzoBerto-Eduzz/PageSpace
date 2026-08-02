@@ -1,4 +1,4 @@
-import { ImportIcon } from './icons'
+import { PlusIcon } from './icons'
 
 type AddPageCardProps = {
   onClick: () => void
@@ -19,7 +19,7 @@ export function AddPageCard({
       onClick={onClick}
       disabled={disabled}
     >
-      <ImportIcon size={28} />
+      <PlusIcon size={28} />
       <span>{isImporting ? 'Trazendo página…' : 'Trazer página'}</span>
     </button>
   )

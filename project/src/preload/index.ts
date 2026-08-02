@@ -142,6 +142,22 @@ contextBridge.exposeInMainWorld(
       }
     },
     downloadAiInstructions: () => ipcRenderer.invoke('app-settings:download-ai-instructions'),
+    checkForAppUpdate: async (force = false) => {
+      try {
+        return await ipcRenderer.invoke('app-update:check', force)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        throw new Error(cleanIpcErrorMessage(message))
+      }
+    },
+    installAppUpdate: async () => {
+      try {
+        return await ipcRenderer.invoke('app-update:install')
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        throw new Error(cleanIpcErrorMessage(message))
+      }
+    },
     beginGitHubLink: async () => {
       try {
         return await ipcRenderer.invoke('github:begin-link')

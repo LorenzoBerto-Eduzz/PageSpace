@@ -77,8 +77,34 @@ Required procedure:
 
 ## Public Application Release
 
-No GitHub Release, uploaded ZIP, installer, updater, or public PageSpace deployment is authorized
-unless the owner explicitly requests it.
+No GitHub Release or uploaded application ZIP is authorized unless the owner explicitly requests
+`remoterelease` (or otherwise explicitly requests a public release).
+
+`remoterelease` means:
+
+1. Perform `memcheck` and `gitcheck`, preserving owner scratch content and private data boundaries.
+2. Select an appropriate semantic version bump unless the owner specifies the target version.
+3. Update both `project/package.json` and its lockfile to that exact version.
+4. Run tests, lint, type checks, production packaging, and `npm run export:localrelease`.
+5. Verify `localrelease/PageSpace/pagespace-release.json` matches the version, `Pages/` is empty,
+   and the folder/ZIP contain no private or forbidden data.
+6. Commit and push the release checkpoint, create and push tag `v<version>`, then publish the exact
+   stable-name `localrelease/PageSpace.zip` asset in this repository's GitHub Releases.
+7. Verify GitHub reports the asset as uploaded with its size and `sha256:` digest and that the
+   unauthenticated latest-release endpoint returns the new stable release.
+
+The built-in updater checks only
+`https://api.github.com/repos/LorenzoBerto-Eduzz/PageSpace/releases/latest`. It accepts only a
+non-draft, non-prerelease semantic tag newer than the installed app, the exact asset name
+`PageSpace.zip`, the official repository download URL, and GitHub's SHA-256 asset digest. It
+downloads into a private staging directory beside the installation, verifies the digest and
+embedded `pagespace-release.json`, validates the extracted tree, closes PageSpace, swaps the
+portable application folder through a detached Windows helper, preserves the existing `Pages/`,
+restarts PageSpace, and rolls back if replacement fails. GitHub authorization remains in the
+protected Windows profile and is not part of the swapped folder.
+
+The first updater-capable PageSpace build must still be delivered manually. Once installed, later
+`remoterelease` versions can be installed from Settings with `Baixar e atualizar`.
 
 Compatible page projects are packaged independently. SotoDashboard uses the canonical project
 path `C:\C.Nvme\Projects\Pages\SotoDashboard` and private handoff paths

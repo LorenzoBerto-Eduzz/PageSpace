@@ -47,6 +47,17 @@ Get-ChildItem -LiteralPath $reviewRoot -Force |
   Where-Object { $_.Name -ne 'Pages' } |
   Copy-Item -Destination $releaseRoot -Recurse -Force
 
+$packageVersion = (Get-Content -Raw (Join-Path $projectRoot 'package.json') | ConvertFrom-Json).version
+if ($packageVersion -notmatch '^\d+\.\d+\.\d+$') {
+  throw "Versão inválida no package.json: $packageVersion"
+}
+$releaseManifest = @{ schemaVersion = 1; version = $packageVersion } | ConvertTo-Json -Compress
+[IO.File]::WriteAllText(
+  (Join-Path $releaseRoot 'pagespace-release.json'),
+  $releaseManifest,
+  (New-Object Text.UTF8Encoding($false))
+)
+
 if (-not (Test-Path -LiteralPath (Join-Path $releaseRoot 'PageSpace.exe'))) {
   throw 'A atualização da localrelease não produziu PageSpace.exe.'
 }

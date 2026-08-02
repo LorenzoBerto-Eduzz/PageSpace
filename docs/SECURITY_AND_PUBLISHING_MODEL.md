@@ -77,6 +77,19 @@ Never publish:
 - Tokens remain in Electron main-process storage and never cross preload.
 - Page packages never receive the account, token, or privileged GitHub API access.
 
+## Application Updates
+
+- Update checks are unauthenticated and restricted to the official PageSpace repository's latest
+  stable GitHub Release.
+- Only the exact `PageSpace.zip` asset is accepted, and only when GitHub provides its SHA-256
+  digest. The downloaded bytes must match both the published size and digest.
+- Extracted updates must contain the matching `pagespace-release.json`, `PageSpace.exe`, an empty
+  `Pages/`, no symbolic links, and remain inside bounded file-count and size limits.
+- The update is staged before the running process exits. A detached trusted Windows helper swaps
+  the folder, transfers the old private `Pages/` into the new installation, restarts the app, and
+  restores the old installation if replacement fails.
+- Package-provided code has no access to update checks, downloads, staging, or replacement.
+
 ## Publication
 
 - Initial publication explicitly names the page, connected account, repository, URL, and public

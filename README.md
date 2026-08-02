@@ -38,3 +38,5 @@ verified against a private manifest.
 
 The owner's development copy is `project/dist/PageSpace/`. A clean colleague handoff must use
 `localrelease/PageSpace/` and `localrelease/PageSpace.zip`, whose `Pages/` directory is empty.
+Updater-capable builds can later install newer verified `PageSpace.zip` assets published through
+the official repository's GitHub Releases while preserving the user's local `Pages/` folder.

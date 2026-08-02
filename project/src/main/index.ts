@@ -10,8 +10,10 @@ import {
   protocol,
   shell
 } from 'electron'
-import { dirname, join } from 'path'
+import { basename, dirname, join, resolve } from 'path'
 import { pathToFileURL } from 'node:url'
+import { tmpdir } from 'node:os'
+import { writeFile } from 'node:fs/promises'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.ico?asset'
 import { PageSpaceWorkspaceService } from './pagespace-workspace-service'
@@ -19,6 +21,7 @@ import { GitHubAuthService } from './github-auth-service'
 import { GitHubPublishingService } from './github-publishing-service'
 import { PublicationDiagnostics } from './publication-diagnostics'
 import { createPageSpaceAiInstructions } from './pagespace-ai-instructions'
+import { PageSpaceUpdateService } from './pagespace-update-service'
 import type {
   DeletePublicationInput,
   PublishPageInput,
@@ -37,6 +40,20 @@ const PAGE_EDITOR_HEADER_HEIGHT = 64
 const STORED_PREVIEW_WIDTH = 1104
 const OFFSCREEN_LAYOUT_WIDTH_ALLOWANCE = 16
 let mainApplicationWindow: BrowserWindow | null = null
+let pendingUpdateMarker = requestedUpdateMarker()
+
+function requestedUpdateMarker(): string | null {
+  const markerIndex = process.argv.indexOf('--pagespace-update-marker')
+  if (markerIndex < 0 || markerIndex + 1 >= process.argv.length) return null
+  const marker = resolve(process.argv[markerIndex + 1])
+  if (
+    dirname(marker).toLowerCase() !== resolve(tmpdir()).toLowerCase() ||
+    !/^pagespace-update-ready-[a-f0-9-]{36}\.txt$/.test(basename(marker))
+  ) {
+    return null
+  }
+  return marker
+}
 
 async function getPagePreviewViewport(): Promise<{ width: number; height: number }> {
   const mainWindow = mainApplicationWindow
@@ -100,6 +117,10 @@ function createWindow(hasActivePublications: () => boolean): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
+    const marker = pendingUpdateMarker
+    pendingUpdateMarker = null
+    if (marker)
+      void writeFile(marker, 'ready', { encoding: 'utf8', flag: 'wx' }).catch(() => undefined)
   })
 
   mainWindow.webContents.setWindowOpenHandler(() => {
@@ -285,6 +306,14 @@ app.whenReady().then(() => {
     pageWorkspace,
     new PublicationDiagnostics(app.getPath('userData'))
   )
+  const appUpdates = new PageSpaceUpdateService({
+    currentVersion: app.getVersion(),
+    installDirectory: dirname(process.execPath),
+    executablePath: process.execPath,
+    isPackaged: app.isPackaged,
+    fetch: (input, init) => net.fetch(input, init),
+    requestQuit: () => app.quit()
+  })
   ipcMain.handle('pages:list', async () => pageWorkspace.listPages())
   ipcMain.handle('pages:synchronize-sources', async () =>
     synchronizeChangedPageSources(pageWorkspace)
@@ -423,9 +452,15 @@ app.whenReady().then(() => {
       filters: [{ name: 'Arquivo de texto', extensions: ['txt'] }]
     })
     if (destination.canceled || !destination.filePath) return false
-    const { writeFile } = await import('node:fs/promises')
     await writeFile(destination.filePath, createPageSpaceAiInstructions(app.getVersion()), 'utf8')
     return true
+  })
+  ipcMain.handle('app-update:check', (_, force = false) => appUpdates.check(force === true))
+  ipcMain.handle('app-update:install', () => {
+    if (githubPublishing.hasActivePublications()) {
+      throw new Error('Aguarde a publicação atual terminar antes de atualizar o PageSpace.')
+    }
+    return appUpdates.install()
   })
   ipcMain.handle('github:begin-link', async () => {
     const authorization = await githubAuth.beginDeviceFlow()

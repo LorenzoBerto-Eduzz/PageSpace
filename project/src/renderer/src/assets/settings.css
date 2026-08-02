@@ -452,6 +452,77 @@
   opacity: 0.55;
 }
 
+.app-settings-update {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 13px;
+  border: 1px solid rgba(205, 210, 218, 0.86);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.app-settings-update button {
+  min-height: 38px;
+  flex: 0 0 auto;
+  padding: 0 12px;
+  border: 1px solid #636f82;
+  border-radius: 10px;
+  color: #fff;
+  background: #58677d;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.app-settings-update-versions {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 5px;
+  margin: 0;
+}
+
+.app-settings-update-versions > div {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.app-settings-update-versions dt,
+.app-settings-update-versions dd {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.app-settings-update-versions dt {
+  color: #7d8590;
+}
+
+.app-settings-update-versions dd {
+  flex: 0 0 auto;
+  color: #4c515a;
+  font-weight: 650;
+}
+
+.app-settings-update button:hover:not(:disabled) {
+  background: #4f5e73;
+}
+
+.app-settings-update button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.app-settings-update-error {
+  margin-top: 10px;
+}
+
 .app-settings-damaged-list {
   display: grid;
   gap: 7px;

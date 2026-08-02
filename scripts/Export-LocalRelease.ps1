@@ -40,6 +40,17 @@ Get-ChildItem -LiteralPath $reviewRoot -Force |
 
 New-Item -ItemType Directory -Path (Join-Path $localReleaseRoot 'Pages') | Out-Null
 
+$packageVersion = (Get-Content -Raw (Join-Path $projectRoot 'package.json') | ConvertFrom-Json).version
+if ($packageVersion -notmatch '^\d+\.\d+\.\d+$') {
+  throw "Versão inválida no package.json: $packageVersion"
+}
+$releaseManifest = @{ schemaVersion = 1; version = $packageVersion } | ConvertTo-Json -Compress
+[IO.File]::WriteAllText(
+  (Join-Path $localReleaseRoot 'pagespace-release.json'),
+  $releaseManifest,
+  (New-Object Text.UTF8Encoding($false))
+)
+
 $forbiddenEntries = Get-ChildItem -LiteralPath $localReleaseRoot -Recurse -Force |
   Where-Object {
     $_.Name -in @('.git', '.pagemaker', '.pagespace', '.git-identity', '.env') -or
