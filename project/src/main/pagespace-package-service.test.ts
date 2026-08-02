@@ -208,6 +208,69 @@ describe('PageSpace package validation and baking', () => {
     ).toThrow('inválido')
   })
 
+  it('validates and preserves nested section and card collections', () => {
+    const schema: PageSpaceEditableSchema = {
+      schemaVersion: 1,
+      fields: [
+        {
+          key: 'sections',
+          type: 'collection',
+          label: 'Sections',
+          fields: [
+            { key: 'title', type: 'text', label: 'Section title', required: true },
+            {
+              key: 'cards',
+              type: 'collection',
+              label: 'Cards',
+              fields: [
+                { key: 'title', type: 'text', label: 'Card title', required: true },
+                { key: 'address', type: 'url', label: 'Address', required: true }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    const content = validateEditableContent(
+      {
+        schemaVersion: 1,
+        values: {
+          sections: [
+            {
+              _id: 'section-1',
+              title: 'Operations',
+              cards: [
+                {
+                  _id: 'card-1',
+                  title: 'Dashboard',
+                  address: 'https://example.com/dashboard'
+                }
+              ]
+            }
+          ]
+        }
+      },
+      schema
+    )
+
+    expect(content.values).toEqual({
+      sections: [
+        {
+          _id: 'section-1',
+          title: 'Operations',
+          cards: [
+            {
+              _id: 'card-1',
+              title: 'Dashboard',
+              address: 'https://example.com/dashboard'
+            }
+          ]
+        }
+      ]
+    })
+    expect(reconcileEditableContent(content, schema, content, schema)).toEqual(content)
+  })
+
   it('detects direct static sites and common browser-ready output folders', async () => {
     const direct = await temporaryDirectory()
     await writeFile(join(direct, 'index.html'), '<!doctype html><title>Direct</title>')
@@ -272,5 +335,66 @@ describe('PageSpace package validation and baking', () => {
     await expect(validateStaticWebsite(project)).rejects.toThrow(
       'Mais de uma página inicial possível'
     )
+  })
+})
+
+it('accepts a package-declared section and card editor', async () => {
+  const source = await temporaryDirectory()
+  await createEditablePackage(source)
+  await writeFile(
+    join(source, 'editables.json'),
+    JSON.stringify({
+      schemaVersion: 1,
+      fields: [
+        {
+          key: 'sections',
+          type: 'collection',
+          label: 'Sections',
+          fields: [
+            { key: 'title', type: 'text', label: 'Section title', required: true },
+            {
+              key: 'cards',
+              type: 'collection',
+              label: 'Cards',
+              fields: [
+                { key: 'title', type: 'text', label: 'Card title', required: true },
+                { key: 'address', type: 'url', label: 'Address', required: true }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+  )
+  await writeFile(
+    join(source, 'content.json'),
+    JSON.stringify({
+      schemaVersion: 1,
+      values: {
+        sections: [
+          {
+            _id: 'section-1',
+            title: 'Operations',
+            cards: [
+              {
+                _id: 'card-1',
+                title: 'Dashboard',
+                address: 'https://example.com/dashboard'
+              }
+            ]
+          }
+        ]
+      }
+    })
+  )
+
+  const candidate = await validatePageSpacePackage(source)
+
+  expect(candidate.schema?.fields[0]).toMatchObject({
+    key: 'sections',
+    type: 'collection'
+  })
+  expect(candidate.content?.values).toMatchObject({
+    sections: [{ _id: 'section-1', cards: [{ _id: 'card-1' }] }]
   })
 })

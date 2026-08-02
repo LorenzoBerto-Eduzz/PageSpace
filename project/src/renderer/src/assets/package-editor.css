@@ -11,9 +11,14 @@
 }
 
 .package-editor--loading {
+  background: #f6f7fb;
+}
+
+.package-editor-loading-surface {
   display: grid;
+  min-height: 0;
   place-items: center;
-  padding: 40px;
+  background: #f6f7fb;
 }
 
 .package-editor-header {
@@ -58,7 +63,6 @@
 
 .package-editor-back,
 .package-editor-header-actions button,
-.package-preview-empty button,
 .package-image-button,
 .package-clear-image,
 .package-add-collection-item {
@@ -80,7 +84,6 @@
 
 .package-editor-back:hover,
 .package-editor-header-actions button:hover:not(:disabled),
-.package-preview-empty button:hover,
 .package-image-button:hover,
 .package-clear-image:hover,
 .package-add-collection-item:hover:not(:disabled) {
@@ -116,9 +119,54 @@
   background: #536579;
 }
 
+.package-editor-header-actions .package-publish-update {
+  border-color: #536579;
+  color: #fff;
+  background: #536579;
+}
+
+.package-editor-header-actions .package-mode-toggle--active {
+  border-color: rgba(83, 101, 121, 0.5);
+  color: #ffffff;
+  background: #536579;
+}
+
+.package-editor-header-actions .package-mode-toggle--active:hover:not(:disabled) {
+  border-color: #45566a;
+  color: #ffffff;
+  background: #45566a;
+}
+
+.package-editor-error--overlay {
+  position: fixed;
+  z-index: 5;
+  right: 18px;
+  bottom: 18px;
+  max-width: min(420px, calc(100vw - 36px));
+  margin: 0;
+  box-shadow: 0 12px 30px rgba(75, 31, 23, 0.16);
+}
+
+.package-editor-header-actions .package-publish-update:hover:not(:disabled) {
+  border-color: #45566a;
+  color: #fff;
+  background: #45566a;
+}
+
+.package-editor-header-actions .package-publication-current {
+  border-color: #c8ced6;
+  color: #747d88;
+  background: #eef0f3;
+  opacity: 1;
+}
+
 .package-editor button:disabled {
   cursor: default;
   opacity: 0.48;
+}
+
+.package-editor-header-actions .package-publication-current:disabled {
+  opacity: 1;
 }
 
 .package-editor-layout {
@@ -165,15 +213,9 @@
 }
 
 .package-preview-empty {
-  max-width: 320px;
-  padding: 32px;
-  color: #7a8491;
-  text-align: center;
-}
-
-.package-preview-empty p {
-  margin: 0 0 16px;
-  line-height: 1.55;
+  width: 100%;
+  height: 100%;
+  background: #f6f7fb;
 }
 
 .package-fields-panel {

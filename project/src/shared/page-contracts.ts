@@ -118,6 +118,11 @@ export type SavePackageContentInput = {
   content: PageSpaceEditableContent
 }
 
+export type PageEditorImageResult = {
+  value: string
+  previewDataUrl: string
+}
+
 export type ImportPageResult = {
   page: PageSummary
   outcome: 'imported' | 'updated'

@@ -25,6 +25,7 @@ const MAX_TOTAL_BYTES = 80_000_000
 const MAX_FIELDS = 100
 const MAX_COLLECTION_FIELDS = 30
 const MAX_COLLECTION_ITEMS = 500
+const MAX_COLLECTION_DEPTH = 2
 
 const ALLOWED_SITE_EXTENSIONS = new Set([
   '.html',
@@ -546,7 +547,7 @@ export function parseEditableSchema(value: unknown): PageSpaceEditableSchema {
   }
 
   const keys = new Set<string>()
-  const fields = candidate.fields.map((field) => parseField(field, keys, false))
+  const fields = candidate.fields.map((field) => parseField(field, keys, 0))
   return { schemaVersion: 1, fields }
 }
 
@@ -583,7 +584,7 @@ function parseManifest(value: unknown): PageSpacePackageManifest {
 function parseField(
   value: unknown,
   siblingKeys: Set<string>,
-  collectionItem: boolean
+  collectionDepth: number
 ): PageSpaceEditableField | CollectionItemField {
   if (!value || typeof value !== 'object') throw new Error('Campo editável inválido.')
   const candidate = value as Partial<PageSpaceEditableField>
@@ -683,7 +684,9 @@ function parseField(
       }
     }
     case 'collection': {
-      if (collectionItem) throw new Error('Coleções aninhadas não são permitidas.')
+      if (collectionDepth >= MAX_COLLECTION_DEPTH) {
+        throw new Error('A estrutura de coleções excede o limite permitido.')
+      }
       const field = candidate as Extract<PageSpaceEditableField, { type: 'collection' }>
       if (
         !Array.isArray(field.fields) ||
@@ -702,9 +705,9 @@ function parseField(
         type: 'collection',
         ...(field.itemLabel ? { itemLabel: normalizeSingleLine(field.itemLabel) } : {}),
         ...(field.maxItems ? { maxItems: field.maxItems } : {}),
-        fields: field.fields.map(
-          (itemField) => parseField(itemField, itemKeys, true) as CollectionItemField
-        )
+        fields: field.fields.map((itemField) =>
+          parseField(itemField, itemKeys, collectionDepth + 1)
+        ) as CollectionItemField[]
       }
     }
     default:

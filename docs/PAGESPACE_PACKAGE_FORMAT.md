@@ -3,8 +3,8 @@
 ## Purpose
 
 PageSpace packages let an AI or another author create a visually unrestricted static website that
-PageSpace can import, organize, preview locally, optionally edit through declared fields, bake, and
-publish through the user's connected GitHub account.
+PageSpace can import, organize, preview locally, optionally edit through a package-owned editing
+extension, bake, and publish through the user's connected GitHub account.
 
 The package contract controls integration only. It does not prescribe a visual system, framework,
 layout, subject, or style.
@@ -76,7 +76,12 @@ An editable package adds `editables.json` and `content.json`.
 - `image`
 - `boolean`
 - `select`
-- `collection` containing text, textarea, URL, color, image, boolean, or select fields
+- `collection` containing scalar fields and, at most, one nested collection
+
+Collections support at most two levels, for structures such as sections containing cards. The
+schema validates private instance content and reconciles compatible package updates. PageSpace
+does not turn the schema into its own generic editing interface: the website renders its declared
+editing experience inside its normal page viewport.
 
 Example:
 
@@ -117,7 +122,7 @@ Example:
 }
 ```
 
-`content.json` contains the initial values keyed by field:
+`content.json` contains seed values for a first import, keyed by field:
 
 ```json
 {
@@ -145,12 +150,51 @@ window.PAGESPACE_CONTENT = { /* validated public values */ };
 The package's own browser JavaScript decides how those values appear. It receives no PageSpace,
 filesystem, Electron, Git, or GitHub privileges.
 
+### In-page editor bridge
+
+When PageSpace opens an editable package, it starts in edit mode and sends the sandboxed page:
+
+```js
+{
+  type: 'pagespace:editor-state',
+  mode: 'edit', // or 'view'
+  content: { schemaVersion: 1, values: { /* current private values */ } }
+}
+```
+
+The package owns all visual controls and page-specific behavior. When its draft changes, it sends
+the parent window the full draft:
+
+```js
+{
+  type: 'pagespace:editor-content-change',
+  content: { schemaVersion: 1, values: { /* updated values */ } }
+}
+```
+
+PageSpace accepts messages only from the currently opened sandboxed page frame. Draft messages
+have no filesystem, Git, GitHub, or publication authority. `Salvar` validates them against
+`editables.json`, stores private content, backs up the prior state, and bakes public output.
+`Visualizar` hides the package-owned controls while retaining the current unsaved draft onscreen.
+Publication remains a separate explicit action.
+
+An editable page may request a user image with `pagespace:editor-image-request`, a unique
+`requestId`, and source `clipboard` or `file`. PageSpace reads the Windows clipboard or opens the
+native file picker, safely decodes/re-encodes the selected image, stores it as a private user asset,
+and replies with `pagespace:editor-image-result`, the same `requestId`, a relative saved `value`,
+and a temporary `previewDataUrl`. The page stores only `value` in its content. To open a declared
+HTTP(S) link from the sandboxed PageSpace viewport, the page sends `pagespace:open-link`; PageSpace
+validates the protocol before handing it to the operating system. These are narrow capabilities,
+not general Electron, clipboard, filesystem, or shell access.
+
 ## Package Updates
 
 PageSpace treats a package with the same `packageId` as an update. It replaces the fixed website
 template and schema only after validation. Compatible saved values are preserved by stable field
-keys and types. New fields receive their new defaults. Removed or incompatible fields are not
-silently published.
+keys, types, collection nesting, and stable collection item `_id` values. The owner's working
+content is stored separately from the installed package. New fields receive their new defaults.
+Removed or incompatible fields are not silently published. Saving validates and bakes locally;
+publishing that saved result is a separate explicit action.
 
 ## Import And Publication Safety
 

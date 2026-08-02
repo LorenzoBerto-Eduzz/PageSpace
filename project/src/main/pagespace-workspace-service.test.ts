@@ -188,4 +188,42 @@ describe('PageSpace workspace package lifecycle', () => {
       await readFile((await workspace.generatePageSite(imported.page.id)).indexPath, 'utf8')
     ).toContain('Updated ordinary page')
   })
+
+  it('upgrades a linked ordinary website to an editable package without replacing the page', async () => {
+    const pagesRoot = await temporaryDirectory('pagespace-pages-')
+    const websiteRoot = await temporaryDirectory('ordinary-to-package-')
+    await writeFile(join(websiteRoot, 'index.html'), '<!doctype html><h1>Original page</h1>')
+    const workspace = new PageSpaceWorkspaceService(pagesRoot)
+    const imported = await workspace.importPage(websiteRoot)
+    await workspace.updatePageDeployment(imported.page.id, {
+      kind: 'published',
+      owner: 'conta',
+      repository: 'preserved-repository',
+      repositoryUrl: 'https://github.com/conta/preserved-repository',
+      publicUrl: 'https://conta.github.io/preserved-repository/',
+      publishedAt: '2026-07-31T00:00:00.000Z',
+      lastPublishedAt: '2026-07-31T00:00:00.000Z',
+      lastCommitOid: 'published-commit',
+      hasUnpublishedChanges: false
+    })
+    await createPackage(websiteRoot, '1.0.0', 'Editable title')
+
+    const updated = await workspace.refreshPageFromSource(imported.page.id)
+
+    expect(updated.id).toBe(imported.page.id)
+    expect(updated.source).toMatchObject({
+      kind: 'package',
+      packageId: 'com.example.workspace-test',
+      mode: 'editable'
+    })
+    expect(updated.deployment).toMatchObject({
+      kind: 'published',
+      repository: 'preserved-repository',
+      hasUnpublishedChanges: true
+    })
+    const opened = await workspace.getPage(imported.page.id)
+    expect(opened.kind).toBe('package')
+    if (opened.kind !== 'package') throw new Error('Expected converted package')
+    expect(opened.content?.values.title).toBe('Editable title')
+  })
 })

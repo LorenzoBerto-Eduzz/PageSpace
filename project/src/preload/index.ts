@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld(
   'pageSpace',
   Object.freeze({
     listPages: () => ipcRenderer.invoke('pages:list'),
+    synchronizePageSources: () => ipcRenderer.invoke('pages:synchronize-sources'),
     importPage: async () => {
       try {
         return await ipcRenderer.invoke('pages:import')
@@ -53,6 +54,21 @@ contextBridge.exposeInMainWorld(
         return await ipcRenderer.invoke('pages:choose-image', pageId)
       } catch {
         throw new Error('Não foi possível importar a imagem selecionada.')
+      }
+    },
+    pastePageImage: async (pageId: string) => {
+      try {
+        return await ipcRenderer.invoke('pages:paste-image', pageId)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        throw new Error(cleanIpcErrorMessage(message))
+      }
+    },
+    openPageLink: async (url: string) => {
+      try {
+        await ipcRenderer.invoke('pages:open-link', url)
+      } catch {
+        throw new Error('Não foi possível abrir este endereço.')
       }
     },
     capturePagePreview: async (pageId: string) => {

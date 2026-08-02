@@ -4,6 +4,7 @@ import type {
   DeletePublicationResult,
   ImportPageResult,
   PageEditorData,
+  PageEditorImageResult,
   PageSummary,
   SavePackageContentInput,
   UpdatePageDetailsInput,
@@ -17,12 +18,15 @@ declare global {
   interface Window {
     pageSpace: Readonly<{
       listPages: () => Promise<PageSummary[]>
+      synchronizePageSources: () => Promise<PageSummary[]>
       importPage: () => Promise<ImportPageResult | null>
       getPage: (pageId: string) => Promise<PageEditorData>
       getPagePreviewUrl: (pageId: string) => Promise<string>
       refreshPageFromSource: (pageId: string) => Promise<PageSummary>
       savePackageContent: (input: SavePackageContentInput) => Promise<PageEditorData>
-      choosePageImage: (pageId: string) => Promise<string | null>
+      choosePageImage: (pageId: string) => Promise<PageEditorImageResult | null>
+      pastePageImage: (pageId: string) => Promise<PageEditorImageResult>
+      openPageLink: (url: string) => Promise<void>
       capturePagePreview: (pageId: string) => Promise<string>
       updatePageDetails: (input: UpdatePageDetailsInput) => Promise<PageSummary>
       openPageFolder: (pageId: string) => Promise<void>

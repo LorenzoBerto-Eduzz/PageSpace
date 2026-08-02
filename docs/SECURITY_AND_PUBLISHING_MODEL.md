@@ -25,10 +25,10 @@ source files. Imports may not contain or trigger:
 Package browser code is previewed with context isolation, Node disabled, sandboxing, and no preload
 bridge.
 
-Imported source locations and lightweight file metadata signatures remain private to the main
-process. PageSpace may check them automatically, but it never replaces a managed copy merely from a
-detected change. `Atualizar da origem` revalidates into staging before atomic replacement, and a
-failed or unavailable source leaves the last managed copy intact.
+Imported source locations and accepted content signatures remain private to the main process.
+PageSpace checks them automatically on startup, focus, dashboard return, and page opening. A
+changed source is fully revalidated in staging before its managed copy is atomically replaced. A
+failed, incomplete, or unavailable source leaves the last verified managed copy intact.
 
 ## Static And Editable Packages
 
@@ -91,8 +91,8 @@ Never publish:
 - External remote changes stop publication instead of being overwritten.
 - Saving or refreshing an already-published page marks its local state as unpublished. Only a
   confirmed push clears that state; failures preserve local work for an explicit retry.
-- Combined `Salvar e publicar` and `Atualizar e publicar` actions remain user-initiated and never
-  turn background source detection into an automatic network write.
+- Automatic source synchronization never performs a network write. Publishing refreshed content
+  remains a separate explicit user action.
 - GitHub Pages uses `main` and `/docs`.
 
 GitHub Pages is public. Authentication required by a destination link does not make the link

@@ -52,7 +52,7 @@ export type SelectEditableField = EditableFieldBase & {
   }>
 }
 
-export type CollectionItemField =
+export type ScalarEditableField =
   | TextEditableField
   | UrlEditableField
   | ColorEditableField
@@ -67,7 +67,9 @@ export type CollectionEditableField = EditableFieldBase & {
   fields: CollectionItemField[]
 }
 
-export type PageSpaceEditableField = CollectionItemField | CollectionEditableField
+export type CollectionItemField = ScalarEditableField | CollectionEditableField
+
+export type PageSpaceEditableField = CollectionItemField
 
 export type PageSpaceEditableSchema = {
   schemaVersion: 1

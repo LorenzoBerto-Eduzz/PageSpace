@@ -1,5 +1,6 @@
 :root {
   --pagespace-window-surface: #f3f3f3;
+  --pagespace-icon-bg-color: rgb(23, 0, 64);
   color: #182033;
   background: #f6f7fb;
   font-family:

@@ -27,28 +27,40 @@
   root/common-output entry, a unique nested `index.html`, or a unique differently named HTML entry.
 - Ordinary imports are non-editable, copy only validated displayable files, and re-importing the
   same private source-location hash updates the existing card.
-- New imports privately retain their source path and lightweight accepted signature. Automatic
-  checks expose `Atualizar da origem` on cards and imported-page screens when the source changes;
-  applying the refresh remains explicit. On a published page, that explicit action becomes
-  `Atualizar e publicar`; failed publication preserves the refreshed local copy and marks it as
-  unpublished. Older imported cards must be re-imported once to establish this private link.
+- New imports privately retain their source path and accepted content signature. Startup, focus,
+  dashboard return, and page opening automatically detect, validate, stage, and atomically apply a
+  valid source change to the managed copy. Invalid/incomplete sources retain the last verified
+  copy. Automatic synchronization never publishes; an already-published page is marked as having
+  unpublished changes until the user explicitly publishes it. Older imported cards must be
+  re-imported once to establish this private link.
 - Published pages persist whether local content differs from the confirmed public commit. Saving
   or refreshing marks `Alterações não publicadas`; only a confirmed publication clears it.
 - Editable fields support text, textarea, URL, color, image, boolean, select, and repeatable
-  collections.
+  collections. Collections may contain one nested collection, supporting generic structures such
+  as sections with cards without adding page-specific editor logic to PageSpace.
 - Editable websites read generated values through `window.PAGESPACE_CONTENT`.
 - Imported packages never run privileged or arbitrary build commands.
 - Package installation and updates use staging, atomic replacement, and stable package IDs.
-- Compatible editable values survive updates by stable field key and type.
+- Compatible editable values survive updates by stable field key, type, nesting, and stable item
+  identity. Seed values from `content.json` and the owner's private working values remain separate.
 - User-selected images are decoded through Electron and re-encoded as PNG before storage.
 - Baking copies validated static files, generates `pagespace-content.js`, includes approved user
   assets, hashes every output file, and atomically replaces prior output.
 - Publication accepts the exact dynamic allowlist produced by the current verified generation.
 - `Trazer página` is the only page-entry action. It immediately opens folder selection; PageSpace
   has no built-in page creation or structural editor.
-- Opening a page uses the consistent fixed header and a live sandboxed browser viewport.
-  Ordinary/static pages use the full width; editable packages additionally expose only fields
-  declared by their author in a fixed right-side panel.
+- Opening a page uses the consistent fixed header and a full-width live sandboxed browser
+  viewport. Editable packages start in edit mode. PageSpace sends generic edit/view state and
+  current content through `postMessage`; the package owns every page-specific visual control and
+  returns full draft content. Do not restore the rejected fixed right-side panel or hardcode
+  sections/cards in PageSpace.
+- `Salvar` validates private draft values, backs up the prior state, bakes local output, refreshes
+  the preview, and marks a published page as changed. `Publicar atualização` separately updates its
+  existing remote publication.
+- The generic in-page bridge also supports narrow image requests from the Windows clipboard or
+  native file picker. PageSpace safely re-encodes and privately stores the image, returning a
+  relative content value plus temporary preview data. Sandboxed HTTP(S) card links use a separate
+  validated open-link request. Packages receive no general clipboard, filesystem, or shell access.
 - Page cards intentionally omit source-type labels to keep the dashboard visually quiet.
 - App settings exposes one `Baixar instruções para IA (.txt)` action. It generates a handoff
   document from the currently installed PageSpace version and supported package contract.
@@ -65,12 +77,22 @@
   permanent after creation even if the card is later renamed.
 - User-facing failures use direct actionable language. Only technical failures append a short
   stable reference after `|`; implementation details remain in private diagnostics.
-- Dashboard preview capture uses an exact 1280x720 browser content viewport and stores 960x540
-  card images. Opening a page uses its actual generated website in a sandboxed browser viewport
+- Dashboard preview capture uses the current PageSpace page-view viewport below its fixed 64 px
+  header and stores a 1104 px-wide image at that same aspect ratio. Automatic offscreen capture
+  waits for the embedded page frame and its deferred scripts to finish before capture. Cards
+  preserve the complete image without cropping. Merely opening or closing page view is read-only
+  and never replaces the stored dashboard preview; only import, validated source refresh, recovery,
+  or saved content changes may regenerate it.
+  Opening a page uses its actual generated website in a sandboxed browser viewport
   that fills the available workspace and responds to that real viewport size. The 64 px app header
-  remains fixed during resizing. A 280 px right-side panel appears only when the imported package
-  actually declares editable fields; ordinary/static pages use the full width.
+  remains fixed during resizing, and the page currently uses the full width for every page type.
 - Application branding uses one dark-background PageSpace PNG for packaging and window surfaces.
+  Its reusable background-color token is `iconBgColor: rgb(23, 0, 64)`, stored in
+  `project/resources/brand.json` and mirrored as `--pagespace-icon-bg-color` in renderer CSS.
+  `project/resources/icon.png` is the master artwork; Windows packaging and BrowserWindow use the
+  multi-resolution `project/resources/icon.ico` so title-bar and taskbar sizes remain crisp. The
+  corresponding `project/build/icon.png` and `project/build/icon.ico` copies are the packaging
+  resources and must remain byte-identical to their canonical counterparts.
 - The opened-page header is fixed at 64 px and uses the shared
   `--pagespace-window-surface` color matching the current Windows title-bar surface. Ordinary and
   static pages use the full remaining live browser viewport; the package field panel appears only
@@ -78,12 +100,24 @@
 - `project/dist/localrelease/PageSpace/` is now the owner's persistent real-use test instance.
   `npm run refresh:localrelease` refreshes its binaries while preserving `Pages/`; use
   `export:localrelease` only when a deliberately empty first-run copy is requested.
+- PageSpace and compatible page projects are separate deliverables maintained from this AI task.
+  The clean PageSpace handoff uses stable names `PageSpace/` and `PageSpace.zip`; version numbers
+  belong in internal metadata and GitHub Release metadata, not the replaceable artifact name.
+- SotoDashboard is the first real compatible page project at
+  `C:\C.Nvme\Projects\SotoDashboard`. It remains independently browser-ready, while its optional
+  PageSpace extension owns title, section, card, link, and image editing. Its private handoff uses
+  `dist/localrelease/SotoDashboard/` and `SotoDashboard.zip`, with clean seed content and no user
+  instance data. It currently has no Git repository and is shared directly with the colleague.
+- Saving editable content and automatic source refresh update/bake the managed local page but do
+  not create Git commits. If the page is published they mark it as having unpublished changes.
+  Explicit initial publication or `Publicar atualização` stages only verified public output,
+  creates a Git commit when output changed, and pushes it.
 
 ## Validated Checkpoint
 
 - Lint passes.
 - Node and renderer TypeScript checks pass.
-- Six test files and 54 tests pass.
+- Six test files and 57 tests pass.
 - Production and unpacked portable builds pass.
 - The review executable is `project/dist/PageSpace/PageSpace.exe`.
 - Review builds preserve the existing persistent `Pages/` folder.
@@ -93,16 +127,20 @@
 
 ## Next Product Milestone
 
-Complete the first real ordinary-site update lifecycle, then add declared package editing:
+Verify the first real editable-package lifecycle with SotoDashboard:
 
-1. Change the external ordinary-site source and confirm detection, explicit refresh, managed-copy
-   replacement, local live-view update, and update of the existing remote publication.
-2. Convert the site into an editable package only after its visual template is settled.
-3. Define stable title, section, and card fields/collections; keep instance values separate from
-   template versions so compatible source updates preserve user-created content.
-4. Verify save, bake, preview refresh, commit, push, source update, and value reconciliation as one
-   complete lifecycle.
-5. Continue synchronization edge-case hardening before colleague delivery.
+1. Verify SotoDashboard v1.3 edit mode: hover-only remove control, add-card at each section end,
+   centered card modal, title/description/address editing, clipboard/file images, edit/view toggle,
+   and unsaved-change protection.
+2. Save locally and confirm the baked browser view and dashboard preview reflect the values.
+3. Publish, make another edit, save, and explicitly publish the update to the same repository.
+4. Increment the external SotoDashboard package version and change its template while preserving
+   stable schema keys; confirm PageSpace keeps the owner's private values during source refresh.
+5. Continue synchronization and editor edge-case hardening before colleague delivery.
+
+Clean zero-content local releases were generated for practical first-user testing. The owner will
+test the portable PageSpace build by importing the clean SotoDashboard handoff, linking GitHub,
+editing, saving, publishing, and updating it, then report product and visual refinements here.
 
 ## Durable Safety Decisions
 

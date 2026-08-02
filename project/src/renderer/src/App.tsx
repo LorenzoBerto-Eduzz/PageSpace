@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AddPageCard } from './components/AddPageCard'
 import { AppSettingsDialog } from './components/AppSettingsDialog'
 import { PackagePageEditor } from './components/PackagePageEditor'
@@ -8,17 +8,6 @@ import { SettingsIcon } from './components/icons'
 import { SiteCard } from './components/SiteCard'
 import type { DashboardPage } from './components/SiteCard'
 import type { PageSummary } from '../../shared/page-contracts'
-
-const placeholderPage: DashboardPage = {
-  id: 'template-page',
-  name: 'Nome da página',
-  description: 'Descrição da página',
-  status: 'local',
-  preview: 'empty',
-  isPlaceholder: true,
-  source: { kind: 'website', sourceKey: 'placeholder' },
-  sourceSync: { state: 'unlinked' }
-}
 
 function toDashboardPage(page: PageSummary): DashboardPage {
   return {
@@ -49,32 +38,75 @@ function App(): React.JSX.Element {
   const [recoveryError, setRecoveryError] = useState<string | null>(null)
   const [isAppSettingsOpen, setIsAppSettingsOpen] = useState(false)
   const [refreshingSourceId, setRefreshingSourceId] = useState<string | null>(null)
+  const [publishingUpdateId, setPublishingUpdateId] = useState<string | null>(null)
+  const [synchronizingSourceIds, setSynchronizingSourceIds] = useState<Set<string>>(new Set())
+  const synchronizationInProgress = useRef<Promise<PageSummary[]> | null>(null)
+
+  const synchronizePageSources = useCallback((): Promise<PageSummary[]> => {
+    if (!synchronizationInProgress.current) {
+      synchronizationInProgress.current = window.pageSpace.synchronizePageSources().finally(() => {
+        synchronizationInProgress.current = null
+      })
+    }
+    return synchronizationInProgress.current
+  }, [])
+
+  const synchronizePageSourcesWithProgress = useCallback(
+    async (detectedPages?: PageSummary[]): Promise<PageSummary[]> => {
+      const currentPages = detectedPages ?? (await window.pageSpace.listPages())
+      const updatingIds = currentPages
+        .filter((page) => page.sourceSync.state === 'update-available')
+        .map((page) => page.id)
+      if (updatingIds.length > 0) {
+        setSynchronizingSourceIds((current) => new Set([...current, ...updatingIds]))
+      }
+      try {
+        return await synchronizePageSources()
+      } finally {
+        if (updatingIds.length > 0) {
+          setSynchronizingSourceIds((current) => {
+            const next = new Set(current)
+            updatingIds.forEach((pageId) => next.delete(pageId))
+            return next
+          })
+        }
+      }
+    },
+    [synchronizePageSources]
+  )
 
   useEffect(() => {
     let isCurrent = true
 
-    window.pageSpace
-      .listPages()
-      .then((loadedPages) => {
-        if (isCurrent) setPages(loadedPages)
-      })
-      .catch(() => {
-        if (isCurrent) window.alert('Não foi possível carregar as páginas locais.')
-      })
-      .finally(() => {
-        if (isCurrent) setIsLoading(false)
-      })
+    const loadPages = async (): Promise<void> => {
+      try {
+        const loadedPages = await window.pageSpace.listPages()
+        if (!isCurrent) return
+        setPages(loadedPages)
+        setIsLoading(false)
+
+        const synchronizedPages = await synchronizePageSourcesWithProgress(loadedPages)
+        if (!isCurrent) return
+        setPages(synchronizedPages)
+      } catch {
+        if (isCurrent) {
+          setIsLoading(false)
+          window.alert('Não foi possível carregar as páginas locais.')
+        }
+      }
+    }
+
+    void loadPages()
 
     return () => {
       isCurrent = false
     }
-  }, [])
+  }, [synchronizePageSourcesWithProgress])
 
   useEffect(() => {
     let active = true
     const refreshStatuses = (): void => {
-      window.pageSpace
-        .listPages()
+      synchronizePageSourcesWithProgress()
         .then((nextPages) => {
           if (active) setPages(nextPages)
         })
@@ -85,7 +117,7 @@ function App(): React.JSX.Element {
       active = false
       window.removeEventListener('focus', refreshStatuses)
     }
-  }, [])
+  }, [synchronizePageSourcesWithProgress])
 
   async function importPage(): Promise<void> {
     if (isImporting) return
@@ -108,7 +140,7 @@ function App(): React.JSX.Element {
     }
   }
 
-  const displayedPages = pages.length > 0 ? pages.map(toDashboardPage) : [placeholderPage]
+  const displayedPages = pages.map(toDashboardPage)
   const settingsPage = pages.find((page) => page.id === settingsPageId)
   const problemPage = pages.find((page) => page.id === problemPageId)
 
@@ -128,11 +160,7 @@ function App(): React.JSX.Element {
     if (refreshingSourceId) return
     setRefreshingSourceId(pageId)
     try {
-      const existing = pages.find((page) => page.id === pageId)
-      let updated = await window.pageSpace.refreshPageFromSource(pageId)
-      if (existing?.deployment.kind === 'published') {
-        updated = (await window.pageSpace.publishPage({ pageId })).page
-      }
+      const updated = await window.pageSpace.refreshPageFromSource(pageId)
       updatePage(updated)
     } catch (refreshError) {
       try {
@@ -150,12 +178,41 @@ function App(): React.JSX.Element {
     }
   }
 
+  async function publishPageUpdate(pageId: string): Promise<void> {
+    if (publishingUpdateId) return
+    setPublishingUpdateId(pageId)
+    try {
+      const published = await window.pageSpace.publishPage({ pageId })
+      updatePage(published.page)
+    } catch (publishError) {
+      try {
+        updatePage((await window.pageSpace.getPage(pageId)).page)
+      } catch {
+        // Preserve the publication error while retaining the last known card state.
+      }
+      window.alert(
+        publishError instanceof Error
+          ? publishError.message
+          : 'Não foi possível publicar esta atualização.'
+      )
+    } finally {
+      setPublishingUpdateId(null)
+    }
+  }
+
   function closeEditor(): void {
     setOpenPageId(null)
-    window.pageSpace
-      .listPages()
+    synchronizePageSources()
       .then(setPages)
       .catch(() => undefined)
+  }
+
+  async function openPage(pageId: string): Promise<void> {
+    try {
+      setPages(await synchronizePageSources())
+    } finally {
+      setOpenPageId(pageId)
+    }
   }
 
   async function recoverPage(): Promise<void> {
@@ -183,9 +240,11 @@ function App(): React.JSX.Element {
   }
 
   if (openPageId) {
+    const openPageName = pages.find((page) => page.id === openPageId)?.name ?? ''
     const editor = (
       <PackagePageEditor
         pageId={openPageId}
+        initialPageName={openPageName}
         onBack={closeEditor}
         onOpenSettings={(pageId, hasUnsavedChanges) => {
           setSettingsHasUnsavedChanges(hasUnsavedChanges)
@@ -237,16 +296,17 @@ function App(): React.JSX.Element {
                 key={page.id}
                 page={page}
                 onRefreshSource={refreshPageSource}
+                onPublishUpdate={publishPageUpdate}
                 isRefreshingSource={refreshingSourceId === page.id}
-                onOpen={setOpenPageId}
-                onOpenSettings={
-                  page.isPlaceholder
-                    ? undefined
-                    : (pageId) => {
-                        setSettingsHasUnsavedChanges(false)
-                        setSettingsPageId(pageId)
-                      }
+                isSynchronizingSource={
+                  synchronizingSourceIds.has(page.id) || refreshingSourceId === page.id
                 }
+                isPublishingUpdate={publishingUpdateId === page.id}
+                onOpen={(pageId) => void openPage(pageId)}
+                onOpenSettings={(pageId) => {
+                  setSettingsHasUnsavedChanges(false)
+                  setSettingsPageId(pageId)
+                }}
                 onOpenLocal={(pageId) => {
                   void window.pageSpace.openLocalPage(pageId).catch((openError) => {
                     window.alert(

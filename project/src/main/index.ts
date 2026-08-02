@@ -13,7 +13,7 @@ import {
 import { dirname, join } from 'path'
 import { pathToFileURL } from 'node:url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+import icon from '../../resources/icon.ico?asset'
 import { PageSpaceWorkspaceService } from './pagespace-workspace-service'
 import { GitHubAuthService } from './github-auth-service'
 import { GitHubPublishingService } from './github-publishing-service'
@@ -32,6 +32,39 @@ protocol.registerSchemesAsPrivileged([
     privileges: { standard: true, secure: true, supportFetchAPI: true }
   }
 ])
+
+const PAGE_EDITOR_HEADER_HEIGHT = 64
+const STORED_PREVIEW_WIDTH = 1104
+const OFFSCREEN_LAYOUT_WIDTH_ALLOWANCE = 16
+let mainApplicationWindow: BrowserWindow | null = null
+
+async function getPagePreviewViewport(): Promise<{ width: number; height: number }> {
+  const mainWindow = mainApplicationWindow
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    try {
+      const viewport = (await mainWindow.webContents.executeJavaScript(
+        `({
+          width: Math.max(Math.round(window.innerWidth), 1),
+          height: Math.max(Math.round(window.innerHeight - ${PAGE_EDITOR_HEADER_HEIGHT}), 1)
+        })`
+      )) as { width?: unknown; height?: unknown }
+      if (
+        typeof viewport.width === 'number' &&
+        Number.isFinite(viewport.width) &&
+        typeof viewport.height === 'number' &&
+        Number.isFinite(viewport.height)
+      ) {
+        return { width: viewport.width, height: viewport.height }
+      }
+    } catch {
+      // Fall back to Electron content bounds while the renderer is not ready.
+    }
+  }
+  const contentBounds = mainWindow?.getContentBounds()
+  const width = Math.max(contentBounds?.width ?? 1920, 1)
+  const height = Math.max((contentBounds?.height ?? 1080) - PAGE_EDITOR_HEADER_HEIGHT, 1)
+  return { width, height }
+}
 
 function getPagesRoot(): string {
   return app.isPackaged ? join(dirname(process.execPath), 'Pages') : join(app.getAppPath(), 'Pages')
@@ -57,9 +90,15 @@ function createWindow(hasActivePublications: () => boolean): void {
       spellcheck: false
     }
   })
+  mainApplicationWindow = mainWindow
+
+  mainWindow.maximize()
+
+  mainWindow.on('closed', () => {
+    if (mainApplicationWindow === mainWindow) mainApplicationWindow = null
+  })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.maximize()
     mainWindow.show()
   })
 
@@ -108,11 +147,12 @@ async function captureCleanPagePreview(
   pageWorkspace: PageSpaceWorkspaceService,
   pageId: string
 ): Promise<string> {
-  const generatedSite = await pageWorkspace.generatePageSite(pageId)
+  await pageWorkspace.generatePageSite(pageId)
+  const viewport = await getPagePreviewViewport()
   const previewWindow = new BrowserWindow({
     show: false,
-    width: 1280,
-    height: 720,
+    width: viewport.width + OFFSCREEN_LAYOUT_WIDTH_ALLOWANCE,
+    height: viewport.height,
     useContentSize: true,
     backgroundColor: '#ffffff',
     webPreferences: {
@@ -125,12 +165,42 @@ async function captureCleanPagePreview(
   })
 
   try {
-    await previewWindow.loadFile(generatedSite.indexPath)
+    const pageUrl = `pagespace-preview://page/${encodeURIComponent(pageId)}/index.html`
+    const captureHost = `<!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src pagespace-preview:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+          <style>html, body, iframe { width: 100%; height: 100%; margin: 0; border: 0; overflow: hidden; }</style>
+        </head>
+        <body>
+          <iframe src="${pageUrl}" sandbox="allow-scripts"></iframe>
+          <script>
+            document.querySelector('iframe').addEventListener('load', () => {
+              document.documentElement.dataset.pageFrameReady = 'true'
+            }, { once: true })
+          </script>
+        </body>
+      </html>`
+    await previewWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(captureHost)}`)
     await previewWindow.webContents.executeJavaScript(
-      'new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))'
+      `(async () => {
+        const startedAt = Date.now()
+        while (document.documentElement.dataset.pageFrameReady !== 'true') {
+          if (Date.now() - startedAt > 5000) throw new Error('Page preview timed out')
+          await new Promise((resolve) => setTimeout(resolve, 25))
+        }
+        await new Promise((resolve) => setTimeout(resolve, 250))
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      })()`
     )
-    const capturedPage = await previewWindow.webContents.capturePage()
-    const preview = capturedPage.resize({ width: 960, quality: 'good' }).toPNG()
+    const capturedPage = await previewWindow.webContents.capturePage({
+      x: 0,
+      y: 0,
+      width: viewport.width,
+      height: viewport.height
+    })
+    const preview = capturedPage.resize({ width: STORED_PREVIEW_WIDTH, quality: 'good' }).toPNG()
     return await pageWorkspace.savePreview(pageId, preview)
   } finally {
     previewWindow.destroy()
@@ -151,7 +221,7 @@ async function ensureCurrentPagePreviews(
       ? nativeImage.createFromDataURL(page.previewDataUrl)
       : null
     const dimensions = currentPreview && !currentPreview.isEmpty() ? currentPreview.getSize() : null
-    if (dimensions?.width === 960 && dimensions.height === 540) {
+    if (dimensions && dimensions.width > 0 && dimensions.height > 0) {
       refreshedPages.push(page)
       continue
     }
@@ -165,6 +235,22 @@ async function ensureCurrentPagePreviews(
     }
   }
   return refreshedPages
+}
+
+async function synchronizeChangedPageSources(
+  pageWorkspace: PageSpaceWorkspaceService
+): Promise<Awaited<ReturnType<PageSpaceWorkspaceService['listPages']>>> {
+  const detectedPages = await pageWorkspace.listPages()
+  for (const page of detectedPages) {
+    if (page.health !== 'healthy' || page.sourceSync.state !== 'update-available') continue
+    try {
+      await pageWorkspace.refreshPageFromSource(page.id)
+      await captureCleanPagePreview(pageWorkspace, page.id)
+    } catch {
+      // Keep the last verified managed copy when a source update is incomplete or invalid.
+    }
+  }
+  return ensureCurrentPagePreviews(pageWorkspace, await pageWorkspace.listPages())
 }
 
 // This method will be called when Electron has finished
@@ -199,8 +285,9 @@ app.whenReady().then(() => {
     pageWorkspace,
     new PublicationDiagnostics(app.getPath('userData'))
   )
-  ipcMain.handle('pages:list', async () =>
-    ensureCurrentPagePreviews(pageWorkspace, await pageWorkspace.listPages())
+  ipcMain.handle('pages:list', async () => pageWorkspace.listPages())
+  ipcMain.handle('pages:synchronize-sources', async () =>
+    synchronizeChangedPageSources(pageWorkspace)
   )
   ipcMain.handle('pages:import', async () => {
     const selection = await dialog.showOpenDialog({
@@ -243,7 +330,28 @@ app.whenReady().then(() => {
     if (selection.canceled || selection.filePaths.length !== 1) return null
     const image = nativeImage.createFromPath(selection.filePaths[0])
     if (image.isEmpty()) throw new Error('A imagem selecionada não pôde ser aberta.')
-    return pageWorkspace.savePackageImage(pageId, image.toPNG())
+    return {
+      value: await pageWorkspace.savePackageImage(pageId, image.toPNG()),
+      previewDataUrl: image.toDataURL()
+    }
+  })
+  ipcMain.handle('pages:paste-image', async (_, pageId: string) => {
+    const image = clipboard.readImage()
+    if (image.isEmpty()) {
+      throw new Error('A área de transferência não contém uma imagem.')
+    }
+    return {
+      value: await pageWorkspace.savePackageImage(pageId, image.toPNG()),
+      previewDataUrl: image.toDataURL()
+    }
+  })
+  ipcMain.handle('pages:open-link', async (_, value: string) => {
+    if (typeof value !== 'string') throw new Error('Endereço inválido.')
+    const target = new URL(value)
+    if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+      throw new Error('Use um endereço iniciado por http:// ou https://.')
+    }
+    await shell.openExternal(target.toString())
   })
   ipcMain.handle('pages:capture-preview', (_, pageId: string) =>
     captureCleanPagePreview(pageWorkspace, pageId)

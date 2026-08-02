@@ -141,8 +141,14 @@ export class PageSpaceWorkspaceService {
     }
     return this.runCreationExclusively(async () => {
       const existing = await this.findPackageById(candidate.manifest.packageId)
-      return existing
-        ? this.updatePackagePage(existing.folderPath, existing.page, candidate, sourceLink)
+      if (existing) {
+        return this.updatePackagePage(existing.folderPath, existing.page, candidate, sourceLink)
+      }
+      const website = await this.findWebsiteBySourceKey(
+        this.staticWebsiteSourceKey(candidate.sourceDirectory)
+      )
+      return website
+        ? this.convertWebsiteToPackagePage(website.folderPath, website.page, candidate, sourceLink)
         : this.createPackagePageSafely(candidate, sourceLink)
     })
   }
@@ -158,6 +164,22 @@ export class PageSpaceWorkspaceService {
     }
 
     if (located.page.source.kind === 'website') {
+      if (await this.pathExists(join(sourceLink.directory, 'pagespace.json'))) {
+        const packageCandidate = await validatePageSpacePackage(sourceLink.directory)
+        const packageLink = {
+          directory: packageCandidate.sourceDirectory,
+          signature: await getPageSpacePackageSourceSignature(packageCandidate)
+        }
+        const result = await this.runCreationExclusively(() =>
+          this.convertWebsiteToPackagePage(
+            located.folderPath,
+            located.page,
+            packageCandidate,
+            packageLink
+          )
+        )
+        return result.page
+      }
       const candidate = await validateStaticWebsite(sourceLink.directory)
       const nextLink = {
         directory: candidate.sourceDirectory,
@@ -611,6 +633,52 @@ export class PageSpaceWorkspaceService {
       nextContent,
       this.userAssetsDirectory(folderPath)
     )
+    return {
+      page: this.toSummary(
+        updatedPage,
+        await this.readPreview(folderPath),
+        'healthy',
+        true,
+        undefined,
+        { state: 'synced' }
+      ),
+      outcome: 'updated'
+    }
+  }
+
+  private async convertWebsiteToPackagePage(
+    folderPath: string,
+    currentPage: StoredPage,
+    candidate: ValidatedPageSpacePackage,
+    sourceLink: NonNullable<StoredPage['sourceLink']>
+  ): Promise<ImportPageResult> {
+    if (currentPage.source.kind !== 'website') throw new Error('Página incompatível.')
+    await this.backupCurrentSnapshot(folderPath, currentPage)
+    const packageDirectory = this.packageDirectory(folderPath)
+    await fileSystem.rm(packageDirectory, { recursive: true, force: true })
+    await installValidatedPackage(candidate, packageDirectory)
+    if (candidate.content) {
+      await this.writeJsonAtomically(join(folderPath, CONTENT_FILE), candidate.content)
+    }
+    await generatePackageSite(
+      this.metadataDirectory(folderPath),
+      packageDirectory,
+      candidate.content,
+      this.userAssetsDirectory(folderPath)
+    )
+    const updatedPage: StoredPage = {
+      ...this.markUnpublishedChanges(currentPage),
+      updatedAt: new Date().toISOString(),
+      source: {
+        kind: 'package',
+        packageId: candidate.manifest.packageId,
+        packageVersion: candidate.manifest.packageVersion,
+        mode: candidate.manifest.mode
+      },
+      sourceLink
+    }
+    await this.writeStoredPage(folderPath, updatedPage)
+    await fileSystem.rm(this.websiteDirectory(folderPath), { recursive: true, force: true })
     return {
       page: this.toSummary(
         updatedPage,
@@ -1237,9 +1305,7 @@ export class PageSpaceWorkspaceService {
     try {
       const signature =
         page.source.kind === 'website'
-          ? await getStaticWebsiteSourceSignature(
-              await validateStaticWebsite(page.sourceLink.directory)
-            )
+          ? await this.getLinkedWebsiteOrPackageSignature(page.sourceLink.directory)
           : await getPageSpacePackageSourceSignature(
               await validatePageSpacePackage(page.sourceLink.directory)
             )
@@ -1249,6 +1315,13 @@ export class PageSpaceWorkspaceService {
     } catch {
       return { state: 'unavailable' }
     }
+  }
+
+  private async getLinkedWebsiteOrPackageSignature(sourceDirectory: string): Promise<string> {
+    if (await this.pathExists(join(sourceDirectory, 'pagespace.json'))) {
+      return getPageSpacePackageSourceSignature(await validatePageSpacePackage(sourceDirectory))
+    }
+    return getStaticWebsiteSourceSignature(await validateStaticWebsite(sourceDirectory))
   }
 
   private async writeStoredPage(folderPath: string, page: StoredPage): Promise<void> {

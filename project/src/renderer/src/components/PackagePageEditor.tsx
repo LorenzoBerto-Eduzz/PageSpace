@@ -1,16 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PageEditorData } from '../../../shared/page-contracts'
-import type {
-  CollectionEditableField,
-  CollectionItemField,
-  JsonValue,
-  PageSpaceEditableContent,
-  PageSpaceEditableField
-} from '../../../shared/pagespace-package-contracts'
-import { ArrowLeftIcon, EyeIcon, RefreshIcon, SaveIcon, SettingsIcon, TrashIcon } from './icons'
+import type { PageSpaceEditableContent } from '../../../shared/pagespace-package-contracts'
+import {
+  ArrowLeftIcon,
+  EyeIcon,
+  GlobeIcon,
+  PencilIcon,
+  RefreshIcon,
+  SaveIcon,
+  SettingsIcon
+} from './icons'
 
 type PackagePageEditorProps = {
   pageId: string
+  initialPageName: string
   onBack: () => void
   onSaved: (data: PageEditorData) => void
   onOpenSettings: (pageId: string, hasUnsavedChanges: boolean) => void
@@ -20,28 +23,9 @@ function cloneContent(content: PageSpaceEditableContent): PageSpaceEditableConte
   return JSON.parse(JSON.stringify(content)) as PageSpaceEditableContent
 }
 
-function defaultFieldValue(field: CollectionItemField): JsonValue {
-  switch (field.type) {
-    case 'boolean':
-      return false
-    case 'color':
-      return '#ffffff'
-    case 'select':
-      return field.options[0]?.value ?? ''
-    default:
-      return ''
-  }
-}
-
-function createCollectionItem(field: CollectionEditableField): Record<string, JsonValue> {
-  return Object.fromEntries([
-    ['_id', crypto.randomUUID()],
-    ...field.fields.map((itemField) => [itemField.key, defaultFieldValue(itemField)])
-  ])
-}
-
 export function PackagePageEditor({
   pageId,
+  initialPageName,
   onBack,
   onSaved,
   onOpenSettings
@@ -50,9 +34,12 @@ export function PackagePageEditor({
   const [content, setContent] = useState<PageSpaceEditableContent | null>(null)
   const [savedContent, setSavedContent] = useState<PageSpaceEditableContent | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isPublishingUpdate, setIsPublishingUpdate] = useState(false)
   const [isRefreshingSource, setIsRefreshingSource] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [isEditMode, setIsEditMode] = useState(true)
+  const previewFrame = useRef<HTMLIFrameElement | null>(null)
 
   const isDirty = useMemo(
     () => JSON.stringify(content) !== JSON.stringify(savedContent),
@@ -85,20 +72,90 @@ export function PackagePageEditor({
     }
   }, [pageId])
 
-  function updateValue(key: string, value: JsonValue): void {
-    setError(null)
-    setContent((current) =>
-      current
-        ? {
-            ...current,
-            values: {
-              ...current.values,
-              [key]: value
-            }
-          }
-        : current
-    )
-  }
+  useEffect(() => {
+    async function handlePageEditorMessage(event: MessageEvent): Promise<void> {
+      if (event.source !== previewFrame.current?.contentWindow) return
+      const message = event.data as {
+        type?: unknown
+        content?: unknown
+        requestId?: unknown
+        source?: unknown
+        url?: unknown
+      } | null
+      if (!message) return
+      if (message.type === 'pagespace:open-link' && typeof message.url === 'string') {
+        await window.pageSpace.openPageLink(message.url)
+        return
+      }
+      if (message.type === 'pagespace:editor-content-change') {
+        if (!message.content || typeof message.content !== 'object') return
+        const candidate = message.content as Partial<PageSpaceEditableContent>
+        if (
+          candidate.schemaVersion !== 1 ||
+          !candidate.values ||
+          typeof candidate.values !== 'object'
+        ) {
+          return
+        }
+        setError(null)
+        setContent(cloneContent(candidate as PageSpaceEditableContent))
+        return
+      }
+      if (
+        message.type !== 'pagespace:editor-image-request' ||
+        typeof message.requestId !== 'string' ||
+        (message.source !== 'clipboard' && message.source !== 'file')
+      ) {
+        return
+      }
+      try {
+        const result =
+          message.source === 'clipboard'
+            ? await window.pageSpace.pastePageImage(pageId)
+            : await window.pageSpace.choosePageImage(pageId)
+        previewFrame.current?.contentWindow?.postMessage(
+          { type: 'pagespace:editor-image-result', requestId: message.requestId, result },
+          '*'
+        )
+      } catch (imageError) {
+        previewFrame.current?.contentWindow?.postMessage(
+          {
+            type: 'pagespace:editor-image-result',
+            requestId: message.requestId,
+            error:
+              imageError instanceof Error
+                ? imageError.message
+                : 'Não foi possível adicionar a imagem.'
+          },
+          '*'
+        )
+      }
+    }
+    function receivePageEditorMessage(event: MessageEvent): void {
+      void handlePageEditorMessage(event)
+    }
+    window.addEventListener('message', receivePageEditorMessage)
+    return () => window.removeEventListener('message', receivePageEditorMessage)
+  }, [pageId])
+
+  const sendPageEditorState = useCallback(
+    (frame = previewFrame.current): void => {
+      if (!frame?.contentWindow || !content) return
+      frame.contentWindow.postMessage(
+        {
+          type: 'pagespace:editor-state',
+          mode: isEditMode ? 'edit' : 'view',
+          content: cloneContent(content)
+        },
+        '*'
+      )
+    },
+    [content, isEditMode]
+  )
+
+  useEffect(() => {
+    sendPageEditorState()
+  }, [previewUrl, sendPageEditorState])
 
   async function save(): Promise<void> {
     if (!content || isSaving) return
@@ -114,26 +171,11 @@ export function PackagePageEditor({
       } catch {
         // Saving remains successful when only the replaceable dashboard image fails.
       }
-      let completedSave: Extract<PageEditorData, { kind: 'package' }> = saved
-      if (saved.page.deployment.kind === 'published') {
-        try {
-          const published = await window.pageSpace.publishPage({ pageId })
-          completedSave = { ...saved, page: published.page }
-        } catch (publishError) {
-          const current = await window.pageSpace.getPage(pageId)
-          if (current.kind === 'package') completedSave = current
-          setError(
-            publishError instanceof Error
-              ? publishError.message
-              : 'A página foi salva localmente, mas não foi publicada.'
-          )
-        }
-      }
-      setData(completedSave)
+      setData(saved)
       setContent(cloneContent(saved.content))
       setSavedContent(cloneContent(saved.content))
       setPreviewUrl(`${await window.pageSpace.getPagePreviewUrl(pageId)}?version=${Date.now()}`)
-      onSaved(completedSave)
+      onSaved(saved)
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Não foi possível salvar.')
     } finally {
@@ -148,9 +190,6 @@ export function PackagePageEditor({
     setError(null)
     try {
       await window.pageSpace.refreshPageFromSource(pageId)
-      if (data.page.deployment.kind === 'published') {
-        await window.pageSpace.publishPage({ pageId })
-      }
       const refreshed = await window.pageSpace.getPage(pageId)
       setData(refreshed)
       const refreshedContent = refreshed.kind === 'package' ? refreshed.content : null
@@ -169,6 +208,33 @@ export function PackagePageEditor({
     }
   }
 
+  async function publishUpdate(): Promise<void> {
+    if (!data || isDirty || isPublishingUpdate) return
+    setIsPublishingUpdate(true)
+    setError(null)
+    try {
+      const published = await window.pageSpace.publishPage({ pageId })
+      const updated = { ...data, page: published.page } as PageEditorData
+      setData(updated)
+      onSaved(updated)
+    } catch (publishError) {
+      try {
+        const current = await window.pageSpace.getPage(pageId)
+        setData(current)
+        onSaved(current)
+      } catch {
+        // Preserve the publication error while retaining the last known editor state.
+      }
+      setError(
+        publishError instanceof Error
+          ? publishError.message
+          : 'Não foi possível publicar esta atualização.'
+      )
+    } finally {
+      setIsPublishingUpdate(false)
+    }
+  }
+
   function leave(): void {
     if (isDirty && !window.confirm('Descartar as alterações que ainda não foram salvas?')) return
     onBack()
@@ -177,17 +243,26 @@ export function PackagePageEditor({
   if (!data) {
     return (
       <main className="package-editor package-editor--loading">
-        <button type="button" className="package-editor-back" onClick={onBack}>
-          <ArrowLeftIcon size={20} />
-          Voltar
-        </button>
-        <p>{error ?? 'Abrindo página…'}</p>
+        <header className="package-editor-header">
+          <button type="button" className="package-editor-back" onClick={onBack}>
+            <ArrowLeftIcon size={20} />
+            Voltar
+          </button>
+          <div>{initialPageName ? <h1>{initialPageName}</h1> : null}</div>
+          <div />
+        </header>
+        <div className="package-editor-loading-surface">
+          {error ? <p className="package-editor-error">{error}</p> : null}
+        </div>
       </main>
     )
   }
 
-  const editableData =
-    data.kind === 'package' && data.schema && content ? { schema: data.schema, content } : null
+  const isEditablePackage = data.kind === 'package' && Boolean(data.schema && content)
+  const hasUnpublishedChanges =
+    data.page.deployment.kind === 'published' &&
+    (data.page.deployment.hasUnpublishedChanges === true ||
+      Boolean(data.page.deployment.pendingCommitOid))
 
   return (
     <main className="package-editor">
@@ -198,25 +273,47 @@ export function PackagePageEditor({
         </button>
         <div>
           <h1>{data.page.name}</h1>
-          {data.kind === 'package' ? (
-            <p>
-              {data.manifest.packageId} · versão {data.manifest.packageVersion}
-            </p>
-          ) : null}
         </div>
         <div className="package-editor-header-actions">
           {data.page.sourceSync.state === 'update-available' ? (
             <button type="button" onClick={refreshSource} disabled={isRefreshingSource || isSaving}>
               <RefreshIcon size={18} />
-              {isRefreshingSource
-                ? 'Atualizando…'
-                : data.page.deployment.kind === 'published'
-                  ? 'Atualizar e publicar'
-                  : 'Atualizar da origem'}
+              {isRefreshingSource ? 'Atualizando…' : 'Atualizar da origem'}
             </button>
           ) : null}
           {data.page.sourceSync.state === 'unavailable' ? (
             <span className="package-source-unavailable">Origem indisponível</span>
+          ) : null}
+          {isEditablePackage ? (
+            <button
+              type="button"
+              className={
+                isEditMode
+                  ? 'package-mode-toggle package-mode-toggle--active'
+                  : 'package-mode-toggle'
+              }
+              onClick={() => setIsEditMode((current) => !current)}
+              disabled={isSaving}
+            >
+              {isEditMode ? <EyeIcon size={18} /> : <PencilIcon size={18} />}
+              {isEditMode ? 'Visualizar' : 'Editar'}
+            </button>
+          ) : null}
+          {hasUnpublishedChanges ? (
+            <button
+              type="button"
+              className="package-publish-update"
+              onClick={publishUpdate}
+              disabled={isDirty || isSaving || isPublishingUpdate}
+            >
+              <GlobeIcon size={18} />
+              {isPublishingUpdate ? 'Publicando…' : 'Publicar atualização'}
+            </button>
+          ) : data.page.deployment.kind === 'published' ? (
+            <button type="button" className="package-publication-current" disabled>
+              <GlobeIcon size={18} />
+              Publicação atualizada
+            </button>
           ) : null}
           <button type="button" onClick={() => window.pageSpace.openLocalPage(pageId)}>
             <EyeIcon size={18} />
@@ -226,7 +323,7 @@ export function PackagePageEditor({
             <SettingsIcon size={18} />
             Publicação
           </button>
-          {content ? (
+          {isEditablePackage && content ? (
             <button
               type="button"
               className="package-save"
@@ -234,261 +331,29 @@ export function PackagePageEditor({
               disabled={!isDirty || isSaving}
             >
               <SaveIcon size={18} />
-              {isSaving
-                ? 'Salvando…'
-                : data.page.deployment.kind === 'published'
-                  ? 'Salvar e publicar'
-                  : 'Salvar e preparar'}
+              {isSaving ? 'Salvando…' : 'Salvar'}
             </button>
           ) : null}
         </div>
       </header>
 
-      <div
-        className={
-          editableData
-            ? 'package-editor-layout package-editor-layout--with-fields'
-            : 'package-editor-layout'
-        }
-      >
+      <div className="package-editor-layout">
         <section className="package-preview-panel" aria-label="Prévia da página">
           {previewUrl ? (
             <iframe
+              ref={previewFrame}
               className="package-live-preview"
               src={previewUrl}
               title={`Visualização de ${data.page.name}`}
               sandbox="allow-scripts"
+              onLoad={(event) => sendPageEditorState(event.currentTarget)}
             />
           ) : (
-            <div className="package-preview-empty">
-              <p>Carregando a página…</p>
-              <button type="button" onClick={() => window.pageSpace.openLocalPage(pageId)}>
-                Abrir página local
-              </button>
-            </div>
+            <div className="package-preview-empty" aria-hidden="true" />
           )}
         </section>
-
-        {editableData ? (
-          <aside className="package-fields-panel">
-            <div className="package-fields-heading">
-              <h2>Conteúdo editável</h2>
-              <p>Somente os campos definidos pelo autor do pacote aparecem aqui.</p>
-            </div>
-            <div className="package-fields">
-              {editableData.schema.fields.map((field) => (
-                <EditableFieldControl
-                  key={field.key}
-                  pageId={pageId}
-                  field={field}
-                  value={editableData.content.values[field.key]}
-                  onChange={(value) => updateValue(field.key, value)}
-                />
-              ))}
-            </div>
-            {error ? <p className="package-editor-error">{error}</p> : null}
-          </aside>
-        ) : null}
       </div>
+      {error ? <p className="package-editor-error package-editor-error--overlay">{error}</p> : null}
     </main>
-  )
-}
-
-type EditableFieldControlProps = {
-  pageId: string
-  field: PageSpaceEditableField
-  value: JsonValue | undefined
-  onChange: (value: JsonValue) => void
-}
-
-function EditableFieldControl({
-  pageId,
-  field,
-  value,
-  onChange
-}: EditableFieldControlProps): React.JSX.Element {
-  if (field.type === 'collection') {
-    const items = Array.isArray(value)
-      ? (value.filter(
-          (item): item is Record<string, JsonValue> =>
-            Boolean(item) && typeof item === 'object' && !Array.isArray(item)
-        ) as Record<string, JsonValue>[])
-      : []
-    const maximum = field.maxItems ?? 200
-
-    function updateItem(index: number, key: string, nextValue: JsonValue): void {
-      onChange(
-        items.map((item, itemIndex) => (itemIndex === index ? { ...item, [key]: nextValue } : item))
-      )
-    }
-
-    function move(index: number, offset: number): void {
-      const target = index + offset
-      if (target < 0 || target >= items.length) return
-      const next = [...items]
-      const [item] = next.splice(index, 1)
-      next.splice(target, 0, item)
-      onChange(next)
-    }
-
-    return (
-      <fieldset className="package-collection">
-        <legend>{field.label}</legend>
-        {field.helpText ? <p>{field.helpText}</p> : null}
-        <div className="package-collection-items">
-          {items.map((item, index) => (
-            <section className="package-collection-item" key={String(item._id ?? index)}>
-              <header>
-                <strong>
-                  {field.itemLabel ?? 'Item'} {index + 1}
-                </strong>
-                <div>
-                  <button type="button" onClick={() => move(index, -1)} disabled={index === 0}>
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => move(index, 1)}
-                    disabled={index === items.length - 1}
-                  >
-                    ↓
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Remover ${field.itemLabel ?? 'item'} ${index + 1}`}
-                    onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))}
-                  >
-                    <TrashIcon size={16} />
-                  </button>
-                </div>
-              </header>
-              {field.fields.map((itemField) => (
-                <ScalarFieldControl
-                  key={itemField.key}
-                  pageId={pageId}
-                  field={itemField}
-                  value={item[itemField.key]}
-                  onChange={(nextValue) => updateItem(index, itemField.key, nextValue)}
-                />
-              ))}
-            </section>
-          ))}
-        </div>
-        <button
-          type="button"
-          className="package-add-collection-item"
-          onClick={() => onChange([...items, createCollectionItem(field)])}
-          disabled={items.length >= maximum}
-        >
-          Adicionar {field.itemLabel?.toLocaleLowerCase('pt-BR') ?? 'item'}
-        </button>
-      </fieldset>
-    )
-  }
-  return <ScalarFieldControl pageId={pageId} field={field} value={value} onChange={onChange} />
-}
-
-type ScalarFieldControlProps = {
-  pageId: string
-  field: CollectionItemField
-  value: JsonValue | undefined
-  onChange: (value: JsonValue) => void
-}
-
-function ScalarFieldControl({
-  pageId,
-  field,
-  value,
-  onChange
-}: ScalarFieldControlProps): React.JSX.Element {
-  const stringValue = typeof value === 'string' ? value : ''
-
-  if (field.type === 'boolean') {
-    return (
-      <label className="package-boolean-field">
-        <input
-          type="checkbox"
-          checked={value === true}
-          onChange={(event) => onChange(event.target.checked)}
-        />
-        <span>
-          <strong>{field.label}</strong>
-          {field.helpText ? <small>{field.helpText}</small> : null}
-        </span>
-      </label>
-    )
-  }
-
-  if (field.type === 'image') {
-    return (
-      <div className="package-field">
-        <span className="package-field-label">{field.label}</span>
-        {stringValue ? <small className="package-image-path">{stringValue}</small> : null}
-        <button
-          type="button"
-          className="package-image-button"
-          onClick={async () => {
-            const selected = await window.pageSpace.choosePageImage(pageId)
-            if (selected) onChange(selected)
-          }}
-        >
-          {stringValue ? 'Trocar imagem' : 'Escolher imagem'}
-        </button>
-        {stringValue && !field.required ? (
-          <button type="button" className="package-clear-image" onClick={() => onChange('')}>
-            Remover imagem
-          </button>
-        ) : null}
-        {field.helpText ? <small>{field.helpText}</small> : null}
-      </div>
-    )
-  }
-
-  if (field.type === 'select') {
-    return (
-      <label className="package-field">
-        <span className="package-field-label">{field.label}</span>
-        <select value={stringValue} onChange={(event) => onChange(event.target.value)}>
-          {field.options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        {field.helpText ? <small>{field.helpText}</small> : null}
-      </label>
-    )
-  }
-
-  if (field.type === 'textarea') {
-    return (
-      <label className="package-field">
-        <span className="package-field-label">{field.label}</span>
-        <textarea
-          value={stringValue}
-          required={field.required}
-          maxLength={field.maxLength}
-          placeholder={field.placeholder}
-          rows={4}
-          onChange={(event) => onChange(event.target.value)}
-        />
-        {field.helpText ? <small>{field.helpText}</small> : null}
-      </label>
-    )
-  }
-
-  return (
-    <label className="package-field">
-      <span className="package-field-label">{field.label}</span>
-      <input
-        type={field.type === 'color' ? 'color' : field.type === 'url' ? 'url' : 'text'}
-        value={stringValue}
-        required={field.required}
-        maxLength={field.type === 'text' ? field.maxLength : undefined}
-        placeholder={'placeholder' in field ? field.placeholder : undefined}
-        onChange={(event) => onChange(event.target.value)}
-      />
-      {field.helpText ? <small>{field.helpText}</small> : null}
-    </label>
   )
 }

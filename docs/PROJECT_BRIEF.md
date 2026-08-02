@@ -26,8 +26,8 @@ editing, storage, preview, baking, Git, GitHub, and publication lifecycle.
 Any browser-ready static website with a clear HTML entry page. PageSpace detects root and common
 output folders, a unique nested `index.html`, or a unique differently named HTML entry. It safely
 copies only displayable static files, organizes the page, opens it locally, and publishes it. The
-private source link is checked automatically; source changes expose an explicit refresh action on
-the card and page screen. No automatic edit form is invented.
+private source link is checked automatically; valid source changes automatically refresh the
+managed copy while publication remains explicit. No automatic edit form is invented.
 
 ### Static PageSpace package
 
@@ -36,29 +36,48 @@ newer compatible package, and published. It has no generated edit form.
 
 ### Editable PageSpace package
 
-An AI-authored static website plus a versioned editable schema and default content. PageSpace
-generates the edit form, validates changes, sanitizes replacement images, bakes the public site,
-and preserves compatible user values during package updates.
+An AI-authored static website plus a versioned editable schema, default content, and optional
+in-page editing extension. The package renders its own page-specific controls. PageSpace provides
+only the generic edit/view bridge, validates changes, sanitizes replacement images, bakes the
+public site, and preserves compatible user values during package updates.
 
 ## Main Workflow
 
 1. The user selects `Trazer página` and chooses an externally authored website folder.
 2. Ordinary websites and PageSpace packages are validated and copied atomically into `Pages/`.
 3. Every page starts local-only.
-4. PageSpace checks linked source metadata on startup, focus, dashboard return, and page opening.
-5. A detected source change enables `Atualizar da origem`; on an already-published page the same
-   explicit action is `Atualizar e publicar`. A failed publication keeps the refreshed local copy.
+4. PageSpace checks linked source content signatures on startup, focus, dashboard return, and page
+   opening, then automatically validates and applies valid local source changes.
+5. A failed or incomplete source update keeps the last verified managed copy. A refreshed
+   published page is marked as having unpublished changes until the user explicitly publishes it.
 6. The user may open the exact baked site in a normal browser.
-7. Editable packages expose only their declared fields and collections in PageSpace's right-side
-   panel; ordinary and static pages show no editing controls.
-8. `Salvar` persists private values, keeps a backup, bakes output, and refreshes the preview. On a
-   published page, `Salvar e publicar` also attempts the explicit remote update.
+7. Editable packages open in edit mode inside the same full-width page viewport. Their own
+   extension renders author-defined controls; PageSpace only toggles edit/view and receives draft
+   content through the sandboxed message bridge. The rejected fixed right-side panel must not be
+   restored.
+8. `Salvar` persists private values, keeps a backup, bakes output, and refreshes the preview. It
+   never publishes implicitly. A published page then exposes `Publicar atualização` as a separate
+   explicit action.
 9. `Publicar online` confirms the page, account, automatically derived repository name, public URL,
    and exposure. Repository-name collisions receive a numeric suffix without user intervention.
 10. PageSpace creates or safely updates only that page's repository and GitHub Pages site. Its
     remote identity remains stable after the first publication.
 11. `Excluir publicação` immediately deletes the remote repository and returns the preserved local
     page to local-only.
+
+Local save and source synchronization are not Git commits. They update the managed copy, bake
+verified output when appropriate, and mark an existing publication as outdated. A Git commit and
+push occur only during the user's explicit initial publication or publication update, and only
+when the verified public output actually changed.
+
+## Related Page Projects
+
+PageSpace and imported page projects remain separate deliverables. This task may maintain both the
+application and AI-authored compatible pages, but PageSpace never absorbs their visual or
+page-specific editing logic. SotoDashboard is the first real use case: it is independently usable
+in a browser and optionally exposes its own PageSpace editing extension. Its clean private handoff
+starts without user sections/cards and is distributed directly rather than through the owner's
+GitHub account.
 
 ## Package Contract
 

@@ -75,15 +75,13 @@ Simple pages also use `content.json`, `.pagespace/`, generated output, and the s
 boundary.
 
 Imported source paths and last accepted lightweight signatures remain private in `page.json`.
-Only synchronization state crosses preload. Detection is automatic; replacing the managed copy and
-publishing remain separate explicit actions.
+Only synchronization state crosses preload. Detection, validation, and managed-copy replacement
+are automatic; publishing remains a separate explicit action.
 
 ## Modularity Rules
 
 - Keep package parsing, schema validation, baking, workspace lifecycle, GitHub authentication, and
   publishing independent from renderer layout.
-- Keep the built-in simple editor as one page source, not the universal representation for imported
-  pages.
 - Add schema field types through shared contracts, validator support, and focused renderer controls.
 - Do not let package-provided values or code select filesystem paths or call privileged IPC.
 - Keep package-format compatibility versioned independently from application versions.

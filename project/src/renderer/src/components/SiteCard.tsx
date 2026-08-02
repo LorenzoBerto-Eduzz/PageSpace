@@ -9,7 +9,6 @@ export type DashboardPage = {
   status: 'local' | 'published'
   preview: 'captured' | 'empty'
   previewDataUrl?: string
-  isPlaceholder?: boolean
   health?: 'healthy' | 'damaged'
   source: PageSource
   sourceSync: PageSourceSync
@@ -23,7 +22,10 @@ type SiteCardProps = {
   onOpenLocal?: (pageId: string) => void
   onProblem?: (pageId: string) => void
   onRefreshSource?: (pageId: string) => void
+  onPublishUpdate?: (pageId: string) => void
   isRefreshingSource?: boolean
+  isSynchronizingSource?: boolean
+  isPublishingUpdate?: boolean
 }
 
 function PreviewCanvas({ page }: SiteCardProps): React.JSX.Element {
@@ -45,18 +47,16 @@ export function SiteCard({
   onOpenLocal,
   onProblem,
   onRefreshSource,
-  isRefreshingSource
+  onPublishUpdate,
+  isRefreshingSource,
+  isSynchronizingSource,
+  isPublishingUpdate
 }: SiteCardProps): React.JSX.Element {
-  const className = [
-    'site-card',
-    page.isPlaceholder ? 'site-card--placeholder' : '',
-    page.health === 'damaged' ? 'site-card--damaged' : ''
-  ]
+  const className = ['site-card', page.health === 'damaged' ? 'site-card--damaged' : '']
     .filter(Boolean)
     .join(' ')
 
   function activate(): void {
-    if (page.isPlaceholder) return
     if (page.health === 'damaged') onProblem?.(page.id)
     else onOpen?.(page.id)
   }
@@ -69,15 +69,11 @@ export function SiteCard({
       aria-label={`Abrir edição de ${page.name}`}
       onClick={(event) => {
         if (!(event.target instanceof Element && event.target.closest('.card-action'))) {
-          if (page.isPlaceholder) {
-            event.currentTarget.focus()
-          } else {
-            activate()
-          }
+          activate()
         }
       }}
       onKeyDown={(event) => {
-        if (!page.isPlaceholder && (event.key === 'Enter' || event.key === ' ')) {
+        if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
           activate()
         }
@@ -90,7 +86,16 @@ export function SiteCard({
         <p className="site-description">{page.description}</p>
 
         <footer className="site-card-actions">
-          {page.sourceSync.state === 'update-available' ? (
+          {isSynchronizingSource ? (
+            <span
+              className="card-action card-action--synchronizing"
+              role="status"
+              aria-label="Atualizando página da origem"
+              title="Atualizando página"
+            >
+              <span aria-hidden="true" />
+            </span>
+          ) : page.sourceSync.state === 'update-available' ? (
             <button
               className="card-action card-action--refresh"
               type="button"
@@ -126,7 +131,7 @@ export function SiteCard({
               <WarningIcon size={19} />
             </button>
           ) : null}
-          {!page.isPlaceholder && page.health !== 'damaged' ? (
+          {page.health !== 'damaged' ? (
             <button
               className="card-action"
               type="button"
@@ -136,23 +141,39 @@ export function SiteCard({
               <EyeIcon size={18} />
             </button>
           ) : null}
-          <button
-            className={`card-action${page.hasUnpublishedChanges ? ' card-action--unpublished' : ''}`}
-            type="button"
-            aria-label={
-              page.hasUnpublishedChanges
-                ? 'Alterações ainda não publicadas'
-                : page.status === 'published'
-                  ? 'Página publicada e atualizada'
-                  : 'Página somente local'
-            }
-            onClick={() => {
-              if (page.health === 'damaged') onProblem?.(page.id)
-              else if (page.hasUnpublishedChanges) onOpenSettings?.(page.id)
-            }}
-          >
-            {page.status === 'published' ? <GlobeIcon size={18} /> : <LockIcon size={18} />}
-          </button>
+          {page.hasUnpublishedChanges && page.health !== 'damaged' ? (
+            <button
+              className="card-action card-publish-update"
+              type="button"
+              aria-label="Publicar atualização"
+              disabled={isPublishingUpdate}
+              onClick={() => onPublishUpdate?.(page.id)}
+            >
+              <GlobeIcon size={17} />
+              {isPublishingUpdate ? 'Publicando…' : 'Publicar'}
+            </button>
+          ) : page.status === 'published' ? (
+            <button
+              className="card-action card-publication-current"
+              type="button"
+              aria-label="Publicação atualizada"
+              disabled
+            >
+              <GlobeIcon size={17} />
+              Atualizado
+            </button>
+          ) : (
+            <button
+              className="card-action"
+              type="button"
+              aria-label="Página somente local"
+              onClick={() => {
+                if (page.health === 'damaged') onProblem?.(page.id)
+              }}
+            >
+              <LockIcon size={18} />
+            </button>
+          )}
           <button
             className="card-action"
             type="button"
