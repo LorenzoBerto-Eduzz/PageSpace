@@ -87,10 +87,13 @@ workspace was removed after migration; do not recreate or resume work from that 
   commit with an objective title and bullet details, and push unless the owner says not to.
 - After a completed user-visible milestone, refresh `project/dist/PageSpace/` while preserving
   `Pages/`, unless the owner says not to.
-- `localrelease`: create `localrelease/PageSpace/` and `localrelease/PageSpace.zip` with an empty
-  `Pages/` folder and no local data. Follow `docs/DELIVERY_PROCESS.md`.
+- `localrelease`: create only `localrelease/PageSpace/`, with an empty `Pages/` folder and no local
+  data. Do not create a ZIP during ordinary local visual testing. Follow `docs/DELIVERY_PROCESS.md`.
+- Apply the same folder-only `localrelease` convention to SotoDashboard and future page projects;
+  create ZIPs only for an explicitly requested remote or packaged distribution.
 - `remoterelease`: perform `memcheck` and `gitcheck`, choose/apply an appropriate semantic version
-  bump unless the owner specifies one, build and verify the clean stable-name local release, create
+  bump unless the owner specifies one, build and verify the clean stable-name local release, run
+  `npm run package:remoterelease` to create the release-only ZIP, create
   and push tag `v<version>`, publish `PageSpace.zip` in this repository's GitHub Releases, and
   verify the public release asset name, size, SHA-256 digest, and latest-release API response.
 - Once the owner is using an existing local release as a persistent test instance, use

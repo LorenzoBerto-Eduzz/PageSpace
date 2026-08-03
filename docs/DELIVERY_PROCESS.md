@@ -40,16 +40,14 @@ cd project
 npm run export:localrelease
 ```
 
-The replaceable handoff artifacts use stable names:
+The local test artifact uses a stable folder name:
 
 ```text
 localrelease/PageSpace/
-localrelease/PageSpace.zip
 ```
 
-Do not append the application version to these local filenames. Record versions in application
-metadata and, when explicitly authorized, GitHub Release metadata so a colleague can replace the
-same folder/ZIP name predictably.
+Do not append the application version to this local folder name. Ordinary local-release creation
+and refresh do not create a ZIP.
 
 After the owner starts using that local release as a persistent real-world test instance, refresh
 its application binaries without deleting its `Pages/` workspace with:
@@ -86,11 +84,13 @@ No GitHub Release or uploaded application ZIP is authorized unless the owner exp
 2. Select an appropriate semantic version bump unless the owner specifies the target version.
 3. Update both `project/package.json` and its lockfile to that exact version.
 4. Run tests, lint, type checks, production packaging, and `npm run export:localrelease`.
-5. Verify `localrelease/PageSpace/pagespace-release.json` matches the version, `Pages/` is empty,
+5. Run `npm run package:remoterelease`; this is the only workflow that creates
+   `localrelease/PageSpace.zip`.
+6. Verify `localrelease/PageSpace/pagespace-release.json` matches the version, `Pages/` is empty,
    and the folder/ZIP contain no private or forbidden data.
-6. Commit and push the release checkpoint, create and push tag `v<version>`, then publish the exact
+7. Commit and push the release checkpoint, create and push tag `v<version>`, then publish the exact
    stable-name `localrelease/PageSpace.zip` asset in this repository's GitHub Releases.
-7. Verify GitHub reports the asset as uploaded with its size and `sha256:` digest and that the
+8. Verify GitHub reports the asset as uploaded with its size and `sha256:` digest and that the
    unauthenticated latest-release endpoint returns the new stable release.
 
 The built-in updater checks only

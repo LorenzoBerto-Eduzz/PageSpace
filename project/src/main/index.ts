@@ -8,6 +8,7 @@ import {
   nativeTheme,
   net,
   protocol,
+  screen,
   shell
 } from 'electron'
 import { basename, dirname, join, resolve } from 'path'
@@ -22,6 +23,7 @@ import { GitHubPublishingService } from './github-publishing-service'
 import { PublicationDiagnostics } from './publication-diagnostics'
 import { createPageSpaceAiInstructions } from './pagespace-ai-instructions'
 import { PageSpaceUpdateService } from './pagespace-update-service'
+import { readWindowState, writeWindowState, type WindowState } from './window-state'
 import type {
   DeletePublicationInput,
   PublishPageInput,
@@ -38,6 +40,7 @@ protocol.registerSchemesAsPrivileged([
 
 const PAGE_EDITOR_HEADER_HEIGHT = 64
 const STORED_PREVIEW_WIDTH = 1104
+const PAGE_PREVIEW_ASPECT_RATIO = 11 / 6
 const OFFSCREEN_LAYOUT_WIDTH_ALLOWANCE = 16
 let mainApplicationWindow: BrowserWindow | null = null
 let pendingUpdateMarker = requestedUpdateMarker()
@@ -71,7 +74,10 @@ async function getPagePreviewViewport(): Promise<{ width: number; height: number
         typeof viewport.height === 'number' &&
         Number.isFinite(viewport.height)
       ) {
-        return { width: viewport.width, height: viewport.height }
+        return {
+          width: viewport.width,
+          height: Math.max(Math.round(viewport.width / PAGE_PREVIEW_ASPECT_RATIO), 1)
+        }
       }
     } catch {
       // Fall back to Electron content bounds while the renderer is not ready.
@@ -79,7 +85,7 @@ async function getPagePreviewViewport(): Promise<{ width: number; height: number
   }
   const contentBounds = mainWindow?.getContentBounds()
   const width = Math.max(contentBounds?.width ?? 1920, 1)
-  const height = Math.max((contentBounds?.height ?? 1080) - PAGE_EDITOR_HEADER_HEIGHT, 1)
+  const height = Math.max(Math.round(width / PAGE_PREVIEW_ASPECT_RATIO), 1)
   return { width, height }
 }
 
@@ -87,10 +93,14 @@ function getPagesRoot(): string {
   return app.isPackaged ? join(dirname(process.execPath), 'Pages') : join(app.getAppPath(), 'Pages')
 }
 
-function createWindow(hasActivePublications: () => boolean): void {
+function createWindow(
+  hasActivePublications: () => boolean,
+  initialWindowState: WindowState | null
+): void {
   const mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 820,
+    width: initialWindowState?.width ?? 1280,
+    height: initialWindowState?.height ?? 820,
+    ...(initialWindowState ? { x: initialWindowState.x, y: initialWindowState.y } : {}),
     minWidth: 960,
     minHeight: 640,
     show: false,
@@ -109,9 +119,27 @@ function createWindow(hasActivePublications: () => boolean): void {
   })
   mainApplicationWindow = mainWindow
 
-  mainWindow.maximize()
+  if (initialWindowState?.maximized ?? true) mainWindow.maximize()
+
+  const windowStatePath = join(app.getPath('userData'), 'window-state.json')
+  let stateSaveTimer: NodeJS.Timeout | null = null
+  const saveWindowState = (): void => {
+    if (mainWindow.isDestroyed() || mainWindow.isMinimized() || mainWindow.isFullScreen()) return
+    const bounds = mainWindow.getNormalBounds()
+    writeWindowState(windowStatePath, {
+      ...bounds,
+      maximized: mainWindow.isMaximized()
+    })
+  }
+  const scheduleWindowStateSave = (): void => {
+    if (stateSaveTimer) clearTimeout(stateSaveTimer)
+    stateSaveTimer = setTimeout(saveWindowState, 300)
+  }
+  mainWindow.on('resize', scheduleWindowStateSave)
+  mainWindow.on('move', scheduleWindowStateSave)
 
   mainWindow.on('closed', () => {
+    if (stateSaveTimer) clearTimeout(stateSaveTimer)
     if (mainApplicationWindow === mainWindow) mainApplicationWindow = null
   })
 
@@ -130,6 +158,7 @@ function createWindow(hasActivePublications: () => boolean): void {
   let allowCloseDuringPublication = false
   let isShowingPublicationWarning = false
   mainWindow.on('close', (event) => {
+    saveWindowState()
     if (allowCloseDuringPublication || !hasActivePublications()) return
     event.preventDefault()
     if (isShowingPublicationWarning) return
@@ -242,7 +271,13 @@ async function ensureCurrentPagePreviews(
       ? nativeImage.createFromDataURL(page.previewDataUrl)
       : null
     const dimensions = currentPreview && !currentPreview.isEmpty() ? currentPreview.getSize() : null
-    if (dimensions && dimensions.width > 0 && dimensions.height > 0) {
+    const aspectRatio = dimensions ? dimensions.width / dimensions.height : 0
+    if (
+      dimensions &&
+      dimensions.width > 0 &&
+      dimensions.height > 0 &&
+      Math.abs(aspectRatio - PAGE_PREVIEW_ASPECT_RATIO) < 0.01
+    ) {
       refreshedPages.push(page)
       continue
     }
@@ -335,7 +370,11 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('pages:get', (_, pageId: string) => pageWorkspace.getPage(pageId))
   ipcMain.handle('pages:preview-url', async (_, pageId: string) => {
-    await pageWorkspace.generatePageSite(pageId)
+    try {
+      await pageWorkspace.resolveGeneratedSiteFile(pageId, 'index.html')
+    } catch {
+      await pageWorkspace.generatePageSite(pageId)
+    }
     return `pagespace-preview://page/${encodeURIComponent(pageId)}/index.html`
   })
   ipcMain.handle('pages:refresh-source', async (_, pageId: string) => {
@@ -494,13 +533,18 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  createWindow(() => githubPublishing.hasActivePublications())
+  const displayAreas = screen.getAllDisplays().map(({ workArea }) => workArea)
+  const initialWindowState = readWindowState(
+    join(app.getPath('userData'), 'window-state.json'),
+    displayAreas
+  )
+  createWindow(() => githubPublishing.hasActivePublications(), initialWindowState)
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow(() => githubPublishing.hasActivePublications())
+      createWindow(() => githubPublishing.hasActivePublications(), initialWindowState)
     }
   })
 })

@@ -15,8 +15,9 @@
   and must not be committed unless explicitly requested.
 - PageSpace validation at migration passed 57 tests, lint, Node/web type checks, production build,
   Windows portable packaging, and clean-release validation.
-- Clean artifacts are `C:\C.Nvme\Projects\PageSpace\localrelease\PageSpace\` and
-  `PageSpace.zip`. Their `Pages/` folder is empty and no private metadata is included.
+- The clean local artifact is `C:\C.Nvme\Projects\PageSpace\localrelease\PageSpace\`. Its
+  `Pages/` folder is empty and no private metadata is included. `PageSpace.zip` is generated only
+  for an explicit `remoterelease`.
 - The Windows PageSpace profile, prior linked-GitHub authorization, authorization backup, test
   page instances, and test caches were explicitly removed for a genuine first-user test. Do not
   launch PageSpace before the owner is ready to begin that test, because launch recreates the
@@ -123,14 +124,15 @@
   `npm run refresh:localrelease` refreshes its binaries while preserving `Pages/`; use
   `export:localrelease` only when a deliberately empty first-run copy is requested.
 - PageSpace and compatible page projects are separate deliverables maintained from this AI task.
-  The clean PageSpace handoff uses `localrelease/PageSpace/` and `localrelease/PageSpace.zip`;
+  The clean local PageSpace handoff uses only `localrelease/PageSpace/`;
   version numbers
   belong in internal metadata and GitHub Release metadata, not the replaceable artifact name.
 - SotoDashboard is the first real compatible page project at
   `C:\C.Nvme\Projects\Pages\SotoDashboard`. It remains independently browser-ready, while its optional
   PageSpace extension owns title, section, card, link, and image editing. Its private handoff uses
-  `localrelease/SotoDashboard/` and `localrelease/SotoDashboard.zip`, with clean seed content and no user
-  instance data. It currently has no Git repository and is shared directly with the colleague.
+  `localrelease/SotoDashboard/`, with clean seed content and no user instance data. Routine page
+  project local releases are folder-only; ZIPs require an explicit packaging request. It currently
+  has no Git repository and is shared directly with the colleague.
 - Saving editable content and automatic source refresh update/bake the managed local page but do
   not create Git commits. If the page is published they mark it as having unpublished changes.
   Explicit initial publication or `Publicar atualização` stages only verified public output,
@@ -143,18 +145,29 @@
 - `remoterelease` is the owner command for the complete public application-release workflow:
   memory/Git checkpoint, semantic version bump, clean build, stable-name ZIP, version tag, GitHub
   Release publication, and verification of the public asset digest/latest-release response.
+- Post-v0.1.1 local milestone: dashboard cards keep a fixed 420px width and reflow by whole cards;
+  previews use one measured 11:6 capture/display viewport with gap-free top-aligned filling;
+  opening a card is immediate and reuses generated output instead of synchronizing and rebuilding
+  first; missing descriptions display `Adicionar descrição`; and the main window safely restores
+  its last normal bounds/maximized state while rejecting off-screen monitor layouts.
+- App Settings now has a flat update row without the former five local-information controls. It
+  checks GitHub automatically on open, shows current/latest versions, and uses a larger
+  state-specific update button. These post-v0.1.1 changes remain local until `remoterelease`.
+- Ordinary PageSpace and page-project local releases are folder-only. `PageSpace.zip` is generated
+  exclusively by `npm run package:remoterelease` during an explicitly authorized remote release.
 
 ## Validated Checkpoint
 
 - Lint passes.
 - Node and renderer TypeScript checks pass.
-- Six test files and 57 tests pass.
+- Eight test files and 67 tests pass.
 - Production and unpacked portable builds pass.
 - The review executable is `project/dist/PageSpace/PageSpace.exe`.
 - Review builds preserve the existing persistent `Pages/` folder.
 - Tests cover package validation, executable rejection, editable content, user assets, baking,
   ordinary entry discovery, source-change detection and refresh, saving, compatible updates,
-  legacy simple-page compatibility and dynamic publication paths.
+  legacy simple-page compatibility, dynamic publication paths, verified app updates, and persisted
+  window-state validation.
 
 ## Next Product Milestone
 

@@ -5,7 +5,6 @@ $projectRoot = Join-Path $repositoryRoot 'project'
 $reviewRoot = Join-Path $projectRoot 'dist\PageSpace'
 $localReleaseParent = Join-Path $repositoryRoot 'localrelease'
 $localReleaseRoot = Join-Path $localReleaseParent 'PageSpace'
-$localReleaseZip = Join-Path $localReleaseParent 'PageSpace.zip'
 
 Push-Location $projectRoot
 try {
@@ -67,7 +66,4 @@ if ($pageEntries) {
   throw 'A pasta Pages da localrelease não está vazia.'
 }
 
-Compress-Archive -LiteralPath $localReleaseRoot -DestinationPath $localReleaseZip -CompressionLevel Optimal
-
 Write-Output "localrelease limpa criada em: $localReleaseRoot"
-Write-Output "arquivo ZIP limpo criado em: $localReleaseZip"

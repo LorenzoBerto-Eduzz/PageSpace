@@ -384,38 +384,6 @@
   color: #66768a;
 }
 
-.app-settings-facts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 9px;
-  margin: 0;
-}
-
-.app-settings-facts div {
-  padding: 12px;
-  border: 1px solid rgba(205, 210, 218, 0.86);
-  border-radius: 10px;
-  background: #fff;
-}
-
-.app-settings-facts dt {
-  margin-bottom: 7px;
-  color: #858b95;
-  font-size: 11px;
-  line-height: 1.35;
-}
-
-.app-settings-facts dd {
-  margin: 0;
-  color: #4c515a;
-  font-size: 17px;
-  font-weight: 600;
-}
-
-.app-settings-facts .app-settings-problem-count {
-  color: #a7433d;
-}
-
 .app-settings-actions {
   display: flex;
   flex-wrap: wrap;
@@ -456,17 +424,18 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-top: 16px;
-  padding: 13px;
-  border: 1px solid rgba(205, 210, 218, 0.86);
-  border-radius: 10px;
-  background: #fff;
+  margin-top: 4px;
 }
 
 .app-settings-update button {
-  min-height: 38px;
+  display: inline-flex;
+  min-width: 210px;
+  min-height: 48px;
   flex: 0 0 auto;
-  padding: 0 12px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 18px;
   border: 1px solid #636f82;
   border-radius: 10px;
   color: #fff;

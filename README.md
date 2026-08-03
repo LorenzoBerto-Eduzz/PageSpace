@@ -37,6 +37,7 @@ credentials in protected operating-system storage, and publishes only freshly ge
 verified against a private manifest.
 
 The owner's development copy is `project/dist/PageSpace/`. A clean colleague handoff must use
-`localrelease/PageSpace/` and `localrelease/PageSpace.zip`, whose `Pages/` directory is empty.
+`localrelease/PageSpace/`, whose `Pages/` directory is empty. A ZIP is created only for an
+explicit remote release.
 Updater-capable builds can later install newer verified `PageSpace.zip` assets published through
 the official repository's GitHub Releases while preserving the user's local `Pages/` folder.

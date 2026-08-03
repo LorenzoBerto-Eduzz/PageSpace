@@ -13,7 +13,7 @@ function toDashboardPage(page: PageSummary): DashboardPage {
   return {
     id: page.id,
     name: page.name,
-    description: page.description || 'Sem descrição',
+    description: page.description || 'Adicionar descrição',
     status: page.status,
     preview: page.previewDataUrl ? 'captured' : 'empty',
     previewDataUrl: page.previewDataUrl,
@@ -207,12 +207,8 @@ function App(): React.JSX.Element {
       .catch(() => undefined)
   }
 
-  async function openPage(pageId: string): Promise<void> {
-    try {
-      setPages(await synchronizePageSources())
-    } finally {
-      setOpenPageId(pageId)
-    }
+  function openPage(pageId: string): void {
+    setOpenPageId(pageId)
   }
 
   async function recoverPage(): Promise<void> {
@@ -302,7 +298,7 @@ function App(): React.JSX.Element {
                   synchronizingSourceIds.has(page.id) || refreshingSourceId === page.id
                 }
                 isPublishingUpdate={publishingUpdateId === page.id}
-                onOpen={(pageId) => void openPage(pageId)}
+                onOpen={openPage}
                 onOpenSettings={(pageId) => {
                   setSettingsHasUnsavedChanges(false)
                   setSettingsPageId(pageId)

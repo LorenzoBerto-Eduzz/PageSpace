@@ -5,7 +5,7 @@ import type {
   GitHubDeviceAuthorization,
   PageSummary
 } from '../../../shared/page-contracts'
-import { FolderIcon, WarningIcon } from './icons'
+import { CheckIcon, ImportIcon, WarningIcon } from './icons'
 import { ModalCloseButton } from './ModalCloseButton'
 
 type AppSettingsDialogProps = {
@@ -122,17 +122,6 @@ export function AppSettingsDialog({
     }
   }
 
-  async function openPagesFolder(): Promise<void> {
-    setError(null)
-    try {
-      await window.pageSpace.openPagesFolder()
-    } catch (openError) {
-      setError(
-        openError instanceof Error ? openError.message : 'Não foi possível abrir a pasta Pages.'
-      )
-    }
-  }
-
   async function beginGitHubLink(): Promise<void> {
     if (isLinkingGitHub) return
     setError(null)
@@ -236,33 +225,6 @@ export function AppSettingsDialog({
 
         <div className="app-settings-section">
           <h3>Aplicativo local</h3>
-          <dl className="app-settings-facts">
-            <div>
-              <dt>Versão do aplicativo</dt>
-              <dd>v{snapshot.version}</dd>
-            </div>
-            <div>
-              <dt>Páginas locais</dt>
-              <dd>{snapshot.pages.length}</dd>
-            </div>
-            <div>
-              <dt>Páginas com problema</dt>
-              <dd className={damagedPages.length ? 'app-settings-problem-count' : ''}>
-                {damagedPages.length}
-              </dd>
-            </div>
-          </dl>
-
-          <div className="app-settings-actions">
-            <button type="button" onClick={openPagesFolder} disabled={isChecking}>
-              <FolderIcon size={18} />
-              Abrir pasta Pages
-            </button>
-            <button type="button" onClick={refresh} disabled={isChecking}>
-              {isChecking ? 'Verificando…' : 'Verificar páginas novamente'}
-            </button>
-          </div>
-
           <div className="app-settings-update">
             <button
               type="button"
@@ -275,6 +237,11 @@ export function AppSettingsDialog({
                   : void checkForUpdate(true)
               }
             >
+              {updateStatus?.state === 'available' ? (
+                <ImportIcon size={18} />
+              ) : (
+                <CheckIcon size={18} />
+              )}
               {updateButtonText()}
             </button>
             <dl className="app-settings-update-versions">

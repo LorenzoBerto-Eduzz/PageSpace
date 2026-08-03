@@ -79,7 +79,7 @@
 
 .pages-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+  grid-template-columns: repeat(auto-fill, 420px);
   gap: 44px;
   align-items: start;
 }
@@ -124,6 +124,7 @@
 
 .site-preview {
   height: auto;
+  aspect-ratio: 11 / 6;
   padding: 0;
   overflow: hidden;
   border: 0;
@@ -137,16 +138,16 @@
 }
 
 .site-preview--empty {
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 11 / 6;
   background: rgba(255, 255, 255, 0.72);
 }
 
 .site-preview img {
   display: block;
   width: 100%;
-  height: auto;
-  object-fit: contain;
-  object-position: center;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
 }
 
 .site-card-content {
@@ -530,12 +531,6 @@
 .dialog-button:disabled {
   cursor: wait;
   opacity: 0.6;
-}
-
-@media (min-width: 1200px) {
-  .pages-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 520px) {
