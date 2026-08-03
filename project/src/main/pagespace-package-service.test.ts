@@ -32,13 +32,17 @@ async function temporaryDirectory(): Promise<string> {
   return directory
 }
 
-async function createEditablePackage(root: string, version = '1.0.0'): Promise<void> {
+async function createEditablePackage(
+  root: string,
+  version = '1.0.0',
+  packageId = 'com.example.dashboard'
+): Promise<void> {
   await mkdir(join(root, 'site', 'assets'), { recursive: true })
   await writeFile(
     join(root, 'pagespace.json'),
     JSON.stringify({
       schemaVersion: 1,
-      packageId: 'com.example.dashboard',
+      packageId,
       packageVersion: version,
       name: 'Example Dashboard',
       description: 'A test package',
@@ -102,6 +106,15 @@ async function createEditablePackage(root: string, version = '1.0.0'): Promise<v
 }
 
 describe('PageSpace package validation and baking', () => {
+  it('accepts a valid two-character package ID', async () => {
+    const source = await temporaryDirectory()
+    await createEditablePackage(source, '1.0.0', 'ab')
+
+    const candidate = await validatePageSpacePackage(source)
+
+    expect(candidate.manifest.packageId).toBe('ab')
+  })
+
   it('validates and bakes an editable package with generated content', async () => {
     const source = await temporaryDirectory()
     const workspace = await temporaryDirectory()

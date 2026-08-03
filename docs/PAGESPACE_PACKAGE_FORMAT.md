@@ -144,7 +144,7 @@ The website reads generated editable values from `pagespace-content.js`:
 PageSpace generates that reserved file while baking:
 
 ```js
-window.PAGESPACE_CONTENT = { /* validated public values */ };
+window.PAGESPACE_CONTENT = {/* validated public values */};
 ```
 
 The package's own browser JavaScript decides how those values appear. It receives no PageSpace,
@@ -214,5 +214,8 @@ PageSpace:
 
 Every PageSpace release exposes one TXT download containing AI-authoring instructions for the
 package contract supported by that installed application version. The generated file includes this
-structure, supported field types, validation limits, security restrictions, and a minimal example.
-It intentionally contains no visual requirements.
+structure, every supported field type, exact validation limits, complete nested editable examples,
+editor/image/link bridge protocols, compatible-update rules, security restrictions, and a final
+delivery checklist. Shared constants keep the document's limits aligned with runtime validation,
+and automated tests pass its reference schema and content through the real parser. It intentionally
+contains no visual requirements.

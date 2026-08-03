@@ -9,6 +9,10 @@ import type {
   PageSpaceEditableSchema,
   PageSpacePackageManifest
 } from '../shared/pagespace-package-contracts'
+import {
+  PAGESPACE_ALLOWED_SITE_EXTENSIONS,
+  PAGESPACE_PACKAGE_LIMITS
+} from '../shared/pagespace-package-limits'
 
 const MANIFEST_FILE = 'pagespace.json'
 const SITE_FOLDER = 'site'
@@ -19,46 +23,15 @@ const GENERATED_SITE_MANIFEST = 'generated-site-manifest.json'
 const RESERVED_CONTENT_SCRIPT = 'pagespace-content.js'
 const USER_ASSETS_FOLDER = 'user-assets'
 const COMMON_OUTPUT_FOLDERS = ['dist', 'build', 'public', 'docs'] as const
-const MAX_FILES = 500
-const MAX_FILE_BYTES = 20_000_000
-const MAX_TOTAL_BYTES = 80_000_000
-const MAX_FIELDS = 100
-const MAX_COLLECTION_FIELDS = 30
-const MAX_COLLECTION_ITEMS = 500
-const MAX_COLLECTION_DEPTH = 2
+const MAX_FILES = PAGESPACE_PACKAGE_LIMITS.maxFiles
+const MAX_FILE_BYTES = PAGESPACE_PACKAGE_LIMITS.maxFileBytes
+const MAX_TOTAL_BYTES = PAGESPACE_PACKAGE_LIMITS.maxTotalBytes
+const MAX_FIELDS = PAGESPACE_PACKAGE_LIMITS.maxTopLevelFields
+const MAX_COLLECTION_FIELDS = PAGESPACE_PACKAGE_LIMITS.maxCollectionFields
+const MAX_COLLECTION_ITEMS = PAGESPACE_PACKAGE_LIMITS.maxCollectionItems
+const MAX_COLLECTION_DEPTH = PAGESPACE_PACKAGE_LIMITS.maxCollectionDepth
 
-const ALLOWED_SITE_EXTENSIONS = new Set([
-  '.html',
-  '.htm',
-  '.css',
-  '.js',
-  '.mjs',
-  '.json',
-  '.txt',
-  '.xml',
-  '.webmanifest',
-  '.png',
-  '.jpg',
-  '.jpeg',
-  '.webp',
-  '.gif',
-  '.ico',
-  '.svg',
-  '.avif',
-  '.bmp',
-  '.csv',
-  '.pdf',
-  '.wasm',
-  '.mp3',
-  '.wav',
-  '.ogg',
-  '.mp4',
-  '.webm',
-  '.woff',
-  '.woff2',
-  '.ttf',
-  '.otf'
-])
+const ALLOWED_SITE_EXTENSIONS = new Set<string>(PAGESPACE_ALLOWED_SITE_EXTENSIONS)
 
 export type ValidatedPageSpacePackage = {
   sourceDirectory: string
@@ -557,7 +530,7 @@ function parseManifest(value: unknown): PageSpacePackageManifest {
   if (
     candidate.schemaVersion !== 1 ||
     typeof candidate.packageId !== 'string' ||
-    !/^[a-z0-9](?:[a-z0-9.-]{1,126}[a-z0-9])?$/.test(candidate.packageId) ||
+    !/^[a-z0-9](?:[a-z0-9.-]{0,126}[a-z0-9])?$/.test(candidate.packageId) ||
     typeof candidate.packageVersion !== 'string' ||
     !/^[0-9]+(?:\.[0-9]+){2}(?:-[A-Za-z0-9.-]+)?$/.test(candidate.packageVersion) ||
     typeof candidate.name !== 'string' ||

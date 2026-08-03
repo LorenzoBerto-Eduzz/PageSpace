@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { PageEditorData } from '../../../shared/page-contracts'
+import type { PageEditorData, PageSummary } from '../../../shared/page-contracts'
 import type { PageSpaceEditableContent } from '../../../shared/pagespace-package-contracts'
 import {
   ArrowLeftIcon,
@@ -13,7 +13,7 @@ import {
 
 type PackagePageEditorProps = {
   pageId: string
-  initialPageName: string
+  page: PageSummary
   onBack: () => void
   onSaved: (data: PageEditorData) => void
   onOpenSettings: (pageId: string, hasUnsavedChanges: boolean) => void
@@ -25,7 +25,7 @@ function cloneContent(content: PageSpaceEditableContent): PageSpaceEditableConte
 
 export function PackagePageEditor({
   pageId,
-  initialPageName,
+  page,
   onBack,
   onSaved,
   onOpenSettings
@@ -248,7 +248,7 @@ export function PackagePageEditor({
             <ArrowLeftIcon size={20} />
             Voltar
           </button>
-          <div>{initialPageName ? <h1>{initialPageName}</h1> : null}</div>
+          <div>{page.name ? <h1>{page.name}</h1> : null}</div>
           <div />
         </header>
         <div className="package-editor-loading-surface">
@@ -260,9 +260,8 @@ export function PackagePageEditor({
 
   const isEditablePackage = data.kind === 'package' && Boolean(data.schema && content)
   const hasUnpublishedChanges =
-    data.page.deployment.kind === 'published' &&
-    (data.page.deployment.hasUnpublishedChanges === true ||
-      Boolean(data.page.deployment.pendingCommitOid))
+    page.deployment.kind === 'published' &&
+    (page.deployment.hasUnpublishedChanges === true || Boolean(page.deployment.pendingCommitOid))
 
   return (
     <main className="package-editor">
@@ -272,16 +271,16 @@ export function PackagePageEditor({
           Voltar
         </button>
         <div>
-          <h1>{data.page.name}</h1>
+          <h1>{page.name}</h1>
         </div>
         <div className="package-editor-header-actions">
-          {data.page.sourceSync.state === 'update-available' ? (
+          {page.sourceSync.state === 'update-available' ? (
             <button type="button" onClick={refreshSource} disabled={isRefreshingSource || isSaving}>
               <RefreshIcon size={18} />
               {isRefreshingSource ? 'Atualizando…' : 'Atualizar da origem'}
             </button>
           ) : null}
-          {data.page.sourceSync.state === 'unavailable' ? (
+          {page.sourceSync.state === 'unavailable' ? (
             <span className="package-source-unavailable">Origem indisponível</span>
           ) : null}
           {isEditablePackage ? (
@@ -309,7 +308,7 @@ export function PackagePageEditor({
               <GlobeIcon size={18} />
               {isPublishingUpdate ? 'Publicando…' : 'Publicar atualização'}
             </button>
-          ) : data.page.deployment.kind === 'published' ? (
+          ) : page.deployment.kind === 'published' ? (
             <button type="button" className="package-publication-current" disabled>
               <GlobeIcon size={18} />
               Publicação atualizada
@@ -344,7 +343,7 @@ export function PackagePageEditor({
               ref={previewFrame}
               className="package-live-preview"
               src={previewUrl}
-              title={`Visualização de ${data.page.name}`}
+              title={`Visualização de ${page.name}`}
               sandbox="allow-scripts"
               onLoad={(event) => sendPageEditorState(event.currentTarget)}
             />

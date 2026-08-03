@@ -1,0 +1,42 @@
+export const PAGESPACE_PACKAGE_LIMITS = {
+  maxFiles: 500,
+  maxFileBytes: 20_000_000,
+  maxTotalBytes: 80_000_000,
+  maxTopLevelFields: 100,
+  maxCollectionFields: 30,
+  maxCollectionItems: 500,
+  maxCollectionDepth: 2
+} as const
+
+export const PAGESPACE_ALLOWED_SITE_EXTENSIONS = [
+  '.html',
+  '.htm',
+  '.css',
+  '.js',
+  '.mjs',
+  '.json',
+  '.txt',
+  '.xml',
+  '.webmanifest',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+  '.gif',
+  '.ico',
+  '.svg',
+  '.avif',
+  '.bmp',
+  '.csv',
+  '.pdf',
+  '.wasm',
+  '.mp3',
+  '.wav',
+  '.ogg',
+  '.mp4',
+  '.webm',
+  '.woff',
+  '.woff2',
+  '.ttf',
+  '.otf'
+] as const

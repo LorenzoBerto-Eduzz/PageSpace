@@ -236,11 +236,12 @@ function App(): React.JSX.Element {
   }
 
   if (openPageId) {
-    const openPageName = pages.find((page) => page.id === openPageId)?.name ?? ''
+    const openPage = pages.find((page) => page.id === openPageId)
+    if (!openPage) return <main className="app-shell" />
     const editor = (
       <PackagePageEditor
         pageId={openPageId}
-        initialPageName={openPageName}
+        page={openPage}
         onBack={closeEditor}
         onOpenSettings={(pageId, hasUnsavedChanges) => {
           setSettingsHasUnsavedChanges(hasUnsavedChanges)

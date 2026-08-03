@@ -86,7 +86,11 @@
   validated open-link request. Packages receive no general clipboard, filesystem, or shell access.
 - Page cards intentionally omit source-type labels to keep the dashboard visually quiet.
 - App settings exposes one `Baixar instruções para IA (.txt)` action. It generates a handoff
-  document from the currently installed PageSpace version and supported package contract.
+  document from the currently installed PageSpace version and supported package contract. This is
+  a normative, fail-closed specification: its limits come from the same shared constants used by
+  package validation, and its complete editable schema/content reference is regression-tested
+  against the real parser. It includes folder, manifest, field, baking, editor bridge, image,
+  linking, compatible-update, security, and delivery-checklist requirements.
 - Existing GitHub Device Flow, protected storage, repository creation, retry, conflict detection,
   and Pages activation remain integrated.
 - OAuth requests `public_repo` plus `delete_repo`. A published page offers the immediate
@@ -153,6 +157,15 @@
 - App Settings now has a flat update row without the former five local-information controls. It
   checks GitHub automatically on open, shows current/latest versions, and uses a larger
   state-specific update button. These post-v0.1.1 changes remain local until `remoterelease`.
+- Publication changes completed inside a page's settings modal now flow through the dashboard's
+  shared page record immediately. The still-open page view renders its header publication action
+  from that shared record, so initial publication, update publication, or deletion no longer
+  requires leaving and reopening the page to show the current state.
+- The downloaded AI/human package-authoring TXT is now a normative versioned contract rather than
+  general guidance. Runtime validation and the document share package limits/allowed extensions;
+  complete nested schema/content examples pass the real parser in regression tests; and the text
+  covers manifests, fields, baking, editor/image/link bridges, compatible updates, security, and a
+  final delivery checklist.
 - Ordinary PageSpace and page-project local releases are folder-only. `PageSpace.zip` is generated
   exclusively by `npm run package:remoterelease` during an explicitly authorized remote release.
 
@@ -160,7 +173,7 @@
 
 - Lint passes.
 - Node and renderer TypeScript checks pass.
-- Eight test files and 67 tests pass.
+- Nine test files and 70 tests pass.
 - Production and unpacked portable builds pass.
 - The review executable is `project/dist/PageSpace/PageSpace.exe`.
 - Review builds preserve the existing persistent `Pages/` folder.
@@ -171,20 +184,12 @@
 
 ## Next Product Milestone
 
-Verify the first real editable-package lifecycle with SotoDashboard:
-
-1. Verify SotoDashboard v1.3 edit mode: hover-only remove control, add-card at each section end,
-   centered card modal, title/description/address editing, clipboard/file images, edit/view toggle,
-   and unsaved-change protection.
-2. Save locally and confirm the baked browser view and dashboard preview reflect the values.
-3. Publish, make another edit, save, and explicitly publish the update to the same repository.
-4. Increment the external SotoDashboard package version and change its template while preserving
-   stable schema keys; confirm PageSpace keeps the owner's private values during source refresh.
-5. Continue synchronization and editor edge-case hardening before colleague delivery.
-
-Clean zero-content local releases were generated for practical first-user testing. The owner will
-test the portable PageSpace build by importing the clean SotoDashboard handoff, linking GitHub,
-editing, saving, publishing, and updating it, then report product and visual refinements here.
+Core local/import/edit/save/bake/publish/update behavior has reached the owner's usable checkpoint,
+and the private SotoDashboard handoff is functionally ready. Before the first intended public
+PageSpace release, the owner will complete focused visual and element adjustments to application
+buttons, controls, spacing, and presentation. After visual approval, perform a release audit,
+normalize the intended version/commit/release metadata, run the full clean-release verification,
+and only then execute the explicitly requested first `remoterelease`.
 
 ## Durable Safety Decisions
 
