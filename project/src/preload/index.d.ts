@@ -51,6 +51,9 @@ declare global {
       getGitHubStatus: () => Promise<GitHubConnectionStatus>
       publishPage: (input: PublishPageInput) => Promise<PublishPageResult>
       deletePublication: (input: DeletePublicationInput) => Promise<DeletePublicationResult>
+      minimizeWindow: () => void
+      toggleMaximizeWindow: () => void
+      closeWindow: () => void
     }>
   }
 }

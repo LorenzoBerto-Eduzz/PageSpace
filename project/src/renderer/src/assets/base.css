@@ -1,8 +1,8 @@
 :root {
   --pagespace-window-surface: #f3f3f3;
-  --pagespace-icon-bg-color: rgb(23, 0, 64);
+  --pagespace-icon-bg-color: #14003a;
   color: #182033;
-  background: #f6f7fb;
+  background: #14003a;
   font-family:
     'Segoe UI',
     Inter,
@@ -25,9 +25,11 @@
 
 body {
   min-width: 320px;
+  height: 100vh;
   min-height: 100vh;
   margin: 0;
-  background: #f6f7fb;
+  overflow: hidden;
+  background: #14003a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

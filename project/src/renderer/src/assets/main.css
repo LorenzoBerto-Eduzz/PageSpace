@@ -1,7 +1,8 @@
 @import './base.css';
 
 body {
-  overflow-x: hidden;
+  overflow: hidden;
+  background: #14003a;
 }
 
 code {
@@ -21,7 +22,80 @@ code {
 }
 
 #root {
-  min-height: 100vh;
+  width: 100%;
+  height: 100vh;
+  padding-top: 32px;
+  overflow: hidden;
+  background: #14003a;
+}
+
+.window-titlebar {
+  position: fixed;
+  z-index: 10000;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 12px;
+  color: #ffffff;
+  background: var(--pagespace-icon-bg-color);
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.window-titlebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.window-titlebar-brand img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  -webkit-user-drag: none;
+}
+
+.window-titlebar-controls {
+  display: flex;
+  height: 32px;
+  margin-left: auto;
+  -webkit-app-region: no-drag;
+}
+
+.window-titlebar-controls button {
+  display: grid;
+  width: 46px;
+  height: 32px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: rgba(255, 255, 255, 0.9);
+  background: transparent;
+  cursor: default;
+}
+
+.window-titlebar-controls button:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.window-titlebar-controls .window-titlebar-close:hover {
+  background: #c42b1c;
+}
+
+.window-titlebar-controls svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
 }
 
 .logo {

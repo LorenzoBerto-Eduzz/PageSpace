@@ -38,7 +38,6 @@ function App(): React.JSX.Element {
   const [recoveryError, setRecoveryError] = useState<string | null>(null)
   const [isAppSettingsOpen, setIsAppSettingsOpen] = useState(false)
   const [refreshingSourceId, setRefreshingSourceId] = useState<string | null>(null)
-  const [publishingUpdateId, setPublishingUpdateId] = useState<string | null>(null)
   const [synchronizingSourceIds, setSynchronizingSourceIds] = useState<Set<string>>(new Set())
   const synchronizationInProgress = useRef<Promise<PageSummary[]> | null>(null)
 
@@ -178,28 +177,6 @@ function App(): React.JSX.Element {
     }
   }
 
-  async function publishPageUpdate(pageId: string): Promise<void> {
-    if (publishingUpdateId) return
-    setPublishingUpdateId(pageId)
-    try {
-      const published = await window.pageSpace.publishPage({ pageId })
-      updatePage(published.page)
-    } catch (publishError) {
-      try {
-        updatePage((await window.pageSpace.getPage(pageId)).page)
-      } catch {
-        // Preserve the publication error while retaining the last known card state.
-      }
-      window.alert(
-        publishError instanceof Error
-          ? publishError.message
-          : 'Não foi possível publicar esta atualização.'
-      )
-    } finally {
-      setPublishingUpdateId(null)
-    }
-  }
-
   function closeEditor(): void {
     setOpenPageId(null)
     synchronizePageSources()
@@ -293,12 +270,10 @@ function App(): React.JSX.Element {
                 key={page.id}
                 page={page}
                 onRefreshSource={refreshPageSource}
-                onPublishUpdate={publishPageUpdate}
                 isRefreshingSource={refreshingSourceId === page.id}
                 isSynchronizingSource={
                   synchronizingSourceIds.has(page.id) || refreshingSourceId === page.id
                 }
-                isPublishingUpdate={publishingUpdateId === page.id}
                 onOpen={openPage}
                 onOpenSettings={(pageId) => {
                   setSettingsHasUnsavedChanges(false)

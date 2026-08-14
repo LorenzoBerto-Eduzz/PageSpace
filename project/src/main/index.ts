@@ -105,7 +105,9 @@ function createWindow(
     minHeight: 640,
     show: false,
     autoHideMenuBar: true,
-    backgroundColor: '#f6f7fb',
+    backgroundColor: '#14003a',
+    frame: false,
+    resizable: true,
     title: 'PageSpace',
     icon,
     webPreferences: {
@@ -119,16 +121,16 @@ function createWindow(
   })
   mainApplicationWindow = mainWindow
 
-  if (initialWindowState?.maximized ?? true) mainWindow.maximize()
+  mainWindow.setFullScreen(true)
 
   const windowStatePath = join(app.getPath('userData'), 'window-state.json')
   let stateSaveTimer: NodeJS.Timeout | null = null
   const saveWindowState = (): void => {
-    if (mainWindow.isDestroyed() || mainWindow.isMinimized() || mainWindow.isFullScreen()) return
+    if (mainWindow.isDestroyed() || mainWindow.isMinimized()) return
     const bounds = mainWindow.getNormalBounds()
     writeWindowState(windowStatePath, {
       ...bounds,
-      maximized: mainWindow.isMaximized()
+      maximized: mainWindow.isFullScreen()
     })
   }
   const scheduleWindowStateSave = (): void => {
@@ -528,6 +530,17 @@ app.whenReady().then(() => {
   ipcMain.handle('pages:delete-publication', (_, input: DeletePublicationInput) =>
     githubPublishing.deletePublication(input)
   )
+  ipcMain.on('window:minimize', (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.minimize()
+  })
+  ipcMain.on('window:toggle-maximize', (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (!window) return
+    window.setFullScreen(!window.isFullScreen())
+  })
+  ipcMain.on('window:close', (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.close()
+  })
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

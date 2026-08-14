@@ -208,7 +208,10 @@ contextBridge.exposeInMainWorld(
         const message = error instanceof Error ? error.message : String(error)
         throw new Error(cleanIpcErrorMessage(message))
       }
-    }
+    },
+    minimizeWindow: () => ipcRenderer.send('window:minimize'),
+    toggleMaximizeWindow: () => ipcRenderer.send('window:toggle-maximize'),
+    closeWindow: () => ipcRenderer.send('window:close')
   })
 )
 

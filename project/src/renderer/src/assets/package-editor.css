@@ -1,7 +1,7 @@
 .package-editor {
   display: grid;
   width: 100vw;
-  height: 100vh;
+  height: 100%;
   grid-template-rows: 64px minmax(0, 1fr);
   overflow: hidden;
   color: #263244;
@@ -30,9 +30,9 @@
   gap: 14px;
   padding: 8px 16px;
   overflow: hidden;
-  border-bottom: 1px solid rgba(113, 126, 143, 0.2);
-  background: var(--pagespace-window-surface);
-  backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--pagespace-icon-bg-color);
+  backdrop-filter: none;
 }
 
 .package-editor-header h1,
@@ -41,6 +41,7 @@
 }
 
 .package-editor-header h1 {
+  color: #ffffff;
   font-size: 22px;
   font-weight: 620;
   letter-spacing: -0.035em;
@@ -75,7 +76,7 @@
   border: 1px solid rgba(164, 174, 188, 0.78);
   border-radius: 10px;
   color: #4f5967;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   font: inherit;
   font-size: 12px;

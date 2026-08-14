@@ -1,4 +1,12 @@
-import { EyeIcon, GlobeIcon, LockIcon, RefreshIcon, SettingsIcon, WarningIcon } from './icons'
+import {
+  ArrowUpIcon,
+  CloudIcon,
+  EyeIcon,
+  LockIcon,
+  RefreshIcon,
+  SettingsIcon,
+  WarningIcon
+} from './icons'
 import type { PageSource } from '../../../shared/pagespace-package-contracts'
 import type { PageSourceSync } from '../../../shared/page-contracts'
 
@@ -22,10 +30,8 @@ type SiteCardProps = {
   onOpenLocal?: (pageId: string) => void
   onProblem?: (pageId: string) => void
   onRefreshSource?: (pageId: string) => void
-  onPublishUpdate?: (pageId: string) => void
   isRefreshingSource?: boolean
   isSynchronizingSource?: boolean
-  isPublishingUpdate?: boolean
 }
 
 function PreviewCanvas({ page }: SiteCardProps): React.JSX.Element {
@@ -47,10 +53,8 @@ export function SiteCard({
   onOpenLocal,
   onProblem,
   onRefreshSource,
-  onPublishUpdate,
   isRefreshingSource,
-  isSynchronizingSource,
-  isPublishingUpdate
+  isSynchronizingSource
 }: SiteCardProps): React.JSX.Element {
   const className = ['site-card', page.health === 'damaged' ? 'site-card--damaged' : '']
     .filter(Boolean)
@@ -142,26 +146,23 @@ export function SiteCard({
             </button>
           ) : null}
           {page.hasUnpublishedChanges && page.health !== 'damaged' ? (
-            <button
-              className="card-action card-publish-update"
-              type="button"
-              aria-label="Publicar atualização"
-              disabled={isPublishingUpdate}
-              onClick={() => onPublishUpdate?.(page.id)}
+            <span
+              className="card-action card-publication-pending"
+              role="status"
+              aria-label="Alterações ainda não publicadas"
+              title="Alterações ainda não publicadas"
             >
-              <GlobeIcon size={17} />
-              {isPublishingUpdate ? 'Publicando…' : 'Publicar'}
-            </button>
+              <ArrowUpIcon size={19} />
+            </span>
           ) : page.status === 'published' ? (
-            <button
+            <span
               className="card-action card-publication-current"
-              type="button"
               aria-label="Publicação atualizada"
-              disabled
+              title="Publicação atualizada"
+              role="status"
             >
-              <GlobeIcon size={17} />
-              Atualizado
-            </button>
+              <CloudIcon size={19} />
+            </span>
           ) : (
             <button
               className="card-action"

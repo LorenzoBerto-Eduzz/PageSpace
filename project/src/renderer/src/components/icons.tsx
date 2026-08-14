@@ -63,6 +63,23 @@ export function GlobeIcon(props: IconProps): React.JSX.Element {
   )
 }
 
+export function CloudIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M6.5 18h10.2a4.3 4.3 0 0 0 .5-8.6A6 6 0 0 0 5.8 8a5 5 0 0 0 .7 10Z" />
+    </Icon>
+  )
+}
+
+export function ArrowUpIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M12 20V5" />
+      <path d="m6.5 10.5 5.5-5.5 5.5 5.5" />
+    </Icon>
+  )
+}
+
 export function ArrowLeftIcon(props: IconProps): React.JSX.Element {
   return (
     <Icon {...props}>
