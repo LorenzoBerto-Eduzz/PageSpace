@@ -115,6 +115,9 @@ inventory itself private.
 
 - Use schema validation, atomic writes, one validated backup, fresh generation, hash manifests,
   bounded network timeouts, single-flight publication, redacted diagnostics, and explicit recovery.
+- Treat GitHub rate limiting and server-side failures as temporary, retryable publication errors.
+  Preserve the local/generated state and resumable deployment metadata, and never expose raw
+  provider deployment messages or request details in the renderer.
 - Local page deletion never implies remote repository deletion.
 - `Excluir publicação` is a separate one-click irreversible action. It deletes only the persisted
   repository through GitHub, preserves the local page, removes its local `origin`, and returns its

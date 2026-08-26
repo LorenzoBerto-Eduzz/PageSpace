@@ -161,6 +161,14 @@
   shared page record immediately. The still-open page view renders its header publication action
   from that shared record, so initial publication, update publication, or deletion no longer
   requires leaving and reopening the page to show the current state.
+- The dashboard header now reflects the linked GitHub identity beside global settings. A connected
+  account shows a profile icon and login that opens that account's repository list; a disconnected
+  installation shows a passive `Sem conta GitHub` label. Page preview surfaces also round their
+  lower corners while the surrounding card remains visually transparent.
+- GitHub API throttling and server-side `5xx` failures are treated as temporary publication
+  outages with a direct retry message and stable `PUB-NET-01` reference. Unexpected framework or
+  provider messages are normalized instead of exposing raw deployment or request details. Failed
+  publication attempts retain the local page and its resumable publication state.
 - The downloaded AI/human package-authoring TXT is now a normative versioned contract rather than
   general guidance. Runtime validation and the document share package limits/allowed extensions;
   complete nested schema/content examples pass the real parser in regression tests; and the text
@@ -173,7 +181,7 @@
 
 - Lint passes.
 - Node and renderer TypeScript checks pass.
-- Nine test files and 70 tests pass.
+- Nine test files and 72 tests pass.
 - Production and unpacked portable builds pass.
 - The review executable is `project/dist/PageSpace/PageSpace.exe`.
 - Review builds preserve the existing persistent `Pages/` folder.

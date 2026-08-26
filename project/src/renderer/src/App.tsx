@@ -4,7 +4,7 @@ import { AppSettingsDialog } from './components/AppSettingsDialog'
 import { PackagePageEditor } from './components/PackagePageEditor'
 import { PageRecoveryDialog } from './components/PageRecoveryDialog'
 import { PageSettingsDialog } from './components/PageSettingsDialog'
-import { SettingsIcon } from './components/icons'
+import { ProfileIcon, SettingsIcon } from './components/icons'
 import { SiteCard } from './components/SiteCard'
 import type { DashboardPage } from './components/SiteCard'
 import type { PageSummary } from '../../shared/page-contracts'
@@ -37,6 +37,10 @@ function App(): React.JSX.Element {
   const [isRecovering, setIsRecovering] = useState(false)
   const [recoveryError, setRecoveryError] = useState<string | null>(null)
   const [isAppSettingsOpen, setIsAppSettingsOpen] = useState(false)
+  const [gitHubAccount, setGitHubAccount] = useState<{
+    login: string
+    profileUrl: string
+  } | null>(null)
   const [refreshingSourceId, setRefreshingSourceId] = useState<string | null>(null)
   const [synchronizingSourceIds, setSynchronizingSourceIds] = useState<Set<string>>(new Set())
   const synchronizationInProgress = useRef<Promise<PageSummary[]> | null>(null)
@@ -101,6 +105,20 @@ function App(): React.JSX.Element {
       isCurrent = false
     }
   }, [synchronizePageSourcesWithProgress])
+
+  useEffect(() => {
+    let isCurrent = true
+    window.pageSpace
+      .getGitHubStatus()
+      .then((status) => {
+        if (!isCurrent) return
+        setGitHubAccount(status.state === 'connected' ? status.account : null)
+      })
+      .catch(() => undefined)
+    return () => {
+      isCurrent = false
+    }
+  }, [isAppSettingsOpen])
 
   useEffect(() => {
     let active = true
@@ -252,14 +270,35 @@ function App(): React.JSX.Element {
     <main className="app-shell">
       <header className="topbar">
         <h1 id="pages-heading">Minhas Páginas</h1>
-        <button
-          className="icon-button global-settings"
-          type="button"
-          aria-label="Configurações gerais"
-          onClick={() => setIsAppSettingsOpen(true)}
-        >
-          <SettingsIcon size={26} />
-        </button>
+        <div className="topbar-actions">
+          <button
+            className="github-account-button"
+            type="button"
+            disabled={!gitHubAccount}
+            onClick={() => {
+              if (gitHubAccount) {
+                void window.pageSpace.openPageLink(`${gitHubAccount.profileUrl}?tab=repositories`)
+              }
+            }}
+          >
+            {gitHubAccount ? (
+              <>
+                <ProfileIcon size={26} />
+                <span>{gitHubAccount.login}</span>
+              </>
+            ) : (
+              <span>Sem conta GitHub</span>
+            )}
+          </button>
+          <button
+            className="icon-button global-settings"
+            type="button"
+            aria-label="Configurações gerais"
+            onClick={() => setIsAppSettingsOpen(true)}
+          >
+            <SettingsIcon size={26} />
+          </button>
+        </div>
       </header>
 
       <div className="dashboard-scroll-area">

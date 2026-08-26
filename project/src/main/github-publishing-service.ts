@@ -507,6 +507,12 @@ export class GitHubPublishingService {
 
   private async assertGitHubResponse(response: Response, message: string): Promise<void> {
     if (response.ok) return
+    if (response.status === 429 || response.status >= 500) {
+      throw publicationError(
+        'github_unavailable',
+        'O GitHub está temporariamente indisponível. Aguarde alguns minutos e tente publicar novamente.'
+      )
+    }
     if (response.status === 401) {
       throw new Error('A vinculação com o GitHub expirou. Vincule a conta novamente.')
     }

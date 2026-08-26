@@ -35,6 +35,7 @@ type ServiceInternals = {
     fallbackUrl: string
   ) => Promise<string>
   githubRequest: (accessToken: string, path: string, init?: RequestInit) => Promise<Response>
+  assertGitHubResponse: (response: Response, message: string) => Promise<void>
 }
 
 const temporaryDirectories: string[] = []
@@ -127,7 +128,7 @@ describe('complete publication workflow', () => {
 
     await expect(
       harness.service.publish({ pageId: harness.pageId, repositoryName: 'minha-pagina' })
-    ).rejects.toThrow('GitHub Pages indisponível.')
+    ).rejects.toMatchObject({ code: 'unexpected' })
     expect(harness.deployment()).toMatchObject({
       kind: 'publishing',
       phase: 'content-pushed'
@@ -137,6 +138,21 @@ describe('complete publication workflow', () => {
     expect(retry.outcome).toBe('no-changes')
     expect(retry.page.deployment.kind).toBe('published')
     expect(harness.createRepository).toHaveBeenCalledTimes(1)
+  })
+
+  it('turns temporary GitHub server failures into a clear retryable error', async () => {
+    const harness = await createHarness()
+
+    await expect(
+      harness.internals.assertGitHubResponse(
+        new Response('Failed to create deployment', { status: 503 }),
+        'Não foi possível ativar o endereço público.'
+      )
+    ).rejects.toMatchObject({
+      code: 'github_unavailable',
+      message:
+        'O GitHub está temporariamente indisponível. Aguarde alguns minutos e tente publicar novamente. | PUB-NET-01'
+    })
   })
 
   it('rejects repeated clicks while one publication is active', async () => {
@@ -339,6 +355,7 @@ async function createHarness(initialDeployment: PageDeployment = { kind: 'local-
     githubRequest,
     verifyPublishedBranch,
     push,
-    enablePages
+    enablePages,
+    internals
   }
 }

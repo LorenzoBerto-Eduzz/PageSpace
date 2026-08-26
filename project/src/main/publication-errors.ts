@@ -35,6 +35,6 @@ export function normalizePublicationError(error: unknown): PublicationError {
     ? error
     : publicationError(
         'unexpected',
-        error instanceof Error ? error.message : 'Não foi possível concluir a publicação.'
+        'Não foi possível concluir a publicação. Tente novamente. Se o problema continuar, verifique o status do GitHub.'
       )
 }

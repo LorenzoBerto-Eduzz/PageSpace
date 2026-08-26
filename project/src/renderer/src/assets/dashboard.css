@@ -52,6 +52,37 @@
   background: transparent;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.github-account-button {
+  display: inline-flex;
+  min-width: 230px;
+  height: 52px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  color: rgba(255, 255, 255, 0.79);
+  background: transparent;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+}
+
+.github-account-button:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.github-account-button:not(:disabled) {
+  cursor: pointer;
+}
+
 .dashboard {
   max-width: none;
   padding: 0 12px 80px clamp(52px, 4.6vw, 94px);
@@ -140,7 +171,7 @@
   overflow: hidden;
   border: 0;
   border-bottom: 0;
-  border-radius: 0;
+  border-radius: 0 0 10px 10px;
   background: rgba(255, 255, 255, 0.9);
 }
 

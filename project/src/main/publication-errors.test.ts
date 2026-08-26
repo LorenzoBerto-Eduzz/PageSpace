@@ -12,7 +12,19 @@ describe('publication errors', () => {
   it('normalizes unexpected failures without exposing objects', () => {
     const normalized = normalizePublicationError({ token: 'secret' })
     expect(normalized.code).toBe('unexpected')
-    expect(normalized.message).toBe('Não foi possível concluir a publicação. | PUB-UNEXPECTED-01')
+    expect(normalized.message).toBe(
+      'Não foi possível concluir a publicação. Tente novamente. Se o problema continuar, verifique o status do GitHub. | PUB-UNEXPECTED-01'
+    )
     expect(normalized.message).not.toContain('secret')
+  })
+
+  it('does not expose technical messages from unexpected errors', () => {
+    const normalized = normalizePublicationError(
+      new Error('Failed to create deployment with internal request details')
+    )
+
+    expect(normalized.code).toBe('unexpected')
+    expect(normalized.message).not.toContain('Failed to create deployment')
+    expect(normalized.message).toContain('Tente novamente')
   })
 })
