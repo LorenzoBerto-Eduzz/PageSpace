@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   AppSettingsSnapshot,
   AppUpdateStatus,
+  GitHubConnectionStatus,
   GitHubDeviceAuthorization,
   PageSummary
 } from '../../../shared/page-contracts'
@@ -10,6 +11,7 @@ import { ModalCloseButton } from './ModalCloseButton'
 
 type AppSettingsDialogProps = {
   initialPages: PageSummary[]
+  initialGitHubStatus: GitHubConnectionStatus | null
   onClose: () => void
   onPagesRefreshed: (pages: PageSummary[]) => void
   onOpenProblem: (pageId: string) => void
@@ -17,13 +19,14 @@ type AppSettingsDialogProps = {
 
 export function AppSettingsDialog({
   initialPages,
+  initialGitHubStatus,
   onClose,
   onPagesRefreshed,
   onOpenProblem
 }: AppSettingsDialogProps): React.JSX.Element {
   const [snapshot, setSnapshot] = useState<AppSettingsSnapshot>({
-    version: '0.0.0',
-    github: { state: 'disconnected' },
+    version: '',
+    github: initialGitHubStatus ?? { state: 'disconnected' },
     pages: initialPages
   })
   const [isChecking, setIsChecking] = useState(false)
@@ -36,12 +39,14 @@ export function AppSettingsDialog({
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
   const [isInstallingUpdate, setIsInstallingUpdate] = useState(false)
   const [updateError, setUpdateError] = useState<string | null>(null)
+  const [updateCheckFailed, setUpdateCheckFailed] = useState(false)
   const linkAttemptId = useRef(0)
-  const [codeWasCopied, setCodeWasCopied] = useState(false)
   const damagedPages = useMemo(
     () => snapshot.pages.filter((page) => page.health === 'damaged'),
     [snapshot.pages]
   )
+  const connectedAccount = snapshot.github.state === 'connected' ? snapshot.github.account : null
+  const displayedCurrentVersion = updateStatus?.currentVersion ?? snapshot.version
 
   async function downloadAiInstructions(): Promise<void> {
     const saved = await window.pageSpace.downloadAiInstructions()
@@ -59,14 +64,12 @@ export function AppSettingsDialog({
     if (isCheckingUpdate || isInstallingUpdate) return
     setIsCheckingUpdate(true)
     setUpdateError(null)
+    setUpdateCheckFailed(false)
     try {
       setUpdateStatus(await window.pageSpace.checkForAppUpdate(force))
-    } catch (checkError) {
-      setUpdateError(
-        checkError instanceof Error
-          ? checkError.message
-          : 'Não foi possível verificar as atualizações.'
-      )
+    } catch {
+      setUpdateStatus(null)
+      setUpdateCheckFailed(true)
     } finally {
       setIsCheckingUpdate(false)
     }
@@ -89,18 +92,19 @@ export function AppSettingsDialog({
   }
 
   function latestReleaseVersion(): string {
+    if (updateCheckFailed) return 'Não foi possível conectar'
     if (updateStatus?.state === 'available' || updateStatus?.state === 'up-to-date') {
-      return `v${updateStatus.latestVersion}`
+      return updateStatus.latestVersion
     }
     return isCheckingUpdate ? 'Verificando…' : '—'
   }
 
   function updateButtonText(): string {
-    if (isInstallingUpdate) return 'Baixando e preparando…'
+    if (isInstallingUpdate) return 'Atualizando…'
     if (isCheckingUpdate) return 'Verificando…'
-    if (updateStatus?.state === 'available') return 'Baixar e atualizar'
-    if (updateStatus?.state === 'up-to-date') return 'Usando última versão'
-    return 'Verificar atualizações'
+    if (updateStatus?.state === 'available') return 'Atualizar App'
+    if (updateStatus?.state === 'up-to-date') return 'Última versão'
+    return 'Verificar versão'
   }
 
   async function refresh(): Promise<void> {
@@ -128,7 +132,6 @@ export function AppSettingsDialog({
     const attemptId = linkAttemptId.current + 1
     linkAttemptId.current = attemptId
     setAuthorization(null)
-    setCodeWasCopied(false)
     setIsLinkingGitHub(true)
     try {
       const nextAuthorization = await window.pageSpace.beginGitHubLink()
@@ -137,7 +140,6 @@ export function AppSettingsDialog({
         return
       }
       setAuthorization(nextAuthorization)
-      setCodeWasCopied(true)
       const status = await window.pageSpace.completeGitHubLink(nextAuthorization.flowId)
       if (linkAttemptId.current !== attemptId) return
       setSnapshot((current) => ({ ...current, github: status }))
@@ -161,7 +163,6 @@ export function AppSettingsDialog({
     if (!activeAuthorization) return
     linkAttemptId.current += 1
     setAuthorization(null)
-    setCodeWasCopied(false)
     setError(null)
     setIsLinkingGitHub(false)
     try {
@@ -178,7 +179,6 @@ export function AppSettingsDialog({
   async function copyGitHubCode(): Promise<void> {
     if (!authorization) return
     await window.pageSpace.copyGitHubCode(authorization.userCode)
-    setCodeWasCopied(true)
   }
 
   async function disconnectGitHub(): Promise<void> {
@@ -223,10 +223,179 @@ export function AppSettingsDialog({
           />
         </header>
 
-        <div className="app-settings-section">
-          <h3>Aplicativo local</h3>
-          <div className="app-settings-update">
+        <div className="app-settings-divider" />
+
+        <div className="app-settings-held-content" hidden aria-hidden="true">
+          <div className="app-settings-section">
+            <h3>Aplicativo local</h3>
+            <div className="app-settings-update">
+              <button
+                type="button"
+                disabled={
+                  isCheckingUpdate || isInstallingUpdate || updateStatus?.state === 'up-to-date'
+                }
+                onClick={() =>
+                  updateStatus?.state === 'available'
+                    ? void installUpdate()
+                    : void checkForUpdate(true)
+                }
+              >
+                {updateStatus?.state === 'available' ? (
+                  <ImportIcon size={18} />
+                ) : (
+                  <CheckIcon size={18} />
+                )}
+                {updateButtonText()}
+              </button>
+              <dl className="app-settings-update-versions">
+                <div>
+                  <dt>Última versão no GitHub</dt>
+                  <dd>{latestReleaseVersion()}</dd>
+                </div>
+                <div>
+                  <dt>Versão em uso</dt>
+                  <dd>v{snapshot.version}</dd>
+                </div>
+              </dl>
+            </div>
+            {updateError ? (
+              <p className="dialog-error app-settings-update-error">{updateError}</p>
+            ) : null}
+          </div>
+
+          {damagedPages.length ? (
+            <div className="app-settings-section app-settings-damaged-section">
+              <h3>Páginas que precisam de atenção</h3>
+              <div className="app-settings-damaged-list">
+                {damagedPages.map((page) => (
+                  <button
+                    type="button"
+                    key={page.id}
+                    onClick={() => {
+                      onClose()
+                      onOpenProblem(page.id)
+                    }}
+                  >
+                    <WarningIcon size={18} />
+                    <span>
+                      <strong>{page.name}</strong>
+                      <small>{page.folderName}</small>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="app-settings-section">
+            <div className="app-settings-actions app-settings-actions--standalone">
+              <button type="button" onClick={downloadAiInstructions}>
+                Baixar instruções para IA (.txt)
+              </button>
+            </div>
+            {instructionMessage ? (
+              <p className="app-settings-inline-message">{instructionMessage}</p>
+            ) : null}
+          </div>
+        </div>
+
+        <section className="app-settings-section app-settings-github-section">
+          <h3>Conta GitHub</h3>
+          {connectedAccount ? (
+            <div className="github-connected-row">
+              <button
+                className="github-account github-account--link"
+                type="button"
+                onClick={() => window.pageSpace.openPageLink(connectedAccount.profileUrl)}
+              >
+                <img src={connectedAccount.avatarUrl} alt="" />
+                <span>
+                  <strong>{connectedAccount.name ?? connectedAccount.login}</strong>
+                  <small>@{connectedAccount.login}</small>
+                </span>
+              </button>
+              <button
+                className="github-account-action github-disconnect-action"
+                type="button"
+                disabled={isDisconnectingGitHub}
+                onClick={disconnectGitHub}
+              >
+                {isDisconnectingGitHub ? 'Desvinculando…' : 'Desvincular conta'}
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="github-disconnected-layout">
+                <p className="github-section-description">
+                  <span>Vincule sua conta GitHub para publicar suas páginas.</span>
+                  <span>Será criado um repositório para cada uma postada.</span>
+                </p>
+                <button
+                  className="github-account-action github-account-link"
+                  type="button"
+                  disabled={isLinkingGitHub}
+                  onClick={beginGitHubLink}
+                >
+                  {authorization ? 'Aguardando autorização…' : 'Vincular conta'}
+                </button>
+              </div>
+              {authorization ? (
+                <div className="github-device-flow">
+                  <div className="github-device-code-row">
+                    <p>Copie o código e cole-o na página aberta do GitHub.</p>
+                    <button
+                      className="github-device-code"
+                      type="button"
+                      title="Copiar código"
+                      onClick={copyGitHubCode}
+                    >
+                      {authorization.userCode}
+                    </button>
+                  </div>
+                  <button className="github-cancel-link" type="button" onClick={cancelGitHubLink}>
+                    Cancelar vinculação
+                  </button>
+                </div>
+              ) : null}
+            </>
+          )}
+          {error ? <p className="dialog-error">{error}</p> : null}
+        </section>
+
+        <section className="app-settings-section app-settings-pages-section">
+          <h3>Páginas</h3>
+        </section>
+
+        <section className="app-settings-section app-settings-instructions-section">
+          <h3>Instruções</h3>
+          <div className="app-instructions-layout">
+            <p>Use as instruções na criação de páginas para possibilitar o seu uso no PageSpace.</p>
+            <button type="button" onClick={downloadAiInstructions}>
+              Baixar .txt
+            </button>
+          </div>
+          {instructionMessage ? (
+            <p className="app-settings-inline-message">{instructionMessage}</p>
+          ) : null}
+        </section>
+
+        <section className="app-settings-section app-settings-version-section">
+          <h3>Versão</h3>
+          <div className="app-version-layout">
+            <dl className="app-version-details">
+              <div>
+                <dt>Versão instalada</dt>
+                <dd>{displayedCurrentVersion || '—'}</dd>
+              </div>
+              <div>
+                <dt>Versão mais recente</dt>
+                <dd className={updateCheckFailed ? 'app-version-check-error' : undefined}>
+                  {latestReleaseVersion()}
+                </dd>
+              </div>
+            </dl>
             <button
+              className="app-version-update-button"
               type="button"
               disabled={
                 isCheckingUpdate || isInstallingUpdate || updateStatus?.state === 'up-to-date'
@@ -237,125 +406,17 @@ export function AppSettingsDialog({
                   : void checkForUpdate(true)
               }
             >
-              {updateStatus?.state === 'available' ? (
-                <ImportIcon size={18} />
-              ) : (
-                <CheckIcon size={18} />
-              )}
+              {updateStatus?.state === 'available' ? <ImportIcon size={19} /> : null}
+              {updateStatus?.state === 'up-to-date' ? (
+                <CheckIcon size={18} strokeWidth={2.4} />
+              ) : null}
               {updateButtonText()}
             </button>
-            <dl className="app-settings-update-versions">
-              <div>
-                <dt>Última versão no GitHub</dt>
-                <dd>{latestReleaseVersion()}</dd>
-              </div>
-              <div>
-                <dt>Versão em uso</dt>
-                <dd>v{snapshot.version}</dd>
-              </div>
-            </dl>
           </div>
           {updateError ? (
             <p className="dialog-error app-settings-update-error">{updateError}</p>
           ) : null}
-        </div>
-
-        {damagedPages.length ? (
-          <div className="app-settings-section app-settings-damaged-section">
-            <h3>Páginas que precisam de atenção</h3>
-            <div className="app-settings-damaged-list">
-              {damagedPages.map((page) => (
-                <button
-                  type="button"
-                  key={page.id}
-                  onClick={() => {
-                    onClose()
-                    onOpenProblem(page.id)
-                  }}
-                >
-                  <WarningIcon size={18} />
-                  <span>
-                    <strong>{page.name}</strong>
-                    <small>{page.folderName}</small>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        <div className="app-settings-section">
-          <div className="app-settings-actions app-settings-actions--standalone">
-            <button type="button" onClick={downloadAiInstructions}>
-              Baixar instruções para IA (.txt)
-            </button>
-          </div>
-          {instructionMessage ? (
-            <p className="app-settings-inline-message">{instructionMessage}</p>
-          ) : null}
-        </div>
-
-        <div className="app-settings-section app-settings-github-section">
-          <div className="app-settings-github-heading">
-            <h3>Conta GitHub</h3>
-            {snapshot.github.state === 'connected' ? (
-              <div className="github-account">
-                <img src={snapshot.github.account.avatarUrl} alt="" />
-                <span>
-                  <strong>{snapshot.github.account.name ?? snapshot.github.account.login}</strong>
-                  <small>@{snapshot.github.account.login}</small>
-                </span>
-              </div>
-            ) : authorization ? (
-              <div className="github-device-flow">
-                <p>O GitHub foi aberto no navegador. Use o código copiado:</p>
-                <button
-                  className="github-device-code"
-                  type="button"
-                  title="Copiar código"
-                  onClick={copyGitHubCode}
-                >
-                  {authorization.userCode}
-                </button>
-                <small>
-                  {codeWasCopied ? 'Código copiado. ' : ''}
-                  Aguardando autorização…
-                </small>
-                <div className="github-device-actions">
-                  <button type="button" onClick={() => window.pageSpace.openGitHubDevicePage()}>
-                    Abrir GitHub novamente
-                  </button>
-                  <button type="button" onClick={cancelGitHubLink}>
-                    Cancelar vinculação
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <p>Vincule sua conta para publicar páginas em seus repositórios.</p>
-            )}
-          </div>
-          {snapshot.github.state === 'connected' ? (
-            <button
-              className="github-account-action"
-              type="button"
-              disabled={isDisconnectingGitHub}
-              onClick={disconnectGitHub}
-            >
-              {isDisconnectingGitHub ? 'Desvinculando…' : 'Desvincular'}
-            </button>
-          ) : (
-            <button
-              className="github-account-action github-account-link"
-              type="button"
-              disabled={isLinkingGitHub}
-              onClick={beginGitHubLink}
-            >
-              {authorization ? 'Aguardando…' : 'Vincular conta GitHub'}
-            </button>
-          )}
-        </div>
-
-        {error ? <p className="dialog-error">{error}</p> : null}
+        </section>
       </section>
     </div>
   )

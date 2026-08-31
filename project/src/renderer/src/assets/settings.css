@@ -54,7 +54,7 @@
 }
 
 .page-settings-dialog header {
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .page-settings-dialog h2,
@@ -73,6 +73,10 @@
 .page-settings-dialog form {
   display: grid;
   gap: 16px;
+}
+
+.page-settings-held-content[hidden] {
+  display: none;
 }
 
 .page-publishing-section {
@@ -351,6 +355,10 @@
   margin-bottom: 22px;
 }
 
+.app-settings-divider {
+  border-top: 1px solid rgba(210, 215, 221, 0.86);
+}
+
 .app-settings-dialog h2 {
   margin: 0;
   color: #3c3f45;
@@ -543,37 +551,52 @@
 }
 
 .app-settings-github-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.app-settings-github-heading {
-  min-width: 0;
+  display: block;
+  padding: 21px 0 28px;
+  border-bottom: 1px solid rgba(210, 215, 221, 0.86);
 }
 
 .app-settings-github-section h3 {
-  margin-bottom: 4px;
+  margin-bottom: 10px;
+  color: #3c3f45;
+  font-size: 18px;
+  font-weight: 550;
+  letter-spacing: -0.04em;
 }
 
-.app-settings-github-section p {
+.github-section-description {
   margin: 0;
-  color: #8a9099;
-  font-size: 12px;
+  color: #777e88;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.github-section-description span {
+  display: block;
+}
+
+.github-disconnected-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.github-disconnected-layout .github-section-description {
+  align-self: center;
 }
 
 .github-account-action {
-  flex: 0 0 auto;
-  min-height: 38px;
-  padding: 0 12px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 15px;
   border: 1px solid rgba(190, 197, 208, 0.9);
   border-radius: 10px;
   cursor: pointer;
   color: #747b86;
   background: transparent;
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 650;
 }
 
@@ -587,6 +610,11 @@
 }
 
 .github-account-link {
+  width: calc(100% - 20px);
+  height: 44px;
+  min-height: 44px;
+  justify-self: center;
+  margin-top: 0;
   border-color: #636f82;
   color: #fff;
   background: #58677d;
@@ -594,15 +622,24 @@
 
 .github-account {
   display: flex;
+  width: fit-content;
   min-width: 0;
   align-items: center;
-  gap: 10px;
-  margin-top: 11px;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.github-account--link {
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  background: transparent;
+  text-align: left;
 }
 
 .github-account img {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   flex: 0 0 auto;
   border: 1px solid rgba(190, 197, 208, 0.9);
   border-radius: 10px;
@@ -621,7 +658,7 @@
 .github-account strong {
   overflow: hidden;
   color: #4d525b;
-  font-size: 13px;
+  font-size: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -629,15 +666,25 @@
 .github-account small {
   margin-top: 2px;
   color: #888e98;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .github-device-flow {
-  margin-top: 10px;
+  margin-top: 18px;
 }
 
-.github-device-flow p {
-  margin-bottom: 8px;
+.github-device-code-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.github-device-code-row p {
+  margin: 0;
+  color: #707680;
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 .github-device-code {
@@ -649,7 +696,7 @@
   color: #444a54;
   background: #fff;
   font-family: 'Cascadia Mono', Consolas, monospace;
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: 0.08em;
 }
@@ -660,35 +707,198 @@
   outline: 0;
 }
 
-.github-device-flow small {
-  display: block;
-  margin-top: 7px;
-  color: #888e98;
-  font-size: 11px;
-}
-
-.github-device-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 10px;
-}
-
-.github-device-actions button {
-  min-height: 34px;
-  padding: 0 10px;
+.github-cancel-link {
+  min-height: 40px;
+  margin-top: 18px;
+  padding: 0 12px;
   border: 1px solid rgba(190, 197, 208, 0.9);
   border-radius: 10px;
   cursor: pointer;
   color: #686f79;
   background: transparent;
   font: inherit;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 650;
 }
 
-.github-device-actions button:hover {
+.github-cancel-link:hover {
   border-color: #9eaaba;
+}
+
+.github-connected-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.github-connected-row .github-account {
+  margin-top: 0;
+}
+
+.github-disconnect-action:hover:not(:disabled) {
+  border-color: rgba(181, 78, 71, 0.62);
+  color: #a7433d;
+}
+
+.github-disconnect-action {
+  border-color: transparent;
+}
+
+.app-settings-pages-section,
+.app-settings-instructions-section {
+  padding: 21px 0 28px;
+  border-top: 0;
+  border-bottom: 1px solid rgba(210, 215, 221, 0.86);
+}
+
+.app-settings-pages-section h3,
+.app-settings-instructions-section h3 {
+  margin: 0;
+  color: #3c3f45;
+  font-size: 18px;
+  font-weight: 550;
+  letter-spacing: -0.04em;
+}
+
+.app-settings-instructions-section h3 {
+  margin-bottom: 10px;
+}
+
+.app-instructions-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.app-instructions-layout p {
+  align-self: center;
+  margin: 0;
+  color: #777e88;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.app-instructions-layout p span {
+  display: block;
+}
+
+.app-instructions-layout button {
+  display: inline-flex;
+  width: calc(100% - 20px);
+  height: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  justify-self: center;
+  padding: 0 10px;
+  border: 1px solid rgba(190, 197, 208, 0.9);
+  border-radius: 10px;
+  color: #565b64;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.app-instructions-layout button:hover {
+  border-color: #9eaaba;
+  background: #fcfcfc;
+}
+
+.app-settings-version-section {
+  padding: 21px 0 0;
+  border-top: 0;
+}
+
+.app-settings-version-section h3 {
+  margin: 0 0 8px;
+  color: #3c3f45;
+  font-size: 18px;
+  font-weight: 550;
+  letter-spacing: -0.04em;
+}
+
+.app-version-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.app-version-details {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+}
+
+.app-version-details > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.app-version-details dt,
+.app-version-details dd {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.app-version-details dt {
+  color: #777e88;
+}
+
+.app-version-details dd {
+  flex: 0 0 auto;
+  color: #565b64;
+  font-weight: 650;
+}
+
+.app-version-details dd.app-version-check-error {
+  color: #b34d47;
+  font-size: 12px;
+}
+
+.app-version-update-button {
+  display: inline-flex;
+  width: calc(100% - 20px);
+  height: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  justify-self: center;
+  gap: 9px;
+  padding: 0 10px;
+  border: 1px solid #636f82;
+  border-radius: 10px;
+  color: #fff;
+  background: #58677d;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.app-version-update-button:hover:not(:disabled) {
+  background: #4f5e73;
+}
+
+.app-version-update-button:disabled {
+  cursor: default;
+  border-color: transparent;
+  color: #fff;
+  background: #c6cbd2;
+  opacity: 1;
+}
+
+.app-version-update-button svg {
+  position: relative;
+  top: 2px;
 }
 
 .page-recovery-dialog p {

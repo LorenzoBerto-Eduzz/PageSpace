@@ -47,12 +47,16 @@ function release(
   }
 }
 
-function service(currentVersion: string, response: Response): PageSpaceUpdateService {
+function service(
+  currentVersion: string,
+  response: Response,
+  isPackaged = true
+): PageSpaceUpdateService {
   return new PageSpaceUpdateService({
     currentVersion,
     installDirectory: 'C:\\PageSpace',
     executablePath: 'C:\\PageSpace\\PageSpace.exe',
-    isPackaged: true,
+    isPackaged,
     fetch: async () => response,
     requestQuit: () => undefined
   })
@@ -115,6 +119,22 @@ describe('PageSpace update policy', () => {
       latestVersion: '1.1.0'
     })
   })
+
+  it.runIf(process.platform === 'win32')(
+    'checks the published version while running in development mode',
+    async () => {
+      const updater = service(
+        '1.1.0',
+        new Response(JSON.stringify(release('1.1.0')), { status: 200 }),
+        false
+      )
+      await expect(updater.check()).resolves.toEqual({
+        state: 'up-to-date',
+        currentVersion: '1.1.0',
+        latestVersion: '1.1.0'
+      })
+    }
+  )
 
   it('handles a repository with no public release', async () => {
     const updater = service('1.0.0', new Response(null, { status: 404 }))

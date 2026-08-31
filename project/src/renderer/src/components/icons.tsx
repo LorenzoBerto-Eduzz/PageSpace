@@ -1,8 +1,13 @@
 type IconProps = {
   size?: number
+  strokeWidth?: number
 }
 
-function Icon({ children, size = 20 }: React.PropsWithChildren<IconProps>): React.JSX.Element {
+function Icon({
+  children,
+  size = 20,
+  strokeWidth = 1.8
+}: React.PropsWithChildren<IconProps>): React.JSX.Element {
   return (
     <svg
       aria-hidden="true"
@@ -11,7 +16,7 @@ function Icon({ children, size = 20 }: React.PropsWithChildren<IconProps>): Reac
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
     >
@@ -32,9 +37,8 @@ export function SettingsIcon(props: IconProps): React.JSX.Element {
 export function ProfileIcon(props: IconProps): React.JSX.Element {
   return (
     <Icon {...props}>
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="9" r="3" />
-      <path d="M6.8 19a5.7 5.7 0 0 1 10.4 0" />
+      <circle cx="12" cy="7" r="4" />
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
     </Icon>
   )
 }

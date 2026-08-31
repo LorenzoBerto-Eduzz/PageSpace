@@ -44,7 +44,7 @@ export class PageSpaceUpdateService {
   constructor(private readonly options: PageSpaceUpdateServiceOptions) {}
 
   async check(force = false): Promise<AppUpdateStatus> {
-    if (!this.options.isPackaged || process.platform !== 'win32') {
+    if (process.platform !== 'win32') {
       return { state: 'unsupported', currentVersion: this.options.currentVersion }
     }
     if (!force && this.cachedStatus && Date.now() - this.checkedAt < CHECK_CACHE_MS) {

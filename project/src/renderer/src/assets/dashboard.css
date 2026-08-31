@@ -22,7 +22,7 @@
   align-items: center;
   justify-content: space-between;
   margin: 0 auto;
-  padding: 48px clamp(44px, 4vw, 80px) 62px;
+  padding: 48px clamp(32px, 3vw, 56px) 70px;
   border: 0;
   background: transparent;
   backdrop-filter: none;
@@ -55,7 +55,7 @@
 .topbar-actions {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 44px;
 }
 
 .github-account-button {
@@ -74,6 +74,13 @@
   font-weight: 400;
 }
 
+.github-account-button svg {
+  position: relative;
+  top: 1px;
+  flex: 0 0 auto;
+  align-self: center;
+}
+
 .github-account-button:disabled {
   cursor: default;
   opacity: 1;
@@ -83,15 +90,25 @@
   cursor: pointer;
 }
 
+.github-account-button--disconnected {
+  color: rgba(220, 216, 228, 0.38);
+  opacity: 1;
+}
+
+.github-account-button--disconnected:hover {
+  color: rgba(220, 216, 228, 0.38);
+  opacity: 1;
+}
+
 .dashboard {
   max-width: none;
-  padding: 0 12px 80px clamp(52px, 4.6vw, 94px);
+  padding: 0 8px 32px clamp(32px, 3vw, 56px);
 }
 
 .dashboard-scroll-area {
   min-height: 0;
   flex: 1 1 auto;
-  margin-right: clamp(44px, 4vw, 80px);
+  margin-right: clamp(32px, 3vw, 56px);
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-color: rgba(255, 255, 255, 0.72) transparent;
@@ -124,8 +141,8 @@
 
 .pages-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 420px);
-  gap: 44px;
+  grid-template-columns: repeat(auto-fill, minmax(0, 410px));
+  gap: 20px;
   align-items: start;
 }
 
@@ -195,7 +212,7 @@
 .site-card-content {
   display: block;
   min-height: 0;
-  padding: 15px 22px 22px;
+  padding: 12px 18px 14px;
   background: transparent;
 }
 
@@ -209,8 +226,8 @@
 }
 
 .site-description {
-  min-height: 44px;
-  margin: 7px 0 8px;
+  min-height: 40px;
+  margin: 5px 0 5px;
   color: rgba(255, 255, 255, 0.72);
   font-size: 14px;
   line-height: 1.55;
@@ -222,7 +239,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  margin: 0 -14px -14px 0;
+  margin: 0 -10px -8px 0;
   padding-top: 0;
 }
 
@@ -361,8 +378,28 @@
   opacity: 0.56;
 }
 
+.add-page-card[aria-busy='true'] {
+  opacity: 0.9;
+}
+
 .add-page-card span {
   display: none;
+}
+
+.add-page-card .add-page-spinner {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: add-page-spin 700ms linear infinite;
+}
+
+@keyframes add-page-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .dashboard-error {

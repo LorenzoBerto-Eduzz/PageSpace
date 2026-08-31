@@ -107,7 +107,7 @@ The first updater-capable PageSpace build must still be delivered manually. Once
 `remoterelease` versions can be installed from Settings with `Baixar e atualizar`.
 
 Compatible page projects are packaged independently. SotoDashboard uses the canonical project
-path `C:\C.Nvme\Projects\Pages\SotoDashboard` and private handoff paths
+path `C:\C.Nvme\Files\Pages\SotoDashboard` and private handoff paths
 `localrelease\SotoDashboard\` and `localrelease\SotoDashboard.zip`. That clean package contains
 the browser-ready website and PageSpace contract,
 but no PageSpace instance metadata, Git repository, credentials, user sections/cards, or private

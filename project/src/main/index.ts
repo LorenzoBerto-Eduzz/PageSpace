@@ -45,6 +45,12 @@ const OFFSCREEN_LAYOUT_WIDTH_ALLOWANCE = 16
 let mainApplicationWindow: BrowserWindow | null = null
 let pendingUpdateMarker = requestedUpdateMarker()
 
+if (is.dev) {
+  app.setPath('userData', join(app.getPath('appData'), 'PageSpace Development'))
+}
+
+app.setName('PageSpace')
+
 function requestedUpdateMarker(): string | null {
   const markerIndex = process.argv.indexOf('--pagespace-update-marker')
   if (markerIndex < 0 || markerIndex + 1 >= process.argv.length) return null

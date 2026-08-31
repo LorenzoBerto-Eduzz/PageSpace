@@ -46,6 +46,10 @@ release/
 coverage/
 dist/
 build/
+!project/build/
+project/build/*
+!project/build/icon.ico
+!project/build/icon.png
 out/
 tmp/
 temp/

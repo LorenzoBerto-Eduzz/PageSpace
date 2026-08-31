@@ -22,7 +22,7 @@
   page instances, and test caches were explicitly removed for a genuine first-user test. Do not
   launch PageSpace before the owner is ready to begin that test, because launch recreates the
   Windows profile.
-- SotoDashboard moved to `C:\C.Nvme\Projects\Pages\SotoDashboard`; its own `AGENTS.md` and
+- SotoDashboard moved to `C:\C.Nvme\Files\Pages\SotoDashboard`; its own `AGENTS.md` and
   `docs/AI_HANDOFF.md` are authoritative for that separate page project.
 
 ## Current State
@@ -85,7 +85,7 @@
   relative content value plus temporary preview data. Sandboxed HTTP(S) card links use a separate
   validated open-link request. Packages receive no general clipboard, filesystem, or shell access.
 - Page cards intentionally omit source-type labels to keep the dashboard visually quiet.
-- App settings exposes one `Baixar instruções para IA (.txt)` action. It generates a handoff
+- App settings exposes one `Baixar .txt` action in its `Instruções` section. It generates a handoff
   document from the currently installed PageSpace version and supported package contract. This is
   a normative, fail-closed specification: its limits come from the same shared constants used by
   package validation, and its complete editable schema/content reference is regression-tested
@@ -132,7 +132,7 @@
   version numbers
   belong in internal metadata and GitHub Release metadata, not the replaceable artifact name.
 - SotoDashboard is the first real compatible page project at
-  `C:\C.Nvme\Projects\Pages\SotoDashboard`. It remains independently browser-ready, while its optional
+  `C:\C.Nvme\Files\Pages\SotoDashboard`. It remains independently browser-ready, while its optional
   PageSpace extension owns title, section, card, link, and image editing. Its private handoff uses
   `localrelease/SotoDashboard/`, with clean seed content and no user instance data. Routine page
   project local releases are folder-only; ZIPs require an explicit packaging request. It currently
@@ -154,17 +154,30 @@
   opening a card is immediate and reuses generated output instead of synchronizing and rebuilding
   first; missing descriptions display `Adicionar descrição`; and the main window safely restores
   its last normal bounds/maximized state while rejecting off-screen monitor layouts.
-- App Settings now has a flat update row without the former five local-information controls. It
-  checks GitHub automatically on open, shows current/latest versions, and uses a larger
-  state-specific update button. These post-v0.1.1 changes remain local until `remoterelease`.
+- App Settings now keeps its implemented legacy controls hidden while the owner redesigns their
+  presentation. Its visible layout is organized into `Conta GitHub`, a title-only `Páginas`
+  placeholder, `Instruções`, and `Versão`. GitHub linking exposes the device code inline, connected
+  accounts expose their profile and disconnect action without initial-state flicker, and version
+  checks show installed/latest values with state-specific actions and inline connection failure.
+  Development mode may check the official release version, but self-installation remains available
+  only to packaged Windows builds. These post-v0.1.1 changes remain local until `remoterelease`.
 - Publication changes completed inside a page's settings modal now flow through the dashboard's
   shared page record immediately. The still-open page view renders its header publication action
   from that shared record, so initial publication, update publication, or deletion no longer
   requires leaving and reopening the page to show the current state.
 - The dashboard header now reflects the linked GitHub identity beside global settings. A connected
-  account shows a profile icon and login that opens that account's repository list; a disconnected
-  installation shows a passive `Sem conta GitHub` label. Page preview surfaces also round their
+  account shows a profile icon and login that opens that account's profile; a disconnected
+  installation shows a subtle `Sem conta GitHub` action that opens settings. Page preview surfaces also round their
   lower corners while the surrounding card remains visually transparent.
+- The current visual-adjustment checkpoint uses a four-card dashboard grid, compact cards, only the
+  retained page-settings icon on each card, and an import spinner in the add-page control until the
+  managed copy and card are ready. Page-settings content is retained in source but temporarily
+  hidden while its replacement layout is designed.
+- `PageSpace-Dev.cmd` is the owner's rapid visual-testing launcher. It runs electron-vite directly
+  from source, uses the isolated `PageSpace Development` Windows profile, and supports renderer hot
+  reload. This workstation keeps its required Node executable under ignored
+  `local_assets/dev-runtime/`; `project/dist/PageSpace/` remains the packaged review checkpoint and
+  `localrelease/PageSpace/` remains the definitive clean handout.
 - GitHub API throttling and server-side `5xx` failures are treated as temporary publication
   outages with a direct retry message and stable `PUB-NET-01` reference. Unexpected framework or
   provider messages are normalized instead of exposing raw deployment or request details. Failed
@@ -181,7 +194,7 @@
 
 - Lint passes.
 - Node and renderer TypeScript checks pass.
-- Nine test files and 72 tests pass.
+- Nine test files and 73 tests pass.
 - Production and unpacked portable builds pass.
 - The review executable is `project/dist/PageSpace/PageSpace.exe`.
 - Review builds preserve the existing persistent `Pages/` folder.

@@ -153,7 +153,7 @@ export function PageSettingsDialog({
           <ModalCloseButton onClick={onClose} disabled={isBusy} />
         </header>
 
-        <form onSubmit={save}>
+        <form className="page-settings-held-content" hidden aria-hidden="true" onSubmit={save}>
           <label>
             Nome da página
             <input

@@ -7,7 +7,7 @@ import { PageSettingsDialog } from './components/PageSettingsDialog'
 import { ProfileIcon, SettingsIcon } from './components/icons'
 import { SiteCard } from './components/SiteCard'
 import type { DashboardPage } from './components/SiteCard'
-import type { PageSummary } from '../../shared/page-contracts'
+import type { GitHubConnectionStatus, PageSummary } from '../../shared/page-contracts'
 
 function toDashboardPage(page: PageSummary): DashboardPage {
   return {
@@ -37,10 +37,7 @@ function App(): React.JSX.Element {
   const [isRecovering, setIsRecovering] = useState(false)
   const [recoveryError, setRecoveryError] = useState<string | null>(null)
   const [isAppSettingsOpen, setIsAppSettingsOpen] = useState(false)
-  const [gitHubAccount, setGitHubAccount] = useState<{
-    login: string
-    profileUrl: string
-  } | null>(null)
+  const [gitHubStatus, setGitHubStatus] = useState<GitHubConnectionStatus | null>(null)
   const [refreshingSourceId, setRefreshingSourceId] = useState<string | null>(null)
   const [synchronizingSourceIds, setSynchronizingSourceIds] = useState<Set<string>>(new Set())
   const synchronizationInProgress = useRef<Promise<PageSummary[]> | null>(null)
@@ -112,13 +109,15 @@ function App(): React.JSX.Element {
       .getGitHubStatus()
       .then((status) => {
         if (!isCurrent) return
-        setGitHubAccount(status.state === 'connected' ? status.account : null)
+        setGitHubStatus(status)
       })
       .catch(() => undefined)
     return () => {
       isCurrent = false
     }
   }, [isAppSettingsOpen])
+
+  const gitHubAccount = gitHubStatus?.state === 'connected' ? gitHubStatus.account : null
 
   useEffect(() => {
     let active = true
@@ -272,18 +271,19 @@ function App(): React.JSX.Element {
         <h1 id="pages-heading">Minhas Páginas</h1>
         <div className="topbar-actions">
           <button
-            className="github-account-button"
+            className={`github-account-button${gitHubAccount ? '' : ' github-account-button--disconnected'}`}
             type="button"
-            disabled={!gitHubAccount}
             onClick={() => {
               if (gitHubAccount) {
-                void window.pageSpace.openPageLink(`${gitHubAccount.profileUrl}?tab=repositories`)
+                void window.pageSpace.openPageLink(gitHubAccount.profileUrl)
+              } else {
+                setIsAppSettingsOpen(true)
               }
             }}
           >
             {gitHubAccount ? (
               <>
-                <ProfileIcon size={26} />
+                <ProfileIcon size={22} />
                 <span>{gitHubAccount.login}</span>
               </>
             ) : (
@@ -363,6 +363,7 @@ function App(): React.JSX.Element {
       {isAppSettingsOpen ? (
         <AppSettingsDialog
           initialPages={pages}
+          initialGitHubStatus={gitHubStatus}
           onClose={() => setIsAppSettingsOpen(false)}
           onPagesRefreshed={setPages}
           onOpenProblem={setProblemPageId}

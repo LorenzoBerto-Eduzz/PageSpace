@@ -15,11 +15,16 @@ export function AddPageCard({
     <button
       className="add-page-card"
       type="button"
-      aria-label="Trazer página"
+      aria-label={isImporting ? 'Trazendo página' : 'Trazer página'}
+      aria-busy={isImporting}
       onClick={onClick}
       disabled={disabled}
     >
-      <PlusIcon size={28} />
+      {isImporting ? (
+        <span className="add-page-spinner" aria-hidden="true" />
+      ) : (
+        <PlusIcon size={28} />
+      )}
       <span>{isImporting ? 'Trazendo página…' : 'Trazer página'}</span>
     </button>
   )
