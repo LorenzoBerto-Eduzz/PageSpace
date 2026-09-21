@@ -57,6 +57,11 @@
   margin-bottom: 0;
 }
 
+.page-settings-divider {
+  margin-top: 18px;
+  border-top: 1px solid rgba(210, 215, 221, 0.86);
+}
+
 .page-settings-dialog h2,
 .delete-confirmation-dialog h2 {
   margin: 0;
@@ -73,6 +78,53 @@
 .page-settings-dialog form {
   display: grid;
   gap: 16px;
+}
+
+.page-settings-details-form {
+  padding-top: 20px;
+}
+
+.page-settings-details-form footer {
+  justify-content: flex-end;
+}
+
+.page-settings-destructive-actions {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.page-settings-origin-actions {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.page-settings-origin-actions small {
+  max-width: 420px;
+  color: #8b919b;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.page-settings-danger-action {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(193, 128, 122, 0.65);
+  border-radius: 10px;
+  cursor: pointer;
+  color: #91463f;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.page-settings-danger-action:hover:not(:disabled) {
+  border-color: rgba(181, 78, 71, 0.82);
+  color: #a7433d;
 }
 
 .page-settings-held-content[hidden] {
@@ -210,6 +262,13 @@
 
 .page-settings-folder-button:hover:not(:disabled) {
   border-color: #9eaaba;
+}
+
+.page-settings-dialog button:hover:not(:disabled),
+.app-settings-dialog button:hover:not(:disabled),
+.delete-confirmation-dialog button:hover:not(:disabled) {
+  outline: 1px solid rgba(158, 170, 186, 0.82);
+  outline-offset: 1px;
 }
 
 .page-publishing-actions {
@@ -745,14 +804,12 @@
   border-color: transparent;
 }
 
-.app-settings-pages-section,
 .app-settings-instructions-section {
   padding: 21px 0 28px;
   border-top: 0;
   border-bottom: 1px solid rgba(210, 215, 221, 0.86);
 }
 
-.app-settings-pages-section h3,
 .app-settings-instructions-section h3 {
   margin: 0;
   color: #3c3f45;

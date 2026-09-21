@@ -50,6 +50,8 @@
 .global-settings:hover {
   color: rgba(255, 255, 255, 0.9);
   background: transparent;
+  outline: 1px solid rgba(255, 255, 255, 0.48);
+  outline-offset: 1px;
 }
 
 .topbar-actions {
@@ -142,7 +144,7 @@
 .pages-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(0, 410px));
-  gap: 20px;
+  gap: 36px;
   align-items: start;
 }
 
@@ -179,6 +181,15 @@
 
 .site-card[role='button'] {
   cursor: pointer;
+}
+
+.site-card--synchronizing[role='button'] {
+  cursor: wait;
+}
+
+.site-card--synchronizing .site-preview,
+.site-card--synchronizing .site-card-content {
+  pointer-events: none;
 }
 
 .site-preview {
@@ -228,7 +239,7 @@
 .site-description {
   min-height: 40px;
   margin: 5px 0 5px;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.64);
   font-size: 14px;
   line-height: 1.55;
 }
@@ -250,6 +261,7 @@
   place-items: center;
   padding: 0;
   border: 0;
+  border-radius: 10px;
   color: rgba(255, 255, 255, 0.9);
   background: transparent;
   cursor: pointer;
@@ -271,12 +283,57 @@
   cursor: default;
 }
 
+.card-publication-pending {
+  cursor: pointer;
+}
+
+.card-publication-current-link {
+  cursor: pointer;
+}
+
+.card-publication-icon {
+  display: inline-grid;
+  place-items: center;
+}
+
+.card-publication-icon--hover {
+  display: none;
+}
+
+.card-publication-current-link:hover:not(:disabled) .card-publication-icon--current,
+.card-publication-current-link:focus-visible .card-publication-icon--current {
+  display: none;
+}
+
+.card-publication-current-link:hover:not(:disabled) .card-publication-icon--hover,
+.card-publication-current-link:focus-visible .card-publication-icon--hover {
+  display: inline-grid;
+}
+
 .card-action:hover,
 .card-action:focus,
 .card-action:active {
   border-color: transparent;
   color: rgba(255, 255, 255, 0.9);
   background: transparent;
+}
+
+.card-action:hover:not(:disabled) {
+  outline: 1px solid rgba(255, 255, 255, 0.52);
+  outline-offset: 1px;
+}
+
+.site-card-actions > .card-origin-status {
+  order: 1;
+}
+
+.site-card-actions > .card-publication-pending,
+.site-card-actions > .card-publication-current-link {
+  order: 2;
+}
+
+.site-card-actions > .card-settings-action {
+  order: 3;
 }
 
 .card-action:focus-visible,
@@ -352,8 +409,8 @@
 
 .add-page-card {
   display: inline-flex;
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   min-height: 0;
   align-items: center;
   align-self: start;
@@ -361,6 +418,7 @@
   justify-self: start;
   padding: 0;
   border: 0;
+  border-radius: 12px;
   color: rgba(255, 255, 255, 0.9);
   background: transparent;
   box-shadow: none;
@@ -371,6 +429,8 @@
 .add-page-card:hover {
   color: rgba(255, 255, 255, 0.9);
   background: transparent;
+  outline: 1px solid rgba(255, 255, 255, 0.48);
+  outline-offset: 1px;
 }
 
 .add-page-card:disabled {

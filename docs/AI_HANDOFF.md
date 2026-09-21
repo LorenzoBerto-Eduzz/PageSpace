@@ -38,7 +38,7 @@
 - Source remains in `project/`. The canonical local repository path is
   `C:\C.Nvme\Projects\PageSpace`.
 - Private per-page metadata uses `.pagespace/`.
-- The current application version is `0.1.1`.
+- The current application version is `0.1.0`, the first public PageSpace release checkpoint.
 
 ## Implemented PageSpace Foundation
 
@@ -149,7 +149,7 @@
 - `remoterelease` is the owner command for the complete public application-release workflow:
   memory/Git checkpoint, semantic version bump, clean build, stable-name ZIP, version tag, GitHub
   Release publication, and verification of the public asset digest/latest-release response.
-- Post-v0.1.1 local milestone: dashboard cards keep a fixed 420px width and reflow by whole cards;
+- Local milestone before the first public release: dashboard cards keep a fixed 420px width and reflow by whole cards;
   previews use one measured 11:6 capture/display viewport with gap-free top-aligned filling;
   opening a card is immediate and reuses generated output instead of synchronizing and rebuilding
   first; missing descriptions display `Adicionar descrição`; and the main window safely restores
@@ -160,7 +160,7 @@
   accounts expose their profile and disconnect action without initial-state flicker, and version
   checks show installed/latest values with state-specific actions and inline connection failure.
   Development mode may check the official release version, but self-installation remains available
-  only to packaged Windows builds. These post-v0.1.1 changes remain local until `remoterelease`.
+  only to packaged Windows builds. These changes are included in the first public release.
 - Publication changes completed inside a page's settings modal now flow through the dashboard's
   shared page record immediately. The still-open page view renders its header publication action
   from that shared record, so initial publication, update publication, or deletion no longer
@@ -173,6 +173,8 @@
   retained page-settings icon on each card, and an import spinner in the add-page control until the
   managed copy and card are ready. Page-settings content is retained in source but temporarily
   hidden while its replacement layout is designed.
+- Dashboard origin indicators are interactive: `Atualizado com Origem` opens the linked source
+  folder, while an unavailable-origin warning opens page settings so the source can be restored.
 - `PageSpace-Dev.cmd` is the owner's rapid visual-testing launcher. It runs electron-vite directly
   from source, uses the isolated `PageSpace Development` Windows profile, and supports renderer hot
   reload. This workstation keeps its required Node executable under ignored

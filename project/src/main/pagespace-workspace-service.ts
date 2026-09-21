@@ -205,6 +205,41 @@ export class PageSpaceWorkspaceService {
     return result.page
   }
 
+  async getPageSourceFolderPath(pageId: string): Promise<string> {
+    const located = await this.findPage(pageId)
+    if (located.page.source.kind === 'simple' || !located.page.sourceLink) {
+      throw new Error('Esta página não possui uma pasta de origem vinculada.')
+    }
+    if (!(await this.pathExists(located.page.sourceLink.directory))) {
+      throw new Error('A pasta de origem não foi encontrada.')
+    }
+    return located.page.sourceLink.directory
+  }
+
+  async restorePageSourceFolder(pageId: string): Promise<string> {
+    const located = await this.findPage(pageId)
+    const sourceLink = located.page.sourceLink
+    if (located.page.source.kind === 'simple' || !sourceLink) {
+      throw new Error('Esta página não possui uma pasta de origem para recriar.')
+    }
+    if (await this.pathExists(sourceLink.directory)) {
+      throw new Error('A pasta de origem ainda existe. Abra-a ou escolha outra ação.')
+    }
+    const storedSource =
+      located.page.source.kind === 'website'
+        ? this.websiteDirectory(located.folderPath)
+        : this.packageDirectory(located.folderPath)
+    if (!(await this.pathExists(storedSource))) {
+      throw new Error('A cópia limpa da origem não está disponível.')
+    }
+    await fileSystem.mkdir(dirname(sourceLink.directory), { recursive: true })
+    await fileSystem.cp(storedSource, sourceLink.directory, {
+      recursive: true,
+      errorOnExist: true
+    })
+    return sourceLink.directory
+  }
+
   async getPage(pageId: string): Promise<PageEditorData> {
     const located = await this.findPage(pageId)
     const page = this.toSummary(

@@ -85,6 +85,54 @@ export function CloudIcon(props: IconProps): React.JSX.Element {
   )
 }
 
+export function CloudUploadIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M5.5 18H5.8a5 5 0 1 1 0-10A6.8 6.8 0 0 1 18.5 9.5a5 5 0 0 1 .5 8.5h-2" />
+      <path d="M11.5 20v-8" />
+      <path d="m8 14.8 3.5-3.2 3.5 3.2" />
+    </Icon>
+  )
+}
+
+export function CloudCheckIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M5.5 18H5.8a5 5 0 1 1 0-10A6.8 6.8 0 0 1 18.5 9.5a5 5 0 0 1 .5 8.5h-2" />
+      <path d="m7 14 5 3.8 5-5" />
+    </Icon>
+  )
+}
+
+export function FolderCheckIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M5.75 18H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-2" />
+      <path d="m7 14 5 3.8 5-6" />
+    </Icon>
+  )
+}
+
+export function FolderWarningIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M8 18H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-2" />
+      <path d="M12 10v5" />
+      <circle cx="12" cy="18" r="1" fill="currentColor" stroke="none" />
+    </Icon>
+  )
+}
+
+export function ExternalLinkIcon(props: IconProps): React.JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M14 5h5v5" />
+      <path d="m19 5-8 8" />
+      <path d="M19 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5" />
+    </Icon>
+  )
+}
+
 export function ArrowUpIcon(props: IconProps): React.JSX.Element {
   return (
     <Icon {...props}>
@@ -146,8 +194,8 @@ export function PencilIcon(props: IconProps): React.JSX.Element {
 export function SaveIcon(props: IconProps): React.JSX.Element {
   return (
     <Icon {...props}>
-      <path d="M5 3h12l2 2v16H5V3Z" />
-      <path d="M8 3v6h8V3M8 21v-7h8v7" />
+      <path d="M6 3.5h11.2L20 6.3v13.2a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19.5v-14A2 2 0 0 1 6 3.5Z" />
+      <path d="M7.5 3.5v6h8v-6M7.5 14h9v7h-9z" />
     </Icon>
   )
 }

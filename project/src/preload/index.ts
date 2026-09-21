@@ -11,12 +11,16 @@ contextBridge.exposeInMainWorld(
   Object.freeze({
     listPages: () => ipcRenderer.invoke('pages:list'),
     synchronizePageSources: () => ipcRenderer.invoke('pages:synchronize-sources'),
-    importPage: async () => {
+    importPage: async (onImportStarted?: () => void) => {
+      const handleImportStarted = (): void => onImportStarted?.()
+      ipcRenderer.once('pages:import-started', handleImportStarted)
       try {
         return await ipcRenderer.invoke('pages:import')
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         throw new Error(cleanIpcErrorMessage(message))
+      } finally {
+        ipcRenderer.removeListener('pages:import-started', handleImportStarted)
       }
     },
     getPage: async (pageId: string) => {
@@ -90,6 +94,20 @@ contextBridge.exposeInMainWorld(
         await ipcRenderer.invoke('pages:open-folder', pageId)
       } catch {
         throw new Error('Não foi possível abrir a pasta da página.')
+      }
+    },
+    openPageSourceFolder: async (pageId: string) => {
+      try {
+        await ipcRenderer.invoke('pages:open-source-folder', pageId)
+      } catch {
+        throw new Error('Não foi possível abrir a pasta de origem.')
+      }
+    },
+    restorePageSourceFolder: async (pageId: string) => {
+      try {
+        return await ipcRenderer.invoke('pages:restore-source-folder', pageId)
+      } catch {
+        throw new Error('Não foi possível recriar a pasta de origem.')
       }
     },
     openLocalPage: async (pageId: string) => {

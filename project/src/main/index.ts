@@ -361,13 +361,14 @@ app.whenReady().then(() => {
   ipcMain.handle('pages:synchronize-sources', async () =>
     synchronizeChangedPageSources(pageWorkspace)
   )
-  ipcMain.handle('pages:import', async () => {
+  ipcMain.handle('pages:import', async (event) => {
     const selection = await dialog.showOpenDialog({
       title: 'Trazer página para o PageSpace',
       properties: ['openDirectory'],
       buttonLabel: 'Trazer página'
     })
     if (selection.canceled || selection.filePaths.length !== 1) return null
+    event.sender.send('pages:import-started')
     const imported = await pageWorkspace.importPage(selection.filePaths[0])
     try {
       imported.page.previewDataUrl = await captureCleanPagePreview(pageWorkspace, imported.page.id)
@@ -440,6 +441,14 @@ app.whenReady().then(() => {
     const openError = await shell.openPath(folderPath)
     if (openError) throw new Error(openError)
   })
+  ipcMain.handle('pages:open-source-folder', async (_, pageId: string) => {
+    const folderPath = await pageWorkspace.getPageSourceFolderPath(pageId)
+    const openError = await shell.openPath(folderPath)
+    if (openError) throw new Error(openError)
+  })
+  ipcMain.handle('pages:restore-source-folder', (_, pageId: string) =>
+    pageWorkspace.restorePageSourceFolder(pageId)
+  )
   ipcMain.handle('pages:open-local', async (_, pageId: string) => {
     const generated = await pageWorkspace.generatePageSite(pageId)
     const openError = await shell.openPath(generated.indexPath)

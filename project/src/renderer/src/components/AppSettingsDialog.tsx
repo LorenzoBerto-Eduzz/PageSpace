@@ -362,10 +362,6 @@ export function AppSettingsDialog({
           {error ? <p className="dialog-error">{error}</p> : null}
         </section>
 
-        <section className="app-settings-section app-settings-pages-section">
-          <h3>Páginas</h3>
-        </section>
-
         <section className="app-settings-section app-settings-instructions-section">
           <h3>Instruções</h3>
           <div className="app-instructions-layout">

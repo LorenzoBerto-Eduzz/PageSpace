@@ -20,6 +20,7 @@ function toDashboardPage(page: PageSummary): DashboardPage {
     health: page.health,
     source: page.source,
     sourceSync: page.sourceSync,
+    publicUrl: page.deployment.kind === 'published' ? page.deployment.publicUrl : undefined,
     hasUnpublishedChanges:
       page.deployment.kind === 'published' &&
       (page.deployment.hasUnpublishedChanges === true || Boolean(page.deployment.pendingCommitOid))
@@ -39,8 +40,10 @@ function App(): React.JSX.Element {
   const [isAppSettingsOpen, setIsAppSettingsOpen] = useState(false)
   const [gitHubStatus, setGitHubStatus] = useState<GitHubConnectionStatus | null>(null)
   const [refreshingSourceId, setRefreshingSourceId] = useState<string | null>(null)
+  const [publishingPageId, setPublishingPageId] = useState<string | null>(null)
   const [synchronizingSourceIds, setSynchronizingSourceIds] = useState<Set<string>>(new Set())
   const synchronizationInProgress = useRef<Promise<PageSummary[]> | null>(null)
+  const importRequestInProgress = useRef(false)
 
   const synchronizePageSources = useCallback((): Promise<PageSummary[]> => {
     if (!synchronizationInProgress.current) {
@@ -55,7 +58,7 @@ function App(): React.JSX.Element {
     async (detectedPages?: PageSummary[]): Promise<PageSummary[]> => {
       const currentPages = detectedPages ?? (await window.pageSpace.listPages())
       const updatingIds = currentPages
-        .filter((page) => page.sourceSync.state === 'update-available')
+        .filter((page) => page.source.kind !== 'simple' && page.sourceSync.state !== 'unlinked')
         .map((page) => page.id)
       if (updatingIds.length > 0) {
         setSynchronizingSourceIds((current) => new Set([...current, ...updatingIds]))
@@ -136,10 +139,10 @@ function App(): React.JSX.Element {
   }, [synchronizePageSourcesWithProgress])
 
   async function importPage(): Promise<void> {
-    if (isImporting) return
-    setIsImporting(true)
+    if (importRequestInProgress.current) return
+    importRequestInProgress.current = true
     try {
-      const result = await window.pageSpace.importPage()
+      const result = await window.pageSpace.importPage(() => setIsImporting(true))
       if (!result) return
       setPages((currentPages) => [
         result.page,
@@ -153,6 +156,7 @@ function App(): React.JSX.Element {
       window.alert(message)
     } finally {
       setIsImporting(false)
+      importRequestInProgress.current = false
     }
   }
 
@@ -191,6 +195,26 @@ function App(): React.JSX.Element {
       )
     } finally {
       setRefreshingSourceId(null)
+    }
+  }
+
+  async function publishPage(pageId: string): Promise<void> {
+    if (publishingPageId) return
+    try {
+      const status = await window.pageSpace.getGitHubStatus()
+      if (status.state !== 'connected') {
+        setIsAppSettingsOpen(true)
+        return
+      }
+      setPublishingPageId(pageId)
+      const result = await window.pageSpace.publishPage({ pageId })
+      updatePage(result.page)
+    } catch (publishError) {
+      window.alert(
+        publishError instanceof Error ? publishError.message : 'Não foi possível publicar a página.'
+      )
+    } finally {
+      setPublishingPageId(null)
     }
   }
 
@@ -309,7 +333,9 @@ function App(): React.JSX.Element {
                 key={page.id}
                 page={page}
                 onRefreshSource={refreshPageSource}
+                onPublish={publishPage}
                 isRefreshingSource={refreshingSourceId === page.id}
+                isPublishing={publishingPageId === page.id}
                 isSynchronizingSource={
                   synchronizingSourceIds.has(page.id) || refreshingSourceId === page.id
                 }

@@ -1,6 +1,9 @@
 import {
-  ArrowUpIcon,
-  CloudIcon,
+  CloudCheckIcon,
+  CloudUploadIcon,
+  ExternalLinkIcon,
+  FolderCheckIcon,
+  FolderWarningIcon,
   EyeIcon,
   LockIcon,
   RefreshIcon,
@@ -21,6 +24,7 @@ export type DashboardPage = {
   source: PageSource
   sourceSync: PageSourceSync
   hasUnpublishedChanges?: boolean
+  publicUrl?: string
 }
 
 type SiteCardProps = {
@@ -30,8 +34,10 @@ type SiteCardProps = {
   onOpenLocal?: (pageId: string) => void
   onProblem?: (pageId: string) => void
   onRefreshSource?: (pageId: string) => void
+  onPublish?: (pageId: string) => void
   isRefreshingSource?: boolean
   isSynchronizingSource?: boolean
+  isPublishing?: boolean
 }
 
 function PreviewCanvas({ page }: SiteCardProps): React.JSX.Element {
@@ -53,23 +59,27 @@ export function SiteCard({
   onOpenLocal,
   onProblem,
   onRefreshSource,
+  onPublish,
   isRefreshingSource,
-  isSynchronizingSource
+  isSynchronizingSource,
+  isPublishing
 }: SiteCardProps): React.JSX.Element {
   const className = ['site-card', page.health === 'damaged' ? 'site-card--damaged' : '']
     .filter(Boolean)
     .join(' ')
 
   function activate(): void {
+    if (isSynchronizingSource) return
     if (page.health === 'damaged') onProblem?.(page.id)
     else onOpen?.(page.id)
   }
 
   return (
     <article
-      className={className}
-      tabIndex={0}
+      className={`${className}${isSynchronizingSource ? ' site-card--synchronizing' : ''}`}
+      tabIndex={isSynchronizingSource ? -1 : 0}
       role="button"
+      aria-disabled={isSynchronizingSource}
       aria-label={`Abrir edição de ${page.name}`}
       onClick={(event) => {
         if (!(event.target instanceof Element && event.target.closest('.card-action'))) {
@@ -91,16 +101,7 @@ export function SiteCard({
 
         <footer className="site-card-actions">
           <div className="site-card-held-actions" hidden aria-hidden="true">
-            {isSynchronizingSource ? (
-              <span
-                className="card-action card-action--synchronizing"
-                role="status"
-                aria-label="Atualizando página da origem"
-                title="Atualizando página"
-              >
-                <span aria-hidden="true" />
-              </span>
-            ) : page.sourceSync.state === 'update-available' ? (
+            {page.sourceSync.state === 'update-available' ? (
               <button
                 className="card-action card-action--refresh"
                 type="button"
@@ -146,24 +147,35 @@ export function SiteCard({
                 <EyeIcon size={18} />
               </button>
             ) : null}
-            {page.hasUnpublishedChanges && page.health !== 'damaged' ? (
-              <span
-                className="card-action card-publication-pending"
-                role="status"
-                aria-label="Alterações ainda não publicadas"
-                title="Alterações ainda não publicadas"
-              >
-                <ArrowUpIcon size={19} />
-              </span>
-            ) : page.status === 'published' ? (
-              <span
-                className="card-action card-publication-current"
-                aria-label="Publicação atualizada"
-                title="Publicação atualizada"
-                role="status"
-              >
-                <CloudIcon size={19} />
-              </span>
+            {page.health !== 'damaged' ? (
+              page.status === 'published' && !page.hasUnpublishedChanges && page.publicUrl ? (
+                <button
+                  className="card-action card-publication-current card-publication-current-link"
+                  type="button"
+                  aria-label="Abrir página publicada"
+                  title="Abrir página publicada"
+                  disabled={isSynchronizingSource || isPublishing}
+                  onClick={() => void window.pageSpace.openPageLink(page.publicUrl as string)}
+                >
+                  <span className="card-publication-icon card-publication-icon--current">
+                    <CloudCheckIcon size={30} />
+                  </span>
+                  <span className="card-publication-icon card-publication-icon--hover">
+                    <ExternalLinkIcon size={25} />
+                  </span>
+                </button>
+              ) : (
+                <button
+                  className="card-action card-publication-pending"
+                  type="button"
+                  aria-label={page.status === 'published' ? 'Atualizar página' : 'Publicar página'}
+                  title={page.status === 'published' ? 'Atualizar página' : 'Publicar página'}
+                  disabled={isSynchronizingSource || isPublishing}
+                  onClick={() => onPublish?.(page.id)}
+                >
+                  <CloudUploadIcon size={30} />
+                </button>
+              )
             ) : (
               <button
                 className="card-action"
@@ -177,10 +189,73 @@ export function SiteCard({
               </button>
             )}
           </div>
+          {page.health !== 'damaged' ? (
+            page.status === 'published' && !page.hasUnpublishedChanges && page.publicUrl ? (
+              <button
+                className="card-action card-publication-current card-publication-current-link"
+                type="button"
+                aria-label="Abrir página publicada"
+                title="Abrir página publicada"
+                disabled={isSynchronizingSource || isPublishing}
+                onClick={() => void window.pageSpace.openPageLink(page.publicUrl as string)}
+              >
+                <span className="card-publication-icon card-publication-icon--current">
+                  <CloudCheckIcon size={21} />
+                </span>
+                <span className="card-publication-icon card-publication-icon--hover">
+                  <ExternalLinkIcon size={21} />
+                </span>
+              </button>
+            ) : (
+              <button
+                className="card-action card-publication-pending"
+                type="button"
+                aria-label={page.status === 'published' ? 'Atualizar página' : 'Publicar página'}
+                title={page.status === 'published' ? 'Atualizar página' : 'Publicar página'}
+                disabled={isSynchronizingSource || isPublishing}
+                onClick={() => onPublish?.(page.id)}
+              >
+                <CloudUploadIcon size={21} />
+              </button>
+            )
+          ) : null}
+          {isSynchronizingSource ? (
+            <span
+              className="card-action card-action--synchronizing"
+              role="status"
+              aria-label="Verificando a origem da página"
+              title="Verificando origem"
+            >
+              <span aria-hidden="true" />
+            </span>
+          ) : page.source.kind === 'simple' ||
+            page.sourceSync.state === 'unavailable' ||
+            page.sourceSync.state === 'unlinked' ? (
+            <button
+              className="card-action card-origin-status card-origin-status--warning"
+              type="button"
+              aria-label="Origem da página indisponível"
+              title="Origem indisponível"
+              onClick={() => onOpenSettings?.(page.id)}
+            >
+              <FolderWarningIcon size={20} />
+            </button>
+          ) : (
+            <button
+              className="card-action card-origin-status"
+              type="button"
+              aria-label="Atualizado com Origem"
+              title="Atualizado com Origem"
+              onClick={() => void window.pageSpace.openPageSourceFolder(page.id)}
+            >
+              <FolderCheckIcon size={20} />
+            </button>
+          )}
           <button
-            className="card-action"
+            className="card-action card-settings-action"
             type="button"
             aria-label="Configurar página"
+            disabled={isSynchronizingSource}
             onClick={() =>
               page.health === 'damaged' ? onProblem?.(page.id) : onOpenSettings?.(page.id)
             }

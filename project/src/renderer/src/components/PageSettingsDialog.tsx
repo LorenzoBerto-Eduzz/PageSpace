@@ -26,6 +26,7 @@ export function PageSettingsDialog({
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false)
+  const [isPublicationConfirmationOpen, setIsPublicationConfirmationOpen] = useState(false)
   const [isDeletingPublication, setIsDeletingPublication] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [github, setGitHub] = useState<GitHubConnectionStatus | null>(null)
@@ -66,6 +67,42 @@ export function PageSettingsDialog({
       await window.pageSpace.openPageFolder(page.id)
     } catch (openError) {
       setError(openError instanceof Error ? openError.message : 'Não foi possível abrir a pasta.')
+    }
+  }
+
+  async function openSourceFolder(): Promise<void> {
+    setError(null)
+    try {
+      await window.pageSpace.openPageSourceFolder(page.id)
+    } catch (openError) {
+      setError(
+        openError instanceof Error ? openError.message : 'Não foi possível abrir a pasta de origem.'
+      )
+    }
+  }
+
+  async function restoreSourceFolder(): Promise<void> {
+    if (isBusy || page.sourceSync.state !== 'unavailable') return
+    if (
+      !window.confirm(
+        'A pasta de origem não foi encontrada. Recriar uma cópia limpa no mesmo caminho? As edições personalizadas não serão copiadas.'
+      )
+    ) {
+      return
+    }
+    setError(null)
+    setIsSaving(true)
+    try {
+      await window.pageSpace.restorePageSourceFolder(page.id)
+      onUpdated((await window.pageSpace.getPage(page.id)).page)
+    } catch (restoreError) {
+      setError(
+        restoreError instanceof Error
+          ? restoreError.message
+          : 'Não foi possível recriar a pasta de origem.'
+      )
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -121,6 +158,7 @@ export function PageSettingsDialog({
         pageId: page.id
       })
       onUpdated(result.page)
+      setIsPublicationConfirmationOpen(false)
     } catch (deleteError) {
       setError(
         deleteError instanceof Error
@@ -153,9 +191,11 @@ export function PageSettingsDialog({
           <ModalCloseButton onClick={onClose} disabled={isBusy} />
         </header>
 
-        <form className="page-settings-held-content" hidden aria-hidden="true" onSubmit={save}>
+        <div className="page-settings-divider" />
+
+        <form className="page-settings-details-form" onSubmit={save}>
           <label>
-            Nome da página
+            Título
             <input
               autoFocus
               value={name}
@@ -178,6 +218,67 @@ export function PageSettingsDialog({
             />
           </label>
 
+          {error ? <p className="dialog-error">{error}</p> : null}
+
+          <footer>
+            <button
+              className="dialog-button dialog-button--primary"
+              type="submit"
+              disabled={!hasChanges || isBusy || !name.trim()}
+            >
+              {isSaving ? 'Salvando…' : 'Salvar'}
+            </button>
+          </footer>
+        </form>
+
+        {page.source.kind !== 'simple' ? (
+          <div className="page-settings-origin-actions">
+            <button
+              className="page-settings-folder-button"
+              type="button"
+              disabled={isBusy}
+              onClick={() =>
+                page.sourceSync.state === 'unavailable'
+                  ? void restoreSourceFolder()
+                  : void openSourceFolder()
+              }
+            >
+              {page.sourceSync.state === 'unavailable'
+                ? 'Recriar pasta origem'
+                : 'Abrir pasta origem'}
+            </button>
+            {page.sourceSync.state === 'unavailable' ? (
+              <small>
+                A pasta de origem não foi encontrada. A atualização automática está pausada.
+              </small>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="page-settings-destructive-actions">
+          {page.deployment.kind === 'published' ? (
+            <button
+              className="page-settings-danger-action"
+              type="button"
+              disabled={!hasPublishingAccount || isBusy}
+              onClick={() => setIsPublicationConfirmationOpen(true)}
+            >
+              {isDeletingPublication
+                ? 'Deletando publicação…'
+                : 'Excluir publicação (Deletar repositório)'}
+            </button>
+          ) : null}
+          <button
+            className="page-settings-danger-action"
+            type="button"
+            disabled={isBusy}
+            onClick={() => setIsDeleteConfirmationOpen(true)}
+          >
+            Excluir página (Deletar cópia salva)
+          </button>
+        </div>
+
+        <div className="page-settings-held-content" hidden aria-hidden="true">
           <label className="folder-name-field">
             Nome da pasta original
             <input value={page.folderName} readOnly tabIndex={-1} />
@@ -279,8 +380,6 @@ export function PageSettingsDialog({
             ) : null}
           </section>
 
-          {error ? <p className="dialog-error">{error}</p> : null}
-
           <footer>
             <button
               className="dialog-button page-settings-delete-button"
@@ -290,16 +389,8 @@ export function PageSettingsDialog({
             >
               Excluir página
             </button>
-            <span className="page-settings-footer-spacer" />
-            <button
-              className="dialog-button dialog-button--primary"
-              type="submit"
-              disabled={!hasChanges || isBusy || !name.trim()}
-            >
-              {isSaving ? 'Salvando…' : 'Salvar'}
-            </button>
           </footer>
-        </form>
+        </div>
       </section>
 
       {isDeleteConfirmationOpen ? (
@@ -330,6 +421,43 @@ export function PageSettingsDialog({
                 onClick={deletePage}
               >
                 {isDeleting ? 'Excluindo…' : 'Mover para a Lixeira'}
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+      {isPublicationConfirmationOpen ? (
+        <div className="delete-confirmation-backdrop" role="presentation">
+          <section
+            className="delete-confirmation-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-publication-title"
+          >
+            <header>
+              <h2 id="delete-publication-title">Deletar publicação?</h2>
+              <ModalCloseButton
+                onClick={() => setIsPublicationConfirmationOpen(false)}
+                disabled={isDeletingPublication}
+              />
+            </header>
+            <p>
+              O repositório{' '}
+              <strong>
+                @{page.deployment.kind === 'published' ? page.deployment.owner : ''}/
+                {page.deployment.kind === 'published' ? page.deployment.repository : ''}
+              </strong>{' '}
+              será excluído do GitHub.
+            </p>
+            <p>A cópia local da página não será afetada.</p>
+            <footer>
+              <button
+                className="dialog-button delete-confirmation-button"
+                type="button"
+                disabled={isDeletingPublication}
+                onClick={() => void deletePublication()}
+              >
+                {isDeletingPublication ? 'Deletando…' : 'Excluir repositório'}
               </button>
             </footer>
           </section>

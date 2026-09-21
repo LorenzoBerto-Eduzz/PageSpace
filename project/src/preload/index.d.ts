@@ -21,7 +21,7 @@ declare global {
     pageSpace: Readonly<{
       listPages: () => Promise<PageSummary[]>
       synchronizePageSources: () => Promise<PageSummary[]>
-      importPage: () => Promise<ImportPageResult | null>
+      importPage: (onImportStarted?: () => void) => Promise<ImportPageResult | null>
       getPage: (pageId: string) => Promise<PageEditorData>
       getPagePreviewUrl: (pageId: string) => Promise<string>
       refreshPageFromSource: (pageId: string) => Promise<PageSummary>
@@ -32,6 +32,8 @@ declare global {
       capturePagePreview: (pageId: string) => Promise<string>
       updatePageDetails: (input: UpdatePageDetailsInput) => Promise<PageSummary>
       openPageFolder: (pageId: string) => Promise<void>
+      openPageSourceFolder: (pageId: string) => Promise<void>
+      restorePageSourceFolder: (pageId: string) => Promise<string>
       openLocalPage: (pageId: string) => Promise<void>
       openPublishedPage: (pageId: string) => Promise<void>
       openPublishedRepository: (pageId: string) => Promise<void>
