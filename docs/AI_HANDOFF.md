@@ -208,11 +208,12 @@
 ## Next Product Milestone
 
 Core local/import/edit/save/bake/publish/update behavior has reached the owner's usable checkpoint,
-and the private SotoDashboard handoff is functionally ready. Before the first intended public
-PageSpace release, the owner will complete focused visual and element adjustments to application
-buttons, controls, spacing, and presentation. After visual approval, perform a release audit,
-normalize the intended version/commit/release metadata, run the full clean-release verification,
-and only then execute the explicitly requested first `remoterelease`.
+the SotoDashboard handoff is functionally ready, and the first public `v0.1.0` release is published.
+The next deferred product investigation is private/internal publication: determine whether the
+company has GitHub Enterprise Cloud for organization-owned private Pages or whether a separate
+authenticated hosting provider is needed. The current personal-account GitHub Pages flow remains
+public-only; do not change it until the provider, permissions, audience model, and security boundary
+are explicitly chosen.
 
 ## Durable Safety Decisions
 

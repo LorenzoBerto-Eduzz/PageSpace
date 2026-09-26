@@ -65,6 +65,9 @@ public site, and preserves compatible user values during package updates.
 11. `Excluir publicação` immediately deletes the remote repository and returns the preserved local
     page to local-only.
 
+The current publication target is public GitHub Pages. Private or internal publication is a future
+provider/account-capability investigation; it is not provided by the current personal-account flow.
+
 Local save and source synchronization are not Git commits. They update the managed copy, bake
 verified output when appropriate, and mark an existing publication as outdated. A Git commit and
 push occur only during the user's explicit initial publication or publication update, and only
@@ -121,8 +124,9 @@ Persistent test update: cd project; npm run refresh:localrelease
    of its existing publication.
 2. Add stable package-declared title, section, and card variables only after the page design is
    settled, preserving private instance values across compatible template versions.
-3. Validate editable package content, images, baking, updates, and publication as one lifecycle.
-4. Continue source synchronization and remote-conflict hardening before colleague delivery.
+3. Investigate an optional private/internal publication destination and its authentication model;
+   do not assume ordinary GitHub Pages can provide this boundary.
+4. Continue source synchronization and remote-conflict hardening before future product expansion.
 
 ## Glossary
 

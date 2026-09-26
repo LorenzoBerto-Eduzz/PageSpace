@@ -111,6 +111,21 @@ Never publish:
 GitHub Pages is public. Authentication required by a destination link does not make the link
 inventory itself private.
 
+## Private Or Internal Publication (Future Product Work)
+
+The current GitHub publication flow is intentionally public-only. A private or internal GitHub
+Pages site is not a simple per-page switch on ordinary personal GitHub accounts: GitHub's access
+control for private Pages requires an organization-owned private or internal repository on GitHub
+Enterprise Cloud. Any future PageSpace option for that mode must therefore verify the connected
+organization, repository visibility, Pages access-control capability, and the intended audience
+before publishing.
+
+If the company does not use GitHub Enterprise Cloud, private delivery would require a separate
+authenticated hosting destination (for example, an internal server or an access-controlled host)
+and a new provider integration. Do not describe a private repository or an obscured URL as private
+web hosting. This remains a product investigation item and does not change the current public
+GitHub Pages behavior.
+
 ## Reliability
 
 - Use schema validation, atomic writes, one validated backup, fresh generation, hash manifests,
